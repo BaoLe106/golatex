@@ -1,0 +1,38 @@
+version: "3.8"
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: doclean-backend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=${HOST}
+      - DB_PORT=${PORT}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: doclean-frontend
+    ports:
+      - "3000:80"
+
+  db:
+    image: postgres:17
+    container_name: doclean-db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - doclean-db:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  doclean-db:
