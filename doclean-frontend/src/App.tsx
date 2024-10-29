@@ -1,9 +1,9 @@
 import Layout from "@/components/layout";
 import ContainerLayout from "@/components/ContainerLayout";
 import { Separator } from "@/components/ui/separator";
-import man_using_computer from "@/assets/man_using_computer.png";
-import colab from "@/assets/colab.png";
-import everyone from "@/assets/everyone.png";
+import read_notes from "@/assets/undraw_read_notes.svg";
+import team_colab from "@/assets/undraw_team_colab.svg";
+import share_link from "@/assets/undraw_share_link.svg";
 function App() {
   return (
     <Layout>
@@ -23,17 +23,29 @@ function App() {
         <br />
         <div className="w-4/6 flex items-center">
           <ContainerLayout>
-            <img width="300" src={man_using_computer} alt="Logo" />
+            <img
+              style={{ width: "300px", height: "150px" }}
+              src={read_notes}
+              alt="Logo"
+            />
             <p className="text-2xl">Easy to use</p>
           </ContainerLayout>
           <Separator className="min-h-64 w-0.5 mx-2" orientation="vertical" />
           <ContainerLayout>
-            <img width="300" src={colab} alt="Logo" />
+            <img
+              style={{ width: "300px", height: "150px" }}
+              src={team_colab}
+              alt="Logo"
+            />
             <p className="text-2xl">Colaborative</p>
           </ContainerLayout>
           <Separator className="min-h-64 w-0.5 mx-2" orientation="vertical" />
           <ContainerLayout>
-            <img width="300" src={everyone} alt="Logo" />
+            <img
+              style={{ width: "300px", height: "150px" }}
+              src={share_link}
+              alt="Logo"
+            />
             <p className="text-2xl">For everyone</p>
           </ContainerLayout>
         </div>
