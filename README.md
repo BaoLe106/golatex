@@ -2,7 +2,24 @@
 
 Go to the root of the project:
 
-doclean/ ├── doclean-backend/ │ ├── cmd/ │ ├── go.mod │ ├── go.sum │ ├── main.go │ └── Dockerfile │ └── ... ├── frontend/ │ ├── public/ │ ├── src/ │ ├── package.json │ ├── Dockerfile │ └── ... └── docker-compose.yml
+```
+doclean/
+├── doclean-backend/
+│   ├── cmd/
+│   ├── go.mod
+│   ├── go.sum
+│   ├── main.go
+│   └── Dockerfile
+│   └── ...
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   ├── package.json
+│   ├── Dockerfile
+│   └── ...
+└── docker-compose.yml
+
+```
 
 which mean at `doclean/`
 
