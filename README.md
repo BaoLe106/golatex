@@ -18,7 +18,6 @@ doclean/
 │   ├── Dockerfile
 │   └── ...
 └── docker-compose.yml
-
 ```
 
 which mean at `doclean/`
