@@ -18,9 +18,6 @@ function App() {
         <br />
         <br />
         <br />
-        <br />
-        <br />
-        <br />
         <div className="w-4/6 flex items-center">
           <ContainerLayout>
             <img
