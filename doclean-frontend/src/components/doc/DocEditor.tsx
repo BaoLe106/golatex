@@ -2,9 +2,6 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
-// type Message = {
-//   content: string;
-// }
 
 const TOOLBAR_OPTIONS = [
     [{ header: [1, 2, 3, 4, 5, 6, false] }],
@@ -20,7 +17,6 @@ const TOOLBAR_OPTIONS = [
 
 const DocEditor: React.FC = () => {
     const [socket, setSocket] = useState<WebSocket | null>(null);
-    // const [messages, setMessages] = useState("");
     const [quill, setQuill] = useState<Quill>();
     const { sessionId } = useParams<{ sessionId: string }>();
 
@@ -28,7 +24,7 @@ const DocEditor: React.FC = () => {
     useEffect(() => {
         // Create WebSocket connection to the backend
         const socketConnection = new WebSocket(
-            `ws://localhost:8080/api/v1/md/${sessionId}`
+            `ws://localhost:8080/api/v1/doc/${sessionId}`
         );
 
         // Set the WebSocket connection to state
@@ -42,21 +38,20 @@ const DocEditor: React.FC = () => {
     // LOAD DOCUMENT DATA
     useEffect(() => {
         if (!socket || !quill) return;
-        socket.onopen = (event: any) => {
-            console.log("debug event", event);
-            if (event.data) {
-                const msg = JSON.parse(event.data);
-                quill.setContents(msg.content);
-            }
+        socket.onopen = () => quill.enable();
 
-            quill.enable();
-        };
         // socket.onmessage = (event) => {
-        // const msg = JSON.parse(event.data);
-        // console.log("debug msg content", msg.content);
-        // quill.setContents(msg.content);
-
+        //     // if (isBackendUpdate.current) return;
+        //     const msg = JSON.parse(event.data);
+        //     console.log("debug msg receive from backend", msg);
+        //     console.log("debug msg content receive from backend", msg.content);
+        //     if (!msg.content) return;
+        //     // quill.setContents(msg.content);
         // };
+
+        return () => {
+            socket.close();
+        };
     }, [socket, quill, sessionId]);
 
     // RECEIVE ONCHANGE DATA FROM BACKEND
@@ -64,10 +59,23 @@ const DocEditor: React.FC = () => {
         if (!socket || !quill) return;
 
         socket.onmessage = (event) => {
-            console.log("debug event receive from backend", event);
-            const msg = JSON.parse(event.data);
-            console.log("debug msg content receive from backend", msg.content);
-            quill.updateContents(msg.content);
+            const data = JSON.parse(event.data);
+            if (!data.content) return;
+
+            if (data.content.messages) {
+                const messages = data.content.messages;
+                messages.forEach((msg: any) => {
+                    quill.updateContents(msg);
+                });
+            } else {
+                const message = data.content;
+                quill.updateContents(message);
+            }
+        };
+
+        return () => {
+            console.log("debug close socket");
+            socket.close();
         };
     }, [socket, quill]);
 
@@ -87,10 +95,7 @@ const DocEditor: React.FC = () => {
             source: string
         ) => {
             if (source !== "user") return;
-            // delta.ops[0].insert
-            console.log("debug msg send to backend", delta);
             socket.send(JSON.stringify({ content: delta }));
-            // quill.updateContents(delta)
         };
         quill.on("text-change", handler);
 
