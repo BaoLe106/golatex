@@ -5,11 +5,11 @@ import { Separator } from "@/components/ui/separator";
 import DocEditor from "@/components/doc/DocEditor";
 
 const DocView: React.FC = () => {
-  useEffect(()=>{
+  useEffect(() => {
     //implement authentication if needed
     //if not authenticated -> navigate to /login
     //else if authenticated -> allow access
-  } , []);
+  }, []);
 
   return (
     <LayoutAuthenticated>
