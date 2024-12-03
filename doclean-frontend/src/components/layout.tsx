@@ -10,9 +10,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sessionId = uuidv4();
 
   return (
-    <div className="min-h-screen min-w-[100vw] flex flex-col">
+    <div className="min-h-screen w-screen flex flex-col">
       {/* Header */}
-      <header className="min-w-full max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b">
+      <header className="w-screen max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b">
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3">
             <a href="/">
@@ -73,15 +73,15 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         Main Content
         */}
-      <div className="flex flex-1">
-        <main className="flex-1 p-4">
-          <div className="container mx-auto">{children}</div>
+      <div className="flex flex-1 w-screen">
+        <main className="flex-1 justify-items-center w-full">
+          <div className="w-full">{children}</div>
         </main>
       </div>
 
       {/* Footer */}
-      <footer className="p-3 border-t">
-        <div className="container mx-auto text-center">
+      <footer className="p-3 border-t w-screen">
+        <div className="w-full mx-auto text-center">
           <p>©2024 Doclean. All rights reserved.</p>
         </div>
       </footer>
