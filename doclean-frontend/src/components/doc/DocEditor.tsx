@@ -9,7 +9,7 @@ import {
 } from "@syncfusion/ej2-react-documenteditor";
 
 import { registerLicense } from "@syncfusion/ej2-base";
-registerLicense("YOUR_LICENSE_KEY");
+registerLicense(import.meta.env.VITE_SYNCFUSION_KEY);
 let PAGE_HEIGHT: number = 862;
 
 const DocEditor: React.FC = () => {
