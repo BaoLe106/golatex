@@ -32,13 +32,14 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
           </div>
           <div className="flex space-x-2 mr-3  items-center">
             {/* border-solid border-inherit */}
-            <Button
+            {/* <Button
               className="border-black dark:border-white"
               variant="outline"
-            >
+            > */}
+            <Button variant="outline">
               Save
             </Button>
-            <Button className="bg-inherit" variant="ghost">
+            <Button variant="outline">
               Share
             </Button>
             <Button className="bg-inherit" variant="ghost">

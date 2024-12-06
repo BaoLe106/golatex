@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { cloneDeep } from "lodash";
 import { useParams } from "react-router-dom";
-
+import { useTheme } from "@/components/theme-provider";
 import "./styles.css";
 import {
   DocumentEditorContainerComponent,
@@ -14,14 +14,47 @@ registerLicense(import.meta.env.VITE_SYNCFUSION_KEY);
 let PAGE_HEIGHT: number = 862;
 
 const DocEditor: React.FC = () => {
+  const { theme } = useTheme();
   const documentEditorRef = useRef<DocumentEditorContainerComponent>(null);
   const [previousContent, setPreviousContent] = useState<string>('');
+  const [cssTheme, setCssTheme] = useState<string>('');
   const [socket, setSocket] = useState<WebSocket | null>(null);
   // const [quill, setQuill] = useState<Quill>();
   const { sessionId } = useParams<{ sessionId: string }>();
 
+  // fluent
+
+  useEffect(() => {
+    if (theme === "light") {
+      setCssTheme(`
+        @import "../../../node_modules/@syncfusion/ej2-base/styles/material.css";
+        @import "../../../node_modules/@syncfusion/ej2-buttons/styles/material.css";
+        @import "../../../node_modules/@syncfusion/ej2-inputs/styles/material.css";
+        @import "../../../node_modules/@syncfusion/ej2-popups/styles/material.css";
+        @import "../../../node_modules/@syncfusion/ej2-lists/styles/material.css";
+        @import "../../../node_modules/@syncfusion/ej2-navigations/styles/material.css";
+        @import "../../../node_modules/@syncfusion/ej2-splitbuttons/styles/material.css";
+        @import "../../../node_modules/@syncfusion/ej2-dropdowns/styles/material.css";
+        @import "../../../node_modules/@syncfusion/ej2-documenteditor/styles/material.css";
+      `)
+    } else {
+      setCssTheme(`
+        @import "../../../node_modules/@syncfusion/ej2-base/styles/material-dark.css";
+        @import "../../../node_modules/@syncfusion/ej2-buttons/styles/material-dark.css";
+        @import "../../../node_modules/@syncfusion/ej2-inputs/styles/material-dark.css";
+        @import "../../../node_modules/@syncfusion/ej2-popups/styles/material-dark.css";
+        @import "../../../node_modules/@syncfusion/ej2-lists/styles/material-dark.css";
+        @import "../../../node_modules/@syncfusion/ej2-navigations/styles/material-dark.css";
+        @import "../../../node_modules/@syncfusion/ej2-splitbuttons/styles/material-dark.css";
+        @import "../../../node_modules/@syncfusion/ej2-dropdowns/styles/material-dark.css";
+        @import "../../../node_modules/@syncfusion/ej2-documenteditor/styles/material-dark.css";  
+      `)
+    }
+  }, [theme]);
+
   // SET WEBSOCKET CONNECTION
   useEffect(() => {
+    
     if (documentEditorRef.current) {
       documentEditorRef.current.documentEditor.showRevisions = false;
     }
@@ -77,6 +110,9 @@ const DocEditor: React.FC = () => {
 
   return (
     <div>
+      <style>
+        {cssTheme}
+      </style>
       <DocumentEditorContainerComponent
         ref={documentEditorRef}
         height="590"
