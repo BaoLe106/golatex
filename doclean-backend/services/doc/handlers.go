@@ -3,7 +3,7 @@ package doc
 import (
 	"log"
 	"net/http"
-
+	"fmt"
 	// "github.com/BaoLe106/doclean/doclean-backend/utils"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -61,6 +61,7 @@ func (h *Handler) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	for { //run until err then break
+			fmt.Println("#DEBUG::hello")
 			var msg Message
 			err := conn.ReadJSON(&msg)
 			
@@ -70,9 +71,9 @@ func (h *Handler) HandleConnection(w http.ResponseWriter, r *http.Request) {
 			}
 			
 			h.Hub.Mutex.Lock()
-
+			fmt.Println("#DEBUG::msg", msg)
 			h.Hub.SessionData[sessionID] = append(h.Hub.SessionData[sessionID], msg.Content)
-
+			
 			for otherClient := range h.Hub.Clients {
 				if otherClient != client { // Skip the sender
 					err := otherClient.Conn.WriteJSON(msg)
