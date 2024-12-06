@@ -55,58 +55,67 @@ const DocEditor: React.FC = () => {
   // SET WEBSOCKET CONNECTION
   useEffect(() => {
     
-    if (documentEditorRef.current) {
-      documentEditorRef.current.documentEditor.showRevisions = false;
-    }
     // Create WebSocket connection to the backend
-    // const socketConnection = new WebSocket(
-    //   `ws://localhost:8080/api/v1/doc/${sessionId}`
-    // );
+    const socketConnection = new WebSocket(
+      `ws://localhost:8080/api/v1/doc/${sessionId}`
+    );
+    console.log("debug here", socketConnection)
+    // Set the WebSocket connection to state
+    setSocket(socketConnection);
 
-    // // Set the WebSocket connection to state
-    // setSocket(socketConnection);
-
-    // return () => {
-    //   socketConnection.close();
-    // };
+    return () => {
+      socketConnection.close();
+    };
   }, []);
 
+  const handleContentChange = () => {
+    if (!documentEditorRef.current || !socket) return; 
+    const editorInstance = documentEditorRef.current.documentEditor
+    const documentContent = editorInstance.serialize();
+    setPreviousContent(documentContent)
+    console.log("debug hi", socket)
+    socket.send(
+      JSON.stringify({
+        content: JSON.parse(documentContent ?? ''),
+      })
+    );
+  }
+  // useEffect(() => {
+  //   if (!documentEditorRef.current || !socket) return; 
+  //   const editorInstance = documentEditorRef.current.documentEditor
+  //   console.log('debug hello')
+  //     // documentEditorRef.current.documentEditor.showRevisions = false;
+
+  //   editorInstance.contentChange = () => {
+    
+  //     const documentContent = editorInstance.serialize();
+  //     console.log("debug hi", documentContent)
+  //     socket.send(
+  //       JSON.stringify({
+  //         type: 'contentUpdate',
+  //         content: JSON.parse(documentContent ?? ''),
+  //       })
+  //     );
+    
+  //   };
+    
+  // });
+
   useEffect(() => {
-    if (documentEditorRef.current) {
-      const editorInstance = documentEditorRef.current.documentEditor;
+    if (!socket) return;
+    socket.onmessage = (event) => {
+      console.log("debug event", event)
+      const data = JSON.parse(event.data);
+      console.log("debug data", data)
+      if (documentEditorRef.current && data && data.content) {
+        documentEditorRef.current.documentEditor.open(JSON.stringify(data.content));
+      }
+    };
 
-      // Handle content changes
-      editorInstance.contentChange = (e: any) => {
-        console.log('debug e', e)
-        // let revisions = editorInstance.revisions;
-        // console.log("debug revisions", revisions)
-        // revisions.get(0).accept();
-        // revisions.get(revisions.length - 1).accept()
-        // const currentContent = editorInstance.serialize();
-
-        // console.log("debug prev, curr", previousContent, currentContent);
-        
-        // const diffs = dmp.diff_main(previousContent, currentContent);
-        // dmp.diff_cleanupSemantic(diffs); // Optional: Clean up diffs for better readability
-        // console.log("debug Diffs:", diffs);
-
-        // // Send diffs to the server
-        // // sendDiffsToServer(diffs);
-
-        // // Update the previous content
-        setPreviousContent('a');
-      };
-    }
-  }, [previousContent]);
-  
-  const beforeAcceptRejectChanges = (args: any) => {
-    // Check the author of the revision
-    console.log("debug args", args)
-    args.cancel = false;
-  };
-
-  // const handleContentChange = (e: any) => {
-  // };
+    return () => {
+      socket.close();
+    };
+  }, [previousContent])
 
   return (
     <div>
@@ -117,10 +126,10 @@ const DocEditor: React.FC = () => {
         ref={documentEditorRef}
         height="590"
         enableToolbar={true}
-        enableTrackChanges={true}
+        // enableTrackChanges={true}
         serviceUrl="https://ej2services.syncfusion.com/production/web-services/api/documenteditor/"
         // beforeAcceptRejectChanges={beforeAcceptRejectChanges}
-        // contentChange={handleContentChange}
+        contentChange={handleContentChange}
       >
         <Inject services={[Toolbar]}></Inject>
       </DocumentEditorContainerComponent>
