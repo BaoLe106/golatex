@@ -15,7 +15,7 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
       {/* Header */}
       <header className="w-screen max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b">
         <div className="flex justify-between items-center">
-          <div className="flex space-x-2 ml-3">
+          <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
               <h1 className="text-3xl">Doclean</h1>
             </a>
@@ -30,7 +30,7 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
               </Button>
             </a> */}
           </div>
-          <div className="flex space-x-2 mr-3">
+          <div className="flex space-x-2 mr-3  items-center">
             {/* border-solid border-inherit */}
             <Button
               className="border-black dark:border-white"
