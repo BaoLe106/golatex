@@ -39,11 +39,12 @@ func (h *Handler) HandleConnection(w http.ResponseWriter, r *http.Request) {
 	client := &Client{Conn: conn, Hub: h.Hub, SessionID: sessionID}
 	h.Hub.Mutex.Lock()
 	h.Hub.Clients[client] = true
-	
+	// do not send to the current client
 	if data, exists := h.Hub.SessionData[sessionID]; exists {
-		err := client.Conn.WriteJSON(Message{Content: map[string]interface{}{
-			"messages": data,
-		}})
+		fmt.Println("#DEBUG::data", data)
+		err := client.Conn.WriteJSON(map[string]interface{}{
+			"data": data,
+		})
 
 		if err != nil {
 			log.Println("Error sending session data to client:", err)
@@ -72,9 +73,11 @@ func (h *Handler) HandleConnection(w http.ResponseWriter, r *http.Request) {
 			
 			h.Hub.Mutex.Lock()
 			fmt.Println("#DEBUG::msg", msg)
-			h.Hub.SessionData[sessionID] = append(h.Hub.SessionData[sessionID], msg.Content)
+			// fmt.Println("#DEBUG::msg content", msg.Content)
+			h.Hub.SessionData[sessionID] = append(h.Hub.SessionData[sessionID], msg)
 			
 			for otherClient := range h.Hub.Clients {
+				fmt.Println("#DEBUG::do you write here?", msg)
 				if otherClient != client { // Skip the sender
 					err := otherClient.Conn.WriteJSON(msg)
 					if err != nil {

@@ -8,15 +8,26 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// type Message struct {
+// 	Content map[string]interface{} `json:"content"`
+// }
+
 type Message struct {
-	Content map[string]interface{} `json:"content"`
+	Action       string `json:"action"`
+	Offset       int    `json:"offset"`
+	Text         string `json:"text"`
+	Type         string `json:"type"`
+	Length       int    `json:"length"`
+	SkipOperation bool  `json:"skipOperation"`
+	Format       string `json:"format"`
 }
+
 
 type Hub struct {
 	Clients 		map[*Client]bool
 	Broadcast 	chan Message
 	Mutex 			sync.Mutex
-	SessionData map[string][]map[string]interface{}
+	SessionData map[string][]Message
 }
 
 type Client struct {
@@ -29,7 +40,7 @@ func NewHub() *Hub {
 	return &Hub{
 			Clients:   		make(map[*Client]bool),
 			Broadcast: 		make(chan Message),
-			SessionData: 	make(map[string][]map[string]interface{}),
+			SessionData: 	make(map[string][]Message),
 	}
 }
 

@@ -5,24 +5,31 @@ import { useTheme } from "@/components/theme-provider";
 import "./styles.css";
 import {
   DocumentEditorContainerComponent,
+  CollaborativeEditingHandler,
+  DocumentEditorComponent,
   Toolbar,
   Inject,
+  ContainerContentChangeEventArgs,
+  Operation,
+  ActionInfo,
 } from "@syncfusion/ej2-react-documenteditor";
 
 import { registerLicense } from "@syncfusion/ej2-base";
 registerLicense(import.meta.env.VITE_SYNCFUSION_KEY);
-let PAGE_HEIGHT: number = 862;
+
+DocumentEditorContainerComponent.Inject(CollaborativeEditingHandler);
 
 const DocEditor: React.FC = () => {
   const { theme } = useTheme();
-  const documentEditorRef = useRef<DocumentEditorContainerComponent>(null);
-  const [previousContent, setPreviousContent] = useState<string>('');
+  const documentEditorRef = useRef<DocumentEditorContainerComponent | null>(null);
+  // const collaborativeEditingHandler = useRef<CollaborativeEditingHandler | null>(null);
+  // const [collaborativeEditingHandler, setCollaborativeEditingHandler] = useState<CollaborativeEditingHandler | null>(null);
+  const [collaborativeEditingHandler, setCollaborativeEditingHandler] = useState<CollaborativeEditingHandler | undefined>(undefined);
   const [cssTheme, setCssTheme] = useState<string>('');
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  // const [quill, setQuill] = useState<Quill>();
+  
   const { sessionId } = useParams<{ sessionId: string }>();
 
-  // fluent
 
   useEffect(() => {
     if (theme === "light") {
@@ -52,70 +59,86 @@ const DocEditor: React.FC = () => {
     }
   }, [theme]);
 
-  // SET WEBSOCKET CONNECTION
-  useEffect(() => {
-    
-    // Create WebSocket connection to the backend
-    const socketConnection = new WebSocket(
+  const initializeWebSocket = () => {
+    const ws = new WebSocket(
       `ws://localhost:8080/api/v1/doc/${sessionId}`
     );
-    console.log("debug here", socketConnection)
-    // Set the WebSocket connection to state
-    setSocket(socketConnection);
 
-    return () => {
-      socketConnection.close();
+    ws.onopen = () => {
+      console.log('WebSocket connection established.');
+        // connectToRoom({ action: 'connect', roomName: currentRoomName, currentUser });
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      // console.log("debug event", event)
+      console.log("debug data", data)
+      handleDataReceived(data);
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    ws.onclose = () => {
+      console.log('WebSocket connection closed.');
+    };
+
+    setSocket(ws);
+
+    // return () => {ws.close()}
+  };
+
+  const handleDataReceived = (data: any) => {
+    console.log("debug data", data)
+    if (documentEditorRef.current) {
+      const documentEditor = documentEditorRef.current.documentEditor;
+      // documentEditor.editor.insertText(data.text)
+    }
+    
+    // if (collaborativeEditingHandler) {
+    //   console.log("debug here", data)
+      
+    //   collaborativeEditingHandler.applyRemoteAction(
+    //     "action",
+    //     {operations: [data] as Operation[]} as ActionInfo
+    //   );
+      
+    // }
+  };
+
+
+  // SET WEBSOCKET CONNECTION
+  useEffect(() => {
+    initializeWebSocket();
+
+    if (documentEditorRef.current) {
+      const documentEditor = documentEditorRef.current.documentEditor;
+      documentEditor.enableCollaborativeEditing = true;
+      
+      const handler = documentEditor.collaborativeEditingHandlerModule;
+      setCollaborativeEditingHandler(handler);
+    }
+    if (socket) return () => {
+      socket.close();
     };
   }, []);
 
-  const handleContentChange = () => {
-    if (!documentEditorRef.current || !socket) return; 
-    const editorInstance = documentEditorRef.current.documentEditor
-    const documentContent = editorInstance.serialize();
-    setPreviousContent(documentContent)
-    console.log("debug hi", socket)
-    socket.send(
-      JSON.stringify({
-        content: JSON.parse(documentContent ?? ''),
-      })
-    );
-  }
-  // useEffect(() => {
-  //   if (!documentEditorRef.current || !socket) return; 
-  //   const editorInstance = documentEditorRef.current.documentEditor
-  //   console.log('debug hello')
-  //     // documentEditorRef.current.documentEditor.showRevisions = false;
-
-  //   editorInstance.contentChange = () => {
-    
-  //     const documentContent = editorInstance.serialize();
-  //     console.log("debug hi", documentContent)
-  //     socket.send(
-  //       JSON.stringify({
-  //         type: 'contentUpdate',
-  //         content: JSON.parse(documentContent ?? ''),
-  //       })
-  //     );
-    
-  //   };
-    
-  // });
-
   useEffect(() => {
     if (!socket) return;
-    socket.onmessage = (event) => {
-      console.log("debug event", event)
-      const data = JSON.parse(event.data);
-      console.log("debug data", data)
-      if (documentEditorRef.current && data && data.content) {
-        documentEditorRef.current.documentEditor.open(JSON.stringify(data.content));
-      }
-    };
+    
+    if (documentEditorRef.current) {
+      documentEditorRef.current.contentChange = (args: ContainerContentChangeEventArgs) => {
+        // console.log("debug arg", args)
+        if (args.operations)
+          // console.log("debug arg", args.operations[0])
+          // socket?.send(JSON.stringify({ content: args.operations[0]}))
+          socket?.send(JSON.stringify(args.operations[0]))
+        // collaborativeEditingHandler?.sendActionToServer(args.operations as Operation[]);
+      };
+    }
+  }, [socket]);
 
-    return () => {
-      socket.close();
-    };
-  }, [previousContent])
 
   return (
     <div>
@@ -128,10 +151,9 @@ const DocEditor: React.FC = () => {
         enableToolbar={true}
         // enableTrackChanges={true}
         serviceUrl="https://ej2services.syncfusion.com/production/web-services/api/documenteditor/"
-        // beforeAcceptRejectChanges={beforeAcceptRejectChanges}
-        contentChange={handleContentChange}
+        // serviceUrl={`http://localhost:8080/api/v1/doc/${sessionId}`}
       >
-        <Inject services={[Toolbar]}></Inject>
+        <Inject services={[Toolbar, CollaborativeEditingHandler]}></Inject>
       </DocumentEditorContainerComponent>
     </div>
   );
