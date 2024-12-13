@@ -75,11 +75,12 @@ func (h *Handler) HandleConnection(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("#DEBUG::msg", msg)
 			// fmt.Println("#DEBUG::msg content", msg.Content)
 			h.Hub.SessionData[sessionID] = append(h.Hub.SessionData[sessionID], msg)
-			
+			fmt.Println("#DEBUG::clients length", len(h.Hub.Clients))
 			for otherClient := range h.Hub.Clients {
-				fmt.Println("#DEBUG::do you write here?", msg)
+				fmt.Println("#DEBUG::do you write here?", otherClient, client)
 				if otherClient != client { // Skip the sender
 					err := otherClient.Conn.WriteJSON(msg)
+					fmt.Println("#DEBUG::really write here?")
 					if err != nil {
 						log.Println("Error broadcasting message:", err)
 						delete(h.Hub.Clients, otherClient) // Clean up disconnected clients

@@ -27,7 +27,7 @@ const DocEditor: React.FC = () => {
   const [collaborativeEditingHandler, setCollaborativeEditingHandler] = useState<CollaborativeEditingHandler | undefined>(undefined);
   const [cssTheme, setCssTheme] = useState<string>('');
   const [socket, setSocket] = useState<WebSocket | null>(null);
-  
+  const isReceivingData = useRef<Boolean>(false);
   const { sessionId } = useParams<{ sessionId: string }>();
 
 
@@ -92,8 +92,10 @@ const DocEditor: React.FC = () => {
   const handleDataReceived = (data: any) => {
     console.log("debug data", data)
     if (documentEditorRef.current) {
+      // setIsReceivingData(true);
+      isReceivingData.current = true;
       const documentEditor = documentEditorRef.current.documentEditor;
-      // documentEditor.editor.insertText(data.text)
+      documentEditor.editor.insertText(data.text)
     }
     
     // if (collaborativeEditingHandler) {
@@ -110,7 +112,8 @@ const DocEditor: React.FC = () => {
 
   // SET WEBSOCKET CONNECTION
   useEffect(() => {
-    initializeWebSocket();
+    console.log("debug hi")
+    if (!socket) initializeWebSocket();
 
     if (documentEditorRef.current) {
       const documentEditor = documentEditorRef.current.documentEditor;
@@ -129,11 +132,20 @@ const DocEditor: React.FC = () => {
     
     if (documentEditorRef.current) {
       documentEditorRef.current.contentChange = (args: ContainerContentChangeEventArgs) => {
-        // console.log("debug arg", args)
-        if (args.operations)
+        console.log("debug arg", args)
+        if (isReceivingData.current) {
+          isReceivingData.current = false;
+          return;
+        }
+        if (args.operations) {
+          console.log("debug r u here")
+          socket?.send(JSON.stringify(args.operations[0]))
+          
+        }
+          
           // console.log("debug arg", args.operations[0])
           // socket?.send(JSON.stringify({ content: args.operations[0]}))
-          socket?.send(JSON.stringify(args.operations[0]))
+          
         // collaborativeEditingHandler?.sendActionToServer(args.operations as Operation[]);
       };
     }
