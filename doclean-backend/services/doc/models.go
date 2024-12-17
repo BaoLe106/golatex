@@ -13,13 +13,16 @@ import (
 // }
 
 type Message struct {
-	Action       string `json:"action"`
-	Offset       int    `json:"offset"`
-	Text         string `json:"text"`
-	Type         string `json:"type"`
-	Length       int    `json:"length"`
-	SkipOperation bool  `json:"skipOperation"`
-	Format       string `json:"format"`
+	Action       	string 		`json:"action"`
+	Offset       	int    		`json:"offset"`
+	Text         	string 		`json:"text"`
+	Type         	string 		`json:"type"`
+	Length       	int    		`json:"length"`
+	SkipOperation bool  		`json:"skipOperation"`
+	Format       	string 		`json:"format"`
+	Position			string 		`json:"position"`
+	StartPosition string		`json:"startPosition"`	
+	EndPosition 	string 		`json:"endPosition"`	
 }
 
 
