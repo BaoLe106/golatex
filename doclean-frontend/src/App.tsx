@@ -8,6 +8,8 @@ function App() {
   return (
     <Layout>
       <ContainerLayout className="w-full">
+        <br />
+        <br />
         <h1 className="font-medium text-center">
           Your lightweight text editor.
         </h1>
@@ -16,9 +18,7 @@ function App() {
         <br />
         <br />
         <br />
-        <br />
-        <br />
-        <div className="w-4/6 flex items-center">
+        <div className="flex items-center">
           <ContainerLayout>
             <img
               style={{ width: "300px", height: "150px" }}
