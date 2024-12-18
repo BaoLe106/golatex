@@ -23,6 +23,7 @@ type Message struct {
 	Position			string 		`json:"position"`
 	StartPosition string		`json:"startPosition"`	
 	EndPosition 	string 		`json:"endPosition"`	
+	PasteContent 	*string		`json:"pasteContent"` //optional field -> use *
 }
 
 

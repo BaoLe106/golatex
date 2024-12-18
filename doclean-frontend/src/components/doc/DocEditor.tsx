@@ -148,10 +148,16 @@ const DocEditor: React.FC = () => {
         );
         documentEditor.selection.select(startDeletePosition, endDeletePosition);
         documentEditor.editor.delete();
+      } else if (data.pasteContent) {
+        documentEditor.selection.select(
+          data.position,
+          data.position
+        );
+        documentEditor.editor.paste(data.pasteContent);
       } else {
         documentEditor.selection.select(
-          data.position.toString(),
-          data.position.toString()
+          data.position,
+          data.position
         );
 
         documentEditor.editor.insertText(data.text);
@@ -187,6 +193,7 @@ const DocEditor: React.FC = () => {
         }
         if (args.operations) {
           let currPos = "";
+          let pasteContent = "";
           if (args.operations[0].text === "\n") {
             if (!currentDocumentEditor.documentEditor.selection.editPosition) {
               const endOffset = cloneDeep(
@@ -207,6 +214,15 @@ const DocEditor: React.FC = () => {
                 (parseInt(editPosition[4]) + 1).toString()
               );
             }
+          } else if (args.operations[0].type === "Paste" && args.operations[0].pasteContent) {
+            pasteContent = cloneDeep(args.operations[0].pasteContent)
+            const selectionEditPositionCloneDeep = cloneDeep(currentDocumentEditor.documentEditor.selection.editPosition);
+
+            currPos = replaceCharAt(
+              selectionEditPositionCloneDeep,
+              4,
+              (parseInt(selectionEditPositionCloneDeep[4]) + 1).toString()
+            );
           } else {
             currPos = cloneDeep(
               currentDocumentEditor.documentEditor.selection.editPosition
@@ -230,7 +246,11 @@ const DocEditor: React.FC = () => {
           data["position"] = currPos;
           data["startPosition"] = selection.startOffset;
           data["endPosition"] = selection.endOffset;
-          console.log("debug r u here");
+          if (pasteContent) {
+            console.log("debug do we have paste content?", pasteContent);
+            data["pasteContent"] = pasteContent;
+          }
+          console.log("debug send data", data);
           socket?.send(JSON.stringify(data));
         }
 
