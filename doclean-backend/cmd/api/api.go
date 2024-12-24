@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/BaoLe106/doclean/doclean-backend/services/doc"
+	"github.com/BaoLe106/doclean/doclean-backend/services/latex"
 	"github.com/gorilla/mux"
 )
 
@@ -29,8 +29,8 @@ func (server *APIServer) Run() error {
 	// userHandler := users.NewHandler(userStore)
 	// userHandler.RegisterRoutes(subrouter)
 	
-	docHandler := doc.NewHandler()
-	docHandler.RegisterRoutes(subrouter)
+	latexHandler := latex.NewHandler()
+	latexHandler.RegisterRoutes(subrouter)
 	
 	log.Println("Listening on", server.addr)
 	return http.ListenAndServe(server.addr, router)

@@ -2,9 +2,9 @@ import React, { useEffect } from "react";
 import LayoutAuthenticated from "@/components/layout-authenticated";
 import ContainerLayout from "@/components/ContainerLayout";
 import { Separator } from "@/components/ui/separator";
-import DocEditor1 from "@/components/doc/DocEditor1";
+import LatexEdtior from "@/components/latex/LatexEditor";
 
-const DocView: React.FC = () => {
+const LatexView: React.FC = () => {
   useEffect(() => {
     //implement authentication if needed
     //if not authenticated -> navigate to /login
@@ -19,7 +19,7 @@ const DocView: React.FC = () => {
         </div> */}
         <div className="w-full flex flex-col">
           {/* <p>abc</p> */}
-          <DocEditor1 />
+          <LatexEdtior />
         </div>
       </ContainerLayout>
     </LayoutAuthenticated>
@@ -28,4 +28,4 @@ const DocView: React.FC = () => {
   );
 };
 
-export default DocView;
+export default LatexView;

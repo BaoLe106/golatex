@@ -1,10 +1,8 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import { cloneDeep } from "lodash";
+// import { cloneDeep } from "lodash";
 import { useParams } from "react-router-dom";
-import Latex from "react-latex";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
-import "./styles.css";
 
 const TOOLBAR_OPTIONS = [
   [{ header: [1, 2, 3, 4, 5, 6, false] }],
@@ -18,22 +16,19 @@ const TOOLBAR_OPTIONS = [
   ["clean"],
 ];
 
-let PAGE_HEIGHT: number = 862;
 
-const DocEditor: React.FC = () => {
+const LatexEditor: React.FC = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [quill, setQuill] = useState<Quill>();
   const [quillContent, setQuillContent] = useState<string>("");
-  const [qlContainerState, setQlContainerState] = useState<any>();
-  const [qlEditorState, setQlEditorState] = useState<any>();
   const { sessionId } = useParams<{ sessionId: string }>();
 
   // SET WEBSOCKET CONNECTION
   useEffect(() => {
     // Create WebSocket connection to the backend
     const socketConnection = new WebSocket(
-      `ws://localhost:8080/api/v1/doc/${sessionId}`
+      `ws://localhost:8080/api/v1/latex/${sessionId}`
     );
 
     // Set the WebSocket connection to state
@@ -52,8 +47,6 @@ const DocEditor: React.FC = () => {
     socket.onmessage = (event) => {
       // if (isBackendUpdate.current) return;
       const msg = JSON.parse(event.data);
-      console.log("debug msg receive from backend", msg);
-      console.log("debug msg content receive from backend", msg.content);
       if (!msg.content) return;
       // quill.setContents(msg.content);
     };
@@ -83,7 +76,6 @@ const DocEditor: React.FC = () => {
     };
 
     return () => {
-      console.log("debug close socket");
       socket.close();
     };
   }, [socket, quill]);
@@ -103,27 +95,22 @@ const DocEditor: React.FC = () => {
       oldDelta: any,
       source: string
     ) => {
-      if (source !== "user") return;
-      socket.send(JSON.stringify({ content: delta }));
-      console.log("debug quillContent", quill.getText());
-
       setQuillContent(quill.getText());
+      if (source !== "user") return;
+      socket.send(JSON.stringify({ content: delta }));      
     };
     quill.on("text-change", handler);
-    // quill.on("text-change", updatePages);
+    
     return () => {
       quill.off("text-change", handler);
     };
   }, [socket, quill]);
   useEffect(() => {
-    console.log("debug hi", quillContent);
     if (iframeRef.current) {
-      // iframeRef.current.onload = () => {
       iframeRef.current?.contentWindow?.postMessage(
         { type: "latex", quillContent },
         "*"
       );
-      // };
     }
   }, [quillContent]);
 
@@ -145,7 +132,6 @@ const DocEditor: React.FC = () => {
     setQuill(q);
   }, []);
 
-  // return ;
   return (
     <div style={{ display: "flex", flexDirection: "row" }}>
       <div
@@ -158,15 +144,8 @@ const DocEditor: React.FC = () => {
         ref={iframeRef}
         src="/latex.html"
       ></iframe>
-      {/* 
-        $$(3\times 4) \div (5-3)$$ 
-        What is $(3\times 4) \div (5-3)$
-      */}
-      {/* <Latex displayMode={true}>{quillContent}</Latex> */}
-
-      {/* <Latex></Latex> */}
     </div>
   );
 };
 
-export default DocEditor;
+export default LatexEditor;
