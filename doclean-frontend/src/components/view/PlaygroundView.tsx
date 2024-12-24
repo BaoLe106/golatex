@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { Separator } from "@/components/ui/separator";
-import DocEditor from "@/components/doc/DocEditor";
+// import DocEditor1 from "@/components/doc/DocEditor1";
+import LatexEditor from "@/components/latex/LatexEditor";
 
 const PlaygroundView: React.FC = () => {
   return (
@@ -34,7 +35,7 @@ const PlaygroundView: React.FC = () => {
           </DropdownMenuContent>
         </DropdownMenu> */}
         <div className="w-full flex flex-col">
-          <DocEditor />
+          <LatexEditor />
         </div>
       </ContainerLayout>
     </Layout>
