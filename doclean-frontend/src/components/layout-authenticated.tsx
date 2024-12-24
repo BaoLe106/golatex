@@ -61,7 +61,7 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
       {/* Footer */}
       <footer className="p-3 border-t w-screen">
         <div className="w-full mx-auto text-center">
-          <p>©2024 Doclean. All rights reserved.</p>
+          <p>©2024 GoLatex. All rights reserved.</p>
         </div>
       </footer>
     </div>
