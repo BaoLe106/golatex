@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { cloneDeep } from "lodash";
 import { useParams } from "react-router-dom";
+import Latex from "react-latex";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import "./styles.css";
@@ -20,8 +21,10 @@ const TOOLBAR_OPTIONS = [
 let PAGE_HEIGHT: number = 862;
 
 const DocEditor: React.FC = () => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [quill, setQuill] = useState<Quill>();
+  const [quillContent, setQuillContent] = useState<string>("");
   const [qlContainerState, setQlContainerState] = useState<any>();
   const [qlEditorState, setQlEditorState] = useState<any>();
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -46,14 +49,14 @@ const DocEditor: React.FC = () => {
     if (!socket || !quill) return;
     socket.onopen = () => quill.enable();
 
-    // socket.onmessage = (event) => {
-    //     // if (isBackendUpdate.current) return;
-    //     const msg = JSON.parse(event.data);
-    //     console.log("debug msg receive from backend", msg);
-    //     console.log("debug msg content receive from backend", msg.content);
-    //     if (!msg.content) return;
-    //     // quill.setContents(msg.content);
-    // };
+    socket.onmessage = (event) => {
+      // if (isBackendUpdate.current) return;
+      const msg = JSON.parse(event.data);
+      console.log("debug msg receive from backend", msg);
+      console.log("debug msg content receive from backend", msg.content);
+      if (!msg.content) return;
+      // quill.setContents(msg.content);
+    };
 
     return () => {
       socket.close();
@@ -102,40 +105,27 @@ const DocEditor: React.FC = () => {
     ) => {
       if (source !== "user") return;
       socket.send(JSON.stringify({ content: delta }));
+      console.log("debug quillContent", quill.getText());
+
+      setQuillContent(quill.getText());
     };
     quill.on("text-change", handler);
-    quill.on("text-change", updatePages);
+    // quill.on("text-change", updatePages);
     return () => {
       quill.off("text-change", handler);
     };
   }, [socket, quill]);
-
-  const updatePages = useCallback(() => {
-    if (!quill) return;
-    let currentPageHeight = 0;
-    // const content = quill.root.innerHTML;
-    // console.log("debug quill", quill.root);
-    console.log("debug ql container", qlContainerState);
-    console.log("debug ql editor", qlEditorState);
-    Array.from(quill.root.childNodes).forEach((node) => {
-      // const rect = node.getBoundingClientRect();
-      const nodeHeight = node.offsetHeight;
-      console.log("debug node", node.offsetHeight);
-      console.log("debug sum", currentPageHeight + nodeHeight);
-      if (currentPageHeight + nodeHeight > PAGE_HEIGHT) {
-        quill.disable();
-        // qlContainer.appendChild(qlEditorClone);
-        console.log("debug > max height");
-        // Create a new page if height exceeds
-        // pages.push(currentPage.innerHTML);
-        // currentPage = document.createElement("div");
-        currentPageHeight = 0;
-      }
-
-      // currentPage.appendChild(node.cloneNode(true));
-      currentPageHeight += nodeHeight;
-    });
-  }, [quill]);
+  useEffect(() => {
+    console.log("debug hi", quillContent);
+    if (iframeRef.current) {
+      // iframeRef.current.onload = () => {
+      iframeRef.current?.contentWindow?.postMessage(
+        { type: "latex", quillContent },
+        "*"
+      );
+      // };
+    }
+  }, [quillContent]);
 
   const wrapperRef = useCallback((wrapper: any) => {
     if (wrapper == null) return;
@@ -145,50 +135,38 @@ const DocEditor: React.FC = () => {
     wrapper.append(editor);
     const q = new Quill(editor, {
       theme: "snow",
-      modules: { toolbar: TOOLBAR_OPTIONS },
+      modules: {
+        toolbar: false,
+      },
+      // { toolbar: TOOLBAR_OPTIONS },
     });
     q.disable();
     // q.setText("Loading...");
     setQuill(q);
-
-    const qlContainer = document.getElementsByClassName("ql-container");
-    const qlToolbar = document.getElementsByClassName("ql-toolbar");
-    const qlEditor = document.getElementsByClassName("ql-editor");
-    const qlContainerClone = cloneDeep(qlContainer[0]);
-    const qlEditorClone = cloneDeep(qlEditor[0]);
-    console.log("debug clone", qlContainerClone);
-    setQlContainerState(qlContainerClone);
-    setQlEditorState(qlEditorClone);
-    console.log("debug hi");
-    if (qlContainer[0]) qlContainer[0].style.marginTop = "64px";
-    if (qlToolbar[0]) {
-      qlToolbar[0].style.width = "99%";
-      qlToolbar[0].style.position = "fixed";
-      qlToolbar[0].style.top = "80px";
-      qlToolbar[0].style.left = "0px";
-      qlToolbar[0].style.marginLeft = "8px";
-      qlToolbar[0].style.marginRight = "8px";
-    }
-    if (qlEditor[0]) {
-      qlEditor[0].style.height = "11in";
-
-      qlEditor[0].style.borderTopWidth = "2px";
-
-      qlEditor[0].style.paddingTop = "96px";
-      qlEditor[0].style.paddingBottom = "96px";
-      qlEditor[0].style.paddingLeft = "72px";
-      qlEditor[0].style.paddingRight = "72px";
-      // qlEditor[0].style.paddingBottom = "72px";
-
-      qlEditor[0].style.overflowY = "hidden";
-      qlEditor[0].style.position = "relative";
-      // console.log("debug qlEditor[0].offsetHeight;", qlEditor[0].offsetHeight);
-      // PAGE_HEIGHT = qlEditor[0].offsetHeight;
-    }
-    // qlEditor.style =
   }, []);
 
-  return <div className="container" ref={wrapperRef}></div>;
+  // return ;
+  return (
+    <div style={{ display: "flex", flexDirection: "row" }}>
+      <div
+        className="container"
+        style={{ width: "40%", height: "83vh" }}
+        ref={wrapperRef}
+      ></div>
+      <iframe
+        style={{ width: "60%", height: "83vh" }}
+        ref={iframeRef}
+        src="/latex.html"
+      ></iframe>
+      {/* 
+        $$(3\times 4) \div (5-3)$$ 
+        What is $(3\times 4) \div (5-3)$
+      */}
+      {/* <Latex displayMode={true}>{quillContent}</Latex> */}
+
+      {/* <Latex></Latex> */}
+    </div>
+  );
 };
 
 export default DocEditor;
