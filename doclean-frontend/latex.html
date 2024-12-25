@@ -20,7 +20,6 @@
 
     <script>
       window.addEventListener("message", (event) => {
-        console.log("debug event", event);
         if (event.data.type === "latex") {
           const latexComponent = document.getElementById("latex-content");
           latexComponent.innerHTML = "";
