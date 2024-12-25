@@ -6,9 +6,9 @@ import router from "@/router";
 import "@/index.css";
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
+  // <StrictMode>
     <ThemeProvider defaultTheme="light">
       <RouterProvider router={router} />
     </ThemeProvider>
-  </StrictMode>
+  // </StrictMode>
 );
