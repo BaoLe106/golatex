@@ -112,13 +112,18 @@ const LatexEditorWithCodeMirror: React.FC = () => {
   // }, [quillContent]);
 
   useEffect(() => {
-    codemirrorView?.updateListener.of((update: any) => {
+    console.log("debug here", codemirrorView, socket)
+    if (!codemirrorView) return;
+    // console.log("debug editor")
+    EditorView.updateListener.of((update: any) => {
       console.log("debug update listener", update.docChanged);
       if (update.docChanged) {
         handleLocalChanges(update);
       }
     });
-  }, [codemirrorView.updateListener]);
+  }, [codemirrorView]); 
+  //if codemirrorView and socket are already set then enable updateListener
+  //because setState is asynchronus
 
   const handleLocalChanges = (update: { state: EditorState }) => {
     console.log("debug handle local changes", update);
@@ -187,7 +192,7 @@ const LatexEditorWithCodeMirror: React.FC = () => {
 
     setCodemirrorView(view);
     return () => {
-      view.destroy();
+      // view.destroy();
       socketConnection.close();
     };
   }, []);
