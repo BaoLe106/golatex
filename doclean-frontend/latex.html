@@ -23,17 +23,15 @@
         if (event.data.type === "latex") {
           const latexComponent = document.getElementById("latex-content");
           latexComponent.innerHTML = "";
+
           const newLatexComponent = document.createElement("latex-js");
           newLatexComponent.setAttribute(
             "baseURL",
             "https://cdn.jsdelivr.net/npm/latex.js/dist/"
           );
-          newLatexComponent.innerHTML = event.data.quillContent;
-          latexComponent.appendChild(newLatexComponent);
-          // const documentt = document.getElementById("latex-content");
+          newLatexComponent.innerHTML = event.data.editorContent;
 
-          // console.log("debug documentt", documentt);
-          // documentt.innerText = event.data.quillContent;
+          latexComponent.appendChild(newLatexComponent);
         }
       });
     </script>
@@ -41,9 +39,5 @@
 
   <body>
     <div id="latex-content"></div>
-    <!-- \documentclass{article} \usepackage{graphicx} \title{test} \author{Gia
-      Bao Le} \date{December 2024} \begin{document} \maketitle
-      \section{Introduction} \end{document} 
-    </latex-js> -->
   </body>
 </html>

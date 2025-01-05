@@ -13,7 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 // import DocEditor1 from "@/components/doc/DocEditor1";
 import LatexEditor from "@/components/latex/LatexEditor";
-import LatexEditorWithCodeMirror from "@/components/latex/LatexEditorWithCodeMirror";
+import LatexEditorCodeMirror from "@/components/latex/LatexEditorCodeMirror";
 
 const PlaygroundView: React.FC = () => {
   return (
@@ -37,7 +37,7 @@ const PlaygroundView: React.FC = () => {
         </DropdownMenu> */}
         <div className="w-full flex flex-col">
           {/* <LatexEditor /> */}
-          <LatexEditorWithCodeMirror />
+          <LatexEditorCodeMirror />
         </div>
       </ContainerLayout>
     </Layout>

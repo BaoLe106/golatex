@@ -16,7 +16,6 @@ const TOOLBAR_OPTIONS = [
   ["clean"],
 ];
 
-
 const LatexEditor: React.FC = () => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -97,10 +96,10 @@ const LatexEditor: React.FC = () => {
     ) => {
       setQuillContent(quill.getText());
       if (source !== "user") return;
-      socket.send(JSON.stringify({ content: delta }));      
+      socket.send(JSON.stringify({ content: delta }));
     };
     quill.on("text-change", handler);
-    
+
     return () => {
       quill.off("text-change", handler);
     };
