@@ -8,6 +8,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type CreateTexFileInputSchema struct {
+	Content string `json:"content"`
+}
+
+type AWSLambdaTexToPdfPayload struct {
+	SessionID	 	string `json:"session_id"`
+	TexFilename string `json:"tex_filename"`
+	TexFile     string `json:"tex_file"`
+}
+
 type Hub struct {
 	Clients 		map[*Client]bool
 	Broadcast 	chan string
