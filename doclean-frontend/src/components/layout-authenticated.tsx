@@ -13,7 +13,7 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen w-screen flex flex-col">
       {/* Header */}
-      <header className="w-screen max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b">
+      <header className="w-full max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b">
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
@@ -36,12 +36,8 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
               className="border-black dark:border-white"
               variant="outline"
             > */}
-            <Button variant="outline">
-              Save
-            </Button>
-            <Button variant="outline">
-              Share
-            </Button>
+            <Button variant="outline">Save</Button>
+            <Button variant="outline">Share</Button>
             <Button className="bg-inherit" variant="ghost">
               <Settings />
             </Button>
@@ -52,15 +48,15 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
-      <div className="flex flex-1 w-screen">
+      <div className="flex flex-1">
         <main className="flex-1 justify-items-center w-full">
           <div className="w-full">{children}</div>
         </main>
       </div>
 
       {/* Footer */}
-      <footer className="p-3 border-t w-screen">
-        <div className="w-full mx-auto text-center">
+      <footer className="p-3 border-t bg-white dark:bg-black">
+        <div className="text-center">
           <p>©2024 GoLatex. All rights reserved.</p>
         </div>
       </footer>
