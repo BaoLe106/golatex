@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 // import { cloneDeep } from "lodash";
@@ -141,9 +141,9 @@ const LatexEditorCodeMirror: React.FC = () => {
         socket.send(instance.getValue());
       }
     });
-    editor.on("cursorActivity", (instance) => {
-      // console.log(instance.cursorCoorcode-editor())
-    });
+    // editor.on("cursorActivity", (instance) => {
+    // console.log(instance.cursorCoorcode-editor())
+    // });
 
     return () => {
       socket.close();
