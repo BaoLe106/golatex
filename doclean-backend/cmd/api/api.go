@@ -7,6 +7,7 @@ import (
 
 	"github.com/BaoLe106/doclean/doclean-backend/services/latex"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 )
 
 type APIServer struct {
@@ -22,6 +23,10 @@ func NewAPIServer(addr string) *APIServer {
 }
 
 func (server *APIServer) Run() error {
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"http://localhost:3006"},
+		// AllowCredentials: true,
+	})
 	router := mux.NewRouter()
 	subrouter := router.PathPrefix("/api/v1").Subrouter()
 
@@ -33,6 +38,6 @@ func (server *APIServer) Run() error {
 	latexHandler.RegisterRoutes(subrouter)
 	
 	log.Println("Listening on", server.addr)
-	return http.ListenAndServe(server.addr, router)
+	return http.ListenAndServe(server.addr, c.Handler(router))
 }
 
