@@ -10,6 +10,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.733.0",
+    "@aws-sdk/s3-request-presigner": "^3.733.0",
     "@codemirror/collab": "^6.1.1",
     "@codemirror/commands": "^6.7.1",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
@@ -19,6 +21,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@syncfusion/ej2-react-documenteditor": "^27.2.5",
     "@syncfusion/ej2-react-grids": "^27.2.5",
+    "axios": "^1.7.9",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "codemirror": "^5.63.0",
@@ -39,7 +42,6 @@
     "@types/node": "^22.7.4",
     "@types/react": "^18.3.10",
     "@types/react-dom": "^18.3.0",
-    "@types/react-latex": "^2.0.3",
     "@vitejs/plugin-react-swc": "^3.5.0",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.11.1",
