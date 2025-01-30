@@ -1,0 +1,37 @@
+# Stage 1: Build stage for TeX Live
+FROM texlive/texlive:latest AS texlive-stage
+
+# Install necessary packages for TeX Live
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    # && tlmgr update --self \
+    # && fmtutil-sys --all \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Stage 2: Python Lambda runtime
+FROM public.ecr.aws/lambda/python:3.12
+
+# Copy TeX Live from the first stage
+COPY --from=texlive-stage /usr/local/texlive/ /usr/local/texlive
+
+# Update environment variables to include TeX Live binaries
+ENV PATH="/usr/local/texlive/2024/bin/x86_64-linux:$PATH"
+
+# Ensure TeX Live format files are properly configured
+RUN texconfig rehash
+
+# Use to check whether pdflatex is available or not
+# RUN pdflatex --version
+
+# Copy requirements.txt
+COPY requirements.txt ${LAMBDA_TASK_ROOT}
+
+# Install the specified packages
+RUN pip install -r requirements.txt
+
+# Copy function code
+COPY tex_to_pdf_lambda.py ${LAMBDA_TASK_ROOT}
+
+# Set the CMD to your handler (could also be done as a parameter override outside of the Dockerfile)
+CMD [ "tex_to_pdf_lambda.handler" ]

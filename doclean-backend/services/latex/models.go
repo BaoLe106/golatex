@@ -8,15 +8,21 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type Message struct {
-	Content map[string]interface{} `json:"content"`
+type CreateTexFileInputSchema struct {
+	Content string `json:"content"`
+}
+
+type AWSLambdaTexToPdfPayload struct {
+	SessionID	 	string `json:"session_id"`
+	TexFilename string `json:"tex_filename"`
+	TexFile     string `json:"tex_file"`
 }
 
 type Hub struct {
 	Clients 		map[*Client]bool
-	Broadcast 	chan Message
+	Broadcast 	chan string
 	Mutex 			sync.Mutex
-	SessionData map[string][]map[string]interface{}
+	SessionData map[string]string
 }
 
 type Client struct {
@@ -28,8 +34,8 @@ type Client struct {
 func NewHub() *Hub {
 	return &Hub{
 			Clients:   		make(map[*Client]bool),
-			Broadcast: 		make(chan Message),
-			SessionData: 	make(map[string][]map[string]interface{}),
+			Broadcast: 		make(chan string),
+			SessionData: 	make(map[string]string),
 	}
 }
 

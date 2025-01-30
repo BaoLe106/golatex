@@ -1,0 +1,22 @@
+# Config file for Air
+[build]
+# Command to build the app
+cmd = "go build -o main main.go"
+# Binary to watch 
+bin = "main"
+# Working dir
+dir = "."
+# Patterns to watch 
+include_ext = ["go"]
+# Exclude files
+exclude_dir = ["vendor"]
+
+#poll = true
+#poll_interval = 500
+
+# Command to run after build
+run_after_build = "chmod +x main"
+
+
+[log]
+level = "debug"

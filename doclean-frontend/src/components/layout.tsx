@@ -12,7 +12,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen w-screen flex flex-col">
       {/* Header */}
-      <header className="w-screen max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b">
+      <header className="w-full max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b">
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
@@ -73,16 +73,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
         Main Content
         */}
-      <div className="flex flex-1 w-screen">
+      <div className="flex flex-1">
         <main className="flex-1 justify-items-center w-full">
           <div className="w-full">{children}</div>
         </main>
       </div>
 
       {/* Footer */}
-      <footer className="p-3 border-t w-screen">
-        <div className="w-full mx-auto text-center">
-          <p>©2024 GoLatex. All rights reserved.</p>
+      <footer className="border-t p-3 bg-white dark:bg-black">
+        <div className="text-center">
+          <p className="">©2024 GoLatex. All rights reserved.</p>
         </div>
       </footer>
     </div>
