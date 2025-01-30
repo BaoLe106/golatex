@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  app:
+    image: golatex-backend # Use the existing image
+    container_name: golatex-backend-container
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/tmp
+    command: ["air", "-c", ".air.toml"]

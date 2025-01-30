@@ -10,10 +10,9 @@ dir = "."
 include_ext = ["go"]
 # Exclude files
 exclude_dir = ["vendor"]
-
-#poll = true
-#poll_interval = 500
-
+# Add poll files for changes instead of using fsnotify.
+poll = true
+poll_interval = 500
 # Command to run after build
 run_after_build = "chmod +x main"
 
