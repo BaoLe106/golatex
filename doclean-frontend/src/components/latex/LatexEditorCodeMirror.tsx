@@ -112,9 +112,9 @@ const LatexEditorCodeMirror: React.FC = () => {
       setEditorContent(data);
     };
 
-    if (!editorContent) {
-      getTEXFromS3();
-    }
+    // if (!editorContent) {
+    //   getTEXFromS3();
+    // }
 
     // socket.on('connect_error', (err) => {
     //   console.log(`connect_error due to ${err.message}`)

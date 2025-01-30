@@ -2,10 +2,11 @@ package api
 
 import (
 	"database/sql"
-	"log"
+	"fmt"
 	"net/http"
 
 	"github.com/BaoLe106/doclean/doclean-backend/services/latex"
+	"github.com/BaoLe106/doclean/doclean-backend/utils/logger"
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
@@ -37,7 +38,9 @@ func (server *APIServer) Run() error {
 	latexHandler := latex.NewHandler()
 	latexHandler.RegisterRoutes(subrouter)
 	
-	log.Println("Listening on", server.addr)
+	logger.LogHandler(logger.LogInput{
+		Message: fmt.Sprintf("Listening on %s!", server.addr),
+	})
 	return http.ListenAndServe(server.addr, c.Handler(router))
 }
 

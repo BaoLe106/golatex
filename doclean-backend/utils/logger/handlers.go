@@ -24,6 +24,8 @@ func LogHandler(logInput LogInput) {
 		// if logInput.Message != nil {
 		log.Printf("\033[31m%v\033[0m", logInput.Message)
 		// }
+	} else {
+		log.Printf("\033[36m%v\033[0m", logInput.Message)
 	}
 
 	

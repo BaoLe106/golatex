@@ -1,4 +1,4 @@
-1. MAC OS: ```brew install make```
-2. ```go install github.com/gravityblast/fresh@latest```
-3. ```go mod download```
-4. ```make run```
+## NEW INSTRUCTION
+
+1. `docker build -t golatex-backend .`
+2. `docker run -p 8080:8080 --rm -v $(pwd):/app -v /app/tmp --name golatex-backend-container golatex-backend`
