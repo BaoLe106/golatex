@@ -1,6 +1,6 @@
 version: "3.9"
 services:
-  app:
+  backend:
     image: golatex-backend # Use the existing image
     container_name: golatex-backend-container
     ports:
