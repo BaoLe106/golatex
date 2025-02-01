@@ -1,5 +1,5 @@
 # Dockerfile for React Frontend
-FROM node:22.9.0-alpine AS build
+FROM node:22-alpine AS build
 
 # Set up the working directory inside the container
 WORKDIR /app
@@ -11,12 +11,8 @@ RUN npm install
 # Copy the rest of the code
 COPY . .
 
-# Build the React application
-RUN npm run build
+# Expose the port your app runs on
+EXPOSE 3006
 
-# Serve the build using a minimal web server (e.g., Nginx)
-FROM nginx:alpine
-COPY --from=build /app/build /usr/share/nginx/html
-
-# Expose the port that Nginx will use
-EXPOSE 80
+# Define the command to run your app
+CMD ["npm", "run", "dev"]
