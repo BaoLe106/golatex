@@ -13,7 +13,7 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen w-screen flex flex-col">
       {/* Header */}
-      <header className="w-full max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b">
+      <header className="w-full max-h-16 items-center bg-white dark:bg-black sticky top-0 p-4 border-b z-50">
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
