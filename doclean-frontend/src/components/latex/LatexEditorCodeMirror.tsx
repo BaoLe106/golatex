@@ -1,26 +1,42 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-// import { cloneDeep } from "lodash";
+import { cloneDeep } from "lodash";
+import "@/components/latex/styles.css";
 
-import { useParams } from "react-router-dom";
 import "codemirror/lib/codemirror.css";
 import "codemirror/theme/material-ocean.css";
 import "codemirror/mode/javascript/javascript";
 import "codemirror/mode/stex/stex";
 import "codemirror/keymap/sublime";
+
+import "codemirror/addon/search/search.js";
+import "codemirror/addon/search/searchcursor.js";
+import "codemirror/addon/search/jump-to-line.js";
+import "codemirror/addon/dialog/dialog.js";
+
 import CodeMirror from "codemirror";
 
 import { useTheme } from "@/components/theme-provider";
 import { TexFileService } from "@/services/texFileService";
 
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+
 const LatexEditorCodeMirror: React.FC = () => {
   const { theme } = useTheme();
-
+  const { sessionId } = useParams<{ sessionId: string }>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [codeMirrorComponent, setCodeMirrorComponent] = useState<HTMLElement>();
-  const { sessionId } = useParams<{ sessionId: string }>();
+  const [editorInstance, setEditorInstance] = useState<any>(null);
   const [editorContent, setEditorContent] = useState<string>("");
 
   useEffect(() => {
@@ -37,7 +53,7 @@ const LatexEditorCodeMirror: React.FC = () => {
     }
     if (theme === "light") {
       (CodeMirrorTheme[0] as HTMLElement).style.backgroundColor = "#FFFFFF";
-      (CodeMirrorGuttersTheme[0] as HTMLElement).style.background = "#F0F0F0";
+      (CodeMirrorGuttersTheme[0] as HTMLElement).style.background = "#FFFFFF";
     } else {
       (CodeMirrorTheme[0] as HTMLElement).style.backgroundColor = "#0F111A";
       (CodeMirrorGuttersTheme[0] as HTMLElement).style.background = "#0F111A";
@@ -49,14 +65,44 @@ const LatexEditorCodeMirror: React.FC = () => {
       "code-editor"
     ) as HTMLTextAreaElement;
     const editor = CodeMirror.fromTextArea(documentEditor, {
+      extraKeys: { "Ctrl-F": "findPersistent" },
+      lineWrapping: true,
       lineNumbers: true,
       keyMap: "sublime",
       theme: "material-ocean",
       mode: "stex",
     });
+    setEditorInstance(editor);
+
+    const originalOpenDialog = editor.openDialog;
+    editor.openDialog = function (template, callback, options = {}) {
+      return originalOpenDialog.call(editor, template, callback, {
+        ...options,
+        closeOnBlur: false,
+      });
+    };
+
+    const codeMirrorDialog =
+      document.getElementsByClassName("CodeMirror-dialog");
+    if (codeMirrorDialog && codeMirrorDialog.length) {
+      console.log("debug dialog", codeMirrorDialog);
+      (codeMirrorDialog[0] as HTMLElement).style.position = "absolute";
+      (codeMirrorDialog[0] as HTMLElement).style.top = "0";
+    }
+
+    var charWidth = editor.defaultCharWidth(),
+      basePadding = 4;
+    editor.on("renderLine", function (cm, line, elt) {
+      var off =
+        CodeMirror.countColumn(line.text, null, cm.getOption("tabSize") ?? 0) *
+        charWidth;
+      elt.style.textIndent = "-" + off + "px";
+      elt.style.paddingLeft = basePadding + off + "px";
+    });
+
     const CodeMirrorComponent = document.getElementsByClassName("CodeMirror");
     setCodeMirrorComponent(CodeMirrorComponent[0] as HTMLElement);
-    (CodeMirrorComponent[0] as HTMLElement).style.width = "40%";
+    // (CodeMirrorComponent[0] as HTMLElement).style.width = "40%";
     (CodeMirrorComponent[0] as HTMLElement).style.height = "89vh";
 
     const getTEXFromS3 = async () => {
@@ -112,9 +158,9 @@ const LatexEditorCodeMirror: React.FC = () => {
       setEditorContent(data);
     };
 
-    // if (!editorContent) {
-    //   getTEXFromS3();
-    // }
+    if (!editorContent) {
+      getTEXFromS3();
+    }
 
     // socket.on('connect_error', (err) => {
     //   console.log(`connect_error due to ${err.message}`)
@@ -168,6 +214,16 @@ const LatexEditorCodeMirror: React.FC = () => {
     }
   }, [theme]);
 
+  const triggerSearch = () => {
+    const dialog = document.querySelector(".CodeMirror-dialog");
+
+    if (dialog) {
+      dialog.remove();
+    } else {
+      editorInstance.execCommand("findPersistent");
+    }
+  };
+
   const getPDFFromS3 = async () => {
     const s3Client = new S3Client({
       region: import.meta.env.VITE_AWS_BUCKET_REGION,
@@ -208,31 +264,69 @@ const LatexEditorCodeMirror: React.FC = () => {
 
   return (
     <div>
-      <div style={{ width: "100%", backgroundColor: "red" }}>
+      {/* <div
+        className="grid grid-cols-3"
+        style={{ width: "100%", backgroundColor: "red" }}
+      >
+        <div>1</div>
+        <div>2</div>
+        <div>3</div>
         <div
           style={{ backgroundColor: "green", width: "120px" }}
           onClick={convertToTex}
-          // onClick={showPreview}
         >
           Create TEX
         </div>
         <div
           style={{ backgroundColor: "yellow", width: "120px" }}
           onClick={getPDFFromS3}
-          // onClick={showPreview}
         >
           Get files
         </div>
-      </div>
+      </div> */}
 
-      <div style={{ display: "flex", flexDirection: "row" }}>
-        <textarea id="code-editor" />
-        <iframe
-          id="preview"
-          src={pdfUrl}
-          style={{ width: "60%", height: "89vh" }}
-        ></iframe>
-      </div>
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel defaultSize={50} minSize={30}>
+          <div
+            className={
+              "flex items-center h-11 " +
+              (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
+            }
+          >
+            <Button
+              className={
+                "bg-inherit " +
+                (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+              }
+              variant="ghost"
+              size="icon"
+              onClick={triggerSearch}
+            >
+              <Search className="absolute h-[1.2rem] w-[1.2rem] stroke-[3px]" />
+            </Button>
+          </div>
+          <textarea id="code-editor" />
+        </ResizablePanel>
+        <ResizableHandle
+          withHandle
+          className={theme === "dark" ? "bg-black" : ""}
+        />
+        <ResizablePanel defaultSize={50} minSize={40}>
+          <div
+            className={
+              "flex items-center h-11 " +
+              (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
+            }
+          >
+            <Button onClick={getPDFFromS3}>Compiles</Button>
+          </div>
+          <iframe
+            id="preview"
+            src={pdfUrl}
+            style={{ height: "89vh", width: "100%" }}
+          ></iframe>
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 };
