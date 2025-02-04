@@ -6,7 +6,8 @@
    MAC OS: `brew install golang-migrate`
    WINDOWS: `scoop install migrate`
 4. Go to DBeaver and fill in as below:
-   ![alt text](image.png)
+
+![alt text](image.png)
 
 where database, username, password is in `docker-compose.yml` file
 
