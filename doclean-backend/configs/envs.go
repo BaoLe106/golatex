@@ -22,14 +22,13 @@ var Envs = initConfig()
 
 func initConfig() Config {
 	godotenv.Load()
-	// log.Println(getEnv("DB_USER", "root"))
 	return Config{
 		Host:					getEnv("HOST", "http://localhost"),
-		Port:					getEnv("PORT", "8080"),
-		DBUser:				getEnv("DB_USER", "root"),
+		Port:					getEnv("PORT", "5000"),
+		DBUser:				getEnv("DB_USER", "admin"),
 		DBPassword:		getEnv("DB_PASSWORD", "mypassword"),
 		// DBAddress:		fmt.Sprintf("%s:%s", getEnv("DB_HOST", "127.0.0.1"), getEnv("DB_PORT", "3306")),
-		DBName:				getEnv("DB_NAME", "doclean-db"),
+		DBName:				getEnv("DB_NAME", "golatex"),
 		// JWTSecret:              getEnv("JWT_SECRET", "not-so-secret-now-is-it?"),
 		// JWTExpirationInSeconds: getEnvAsInt("JWT_EXPIRATION_IN_SECONDS", 3600 * 24 * 7),
 	}

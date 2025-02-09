@@ -9,3 +9,8 @@ services:
       - .:/app
       - /app/tmp
     command: ["air", "-c", ".air.toml"]
+    networks:
+      - golatex-network
+networks:
+  golatex-network:
+    external: true # Use the existing network from the database

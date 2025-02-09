@@ -13,7 +13,13 @@ services:
       - "5000:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data # Persistent storage
+    networks:
+      - golatex-network
 
 volumes:
   pg_data:
     driver: local
+
+networks:
+  golatex-network:
+    external: true
