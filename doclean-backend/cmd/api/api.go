@@ -4,10 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/BaoLe106/doclean/doclean-backend/services/latex"
+	"github.com/BaoLe106/doclean/doclean-backend/utils/helper"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/logger"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/rs/cors"
 )
 
@@ -24,23 +26,45 @@ func NewAPIServer(addr string) *APIServer {
 }
 
 func (server *APIServer) Run() error {
-	c := cors.New(cors.Options{
+	router := gin.New()
+
+  // Global middleware
+  // Logger middleware will write the logs to gin.DefaultWriter even if you set with GIN_MODE=release.
+  // By default gin.DefaultWriter = os.Stdout
+  // router.Use(gin.Logger())
+  // Recovery middleware recovers from any panics and writes a 500 if there was one.
+  router.Use(gin.Recovery())
+
+
+	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
+		bgColor := helper.ColorForStatus(param.StatusCode)
+		return fmt.Sprintf("[GIN] %s - %s %d %s | %v | %s %s %s %s \"%s\"\n",
+			param.TimeStamp.Format(time.RFC3339),
+			bgColor, param.StatusCode, "\033[0m",
+			param.Latency,
+			param.ClientIP,
+			"\033[46;30m", param.Method, "\033[0m",
+			param.Path,
+		)
+	}))
+	
+	corsMiddleware := cors.New(cors.Options{
 		AllowedOrigins: []string{"http://localhost:3006"},
 		// AllowCredentials: true,
 	})
-	router := mux.NewRouter()
-	subrouter := router.PathPrefix("/api/v1").Subrouter()
+	// router := mux.NewRouter()
+	router.Use(func(c *gin.Context) {
+		corsMiddleware.HandlerFunc(c.Writer, c.Request)
+		c.Next()
+	})
 
-	// userStore := users.NewStore(server.db)
-	// userHandler := users.NewHandler(userStore)
-	// userHandler.RegisterRoutes(subrouter)
+	apiV1 := router.Group("/api/v1");
+	latex.AddLatexRoutes(apiV1)
 	
-	latexHandler := latex.NewHandler()
-	latexHandler.RegisterRoutes(subrouter)
-	
-	logger.LogHandler(logger.LogInput{
+	logger.BasicLogHandler(logger.BasicLogInput{
+		Status: true,
 		Message: fmt.Sprintf("Listening on %s!", server.addr),
 	})
-	return http.ListenAndServe(server.addr, c.Handler(router))
+	return http.ListenAndServe(server.addr, corsMiddleware.Handler(router))
 }
 

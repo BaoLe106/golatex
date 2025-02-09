@@ -1,11 +1,13 @@
 package latex
 
-import (
-	"github.com/gorilla/mux"
-)
+import "github.com/gin-gonic/gin"
 
-func (h *Handler) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/latex/{sessionId}", h.HandleConnection).Methods("GET")
-	router.HandleFunc("/latex/tex/{sessionId}", CreateTexFile).Methods("POST")
+
+func AddLatexRoutes(rg *gin.RouterGroup) {
+	latexRoute := rg.Group("/latex")
+	latexHandler := NewHandler()
+
+	latexRoute.GET("/:sessionId", latexHandler.HandleConnection)
+	latexRoute.POST("/tex/:sessionId", CreateTexFile)
 }
 
