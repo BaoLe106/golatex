@@ -21,7 +21,7 @@ import CodeMirror from "codemirror";
 import { useTheme } from "@/components/theme-provider";
 import { TexFileService } from "@/services/texFileService";
 
-import { Search } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   ResizableHandle,
@@ -34,6 +34,8 @@ const LatexEditorCodeMirror: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  const [isCompileButtonLoading, setIsCompileButtonLoading] =
+    useState<boolean>(false);
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [codeMirrorComponent, setCodeMirrorComponent] = useState<HTMLElement>();
   const [editorInstance, setEditorInstance] = useState<any>(null);
@@ -224,42 +226,25 @@ const LatexEditorCodeMirror: React.FC = () => {
     }
   };
 
-  const getPDFFromS3 = async () => {
-    const s3Client = new S3Client({
-      region: import.meta.env.VITE_AWS_BUCKET_REGION,
-      credentials: {
-        accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY,
-        secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-      },
-    });
-
+  const compileTexToPdf = async () => {
+    if (!sessionId) return;
+    setIsCompileButtonLoading(true);
     try {
-      const getPdfCommand = new GetObjectCommand({
-        Bucket: "golatex--tex-and-pdf-files",
-        Key: `pdf/${sessionId}/sample.pdf`,
-        ResponseContentType: "application/pdf",
-        ResponseContentDisposition: "inline",
+      const res = await TexFileService.createTexFile({
+        sessionId,
+        data: { content: editorContent },
       });
+      if (res.status !== 201) {
+        throw new Error(res.data.error);
+      }
 
-      const signedUrl = await getSignedUrl(s3Client, getPdfCommand, {
-        expiresIn: 3600,
-      }); // Expires in 1 hour
-
-      setPdfUrl(signedUrl);
+      console.log(res.data.pdfUrl);
+      setPdfUrl(res.data.pdfUrl);
     } catch (err) {
       console.log("debug catch err", err);
+    } finally {
+      setIsCompileButtonLoading(false);
     }
-  };
-
-  const convertToTex = async () => {
-    if (!sessionId) return;
-    const res = await TexFileService.createTexFile({
-      sessionId,
-      data: { content: editorContent },
-    });
-    if (res.status === 200) {
-    }
-    console.log(res);
   };
 
   return (
@@ -318,7 +303,20 @@ const LatexEditorCodeMirror: React.FC = () => {
               (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
             }
           >
-            <Button onClick={getPDFFromS3}>Compiles</Button>
+            <Button
+              className="mr-3"
+              onClick={compileTexToPdf}
+              disabled={isCompileButtonLoading}
+            >
+              {isCompileButtonLoading ? (
+                <>
+                  <Loader2 className="animate-spin mr-1" />
+                  Compiling...
+                </>
+              ) : (
+                "Compiles"
+              )}
+            </Button>
           </div>
           <iframe
             id="preview"
