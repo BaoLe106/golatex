@@ -22,6 +22,31 @@ import { useTheme } from "@/components/theme-provider";
 import { TexFileService } from "@/services/texFileService";
 
 import { Search, Loader2 } from "lucide-react";
+
+import { Tree } from "antd";
+import type { GetProps, TreeDataNode } from "antd";
+
+type DirectoryTreeProps = GetProps<typeof Tree.DirectoryTree>;
+
+const { DirectoryTree } = Tree;
+const treeData: TreeDataNode[] = [
+  {
+    title: "parent 0",
+    key: "0-0",
+    children: [
+      { title: "leaf 0-0", key: "0-0-0", isLeaf: true },
+      { title: "leaf 0-1", key: "0-0-1", isLeaf: true },
+    ],
+  },
+  {
+    title: "parent 1",
+    key: "0-1",
+    children: [
+      { title: "leaf 1-0", key: "0-1-0", isLeaf: true },
+      { title: "leaf 1-1", key: "0-1-1", isLeaf: true },
+    ],
+  },
+];
 import { Button } from "@/components/ui/button";
 import {
   ResizableHandle,
@@ -40,6 +65,14 @@ const LatexEditorCodeMirror: React.FC = () => {
   const [codeMirrorComponent, setCodeMirrorComponent] = useState<HTMLElement>();
   const [editorInstance, setEditorInstance] = useState<any>(null);
   const [editorContent, setEditorContent] = useState<string>("");
+
+  const onSelect: DirectoryTreeProps["onSelect"] = (keys, info) => {
+    console.log("Trigger Select", keys, info);
+  };
+
+  const onExpand: DirectoryTreeProps["onExpand"] = (keys, info) => {
+    console.log("Trigger Expand", keys, info);
+  };
 
   useEffect(() => {
     if (!codeMirrorComponent) {
@@ -109,7 +142,7 @@ const LatexEditorCodeMirror: React.FC = () => {
 
     const getTEXFromS3 = async () => {
       const s3Client = new S3Client({
-        region: import.meta.env.VITE_AWS_BUCKET_REGION,
+        region: import.meta.env.VITE_AWS_REGION,
         credentials: {
           accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY,
           secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
@@ -148,9 +181,10 @@ const LatexEditorCodeMirror: React.FC = () => {
         console.log("debug catch err", err);
       }
     };
-
+    const accessToken = localStorage.getItem("accessToken");
     const socket = new WebSocket(
-      `ws://localhost:8080/api/v1/latex/${sessionId}`
+      `ws://localhost:8080/api/v1/latex/${sessionId}`,
+      ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
     );
 
     socket.onmessage = (event: any) => {
@@ -271,7 +305,21 @@ const LatexEditorCodeMirror: React.FC = () => {
       </div> */}
 
       <ResizablePanelGroup direction="horizontal">
-        <ResizablePanel defaultSize={50} minSize={30}>
+        <ResizablePanel defaultSize={20} minSize={10}>
+          <DirectoryTree
+            multiple
+            // draggable
+            defaultExpandAll
+            onSelect={onSelect}
+            onExpand={onExpand}
+            treeData={treeData}
+          />
+        </ResizablePanel>
+        <ResizableHandle
+          withHandle
+          className={theme === "dark" ? "bg-black" : ""}
+        />
+        <ResizablePanel defaultSize={40} minSize={20}>
           <div
             className={
               "flex items-center h-11 " +
@@ -296,7 +344,7 @@ const LatexEditorCodeMirror: React.FC = () => {
           withHandle
           className={theme === "dark" ? "bg-black" : ""}
         />
-        <ResizablePanel defaultSize={50} minSize={40}>
+        <ResizablePanel defaultSize={40} minSize={20}>
           <div
             className={
               "flex items-center h-11 " +
