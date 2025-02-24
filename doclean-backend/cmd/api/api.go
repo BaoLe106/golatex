@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"time"
 
+	// "github.com/BaoLe106/doclean/doclean-backend/services/auth"
+	"github.com/BaoLe106/doclean/doclean-backend/configs"
+	"github.com/BaoLe106/doclean/doclean-backend/services/auth"
 	"github.com/BaoLe106/doclean/doclean-backend/services/latex"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/helper"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/logger"
@@ -49,8 +52,10 @@ func (server *APIServer) Run() error {
 	}))
 	
 	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins: []string{"http://localhost:3006"},
-		// AllowCredentials: true,
+		AllowedOrigins: 	[]string{"http://localhost:3006"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowCredentials: true,
 	})
 	// router := mux.NewRouter()
 	router.Use(func(c *gin.Context) {
@@ -58,8 +63,21 @@ func (server *APIServer) Run() error {
 		c.Next()
 	})
 
+	cognitoAuth, err := auth.NewCognitoAuth(auth.CognitoConfig{
+		UserPoolID: configs.Envs.UserPoolID,
+		ClientID:   configs.Envs.ClientID,
+		Region:     "us-west-2",
+	})
+	if err != nil {
+		logger.BasicLogHandler(logger.BasicLogInput{
+			Status: false,
+			Message: err.Error(),
+		})
+	}
+
 	apiV1 := router.Group("/api/v1");
-	latex.AddLatexRoutes(apiV1)
+	latex.AddLatexRoutes(apiV1, cognitoAuth)
+	auth.AddAuthRoutes(apiV1, cognitoAuth)
 	
 	logger.BasicLogHandler(logger.BasicLogInput{
 		Status: true,
