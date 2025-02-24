@@ -20,20 +20,13 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Handler struct {
-	Hub *Hub
-}
 
-func NewHandler() *Handler {
-	hub := NewHub()
-	go hub.Run()
-	return &Handler{Hub: hub}
-}
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true // Allow all origins (be careful with this in production)
 	},
+	Subprotocols: []string{"Authorization"},
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
@@ -41,7 +34,7 @@ var upgrader = websocket.Upgrader{
 func (h *Handler) HandleConnection(c *gin.Context) {
 	w, r := c.Writer, c.Request
 	sessionId := c.Param("sessionId")
-
+	
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Error during connection upgrade:", err)
@@ -50,7 +43,10 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 
 	client := &Client{Conn: conn, Hub: h.Hub, SessionID: sessionId}
 	h.Hub.Mutex.Lock()
-	h.Hub.Clients[client] = true
+	if _, exists := h.Hub.Sessions[sessionId]; !exists {
+		h.Hub.Sessions[sessionId] = make(map[*Client]bool)
+	}
+	h.Hub.Sessions[sessionId][client] = true
 	
 	if data, exists := h.Hub.SessionData[sessionId]; exists {
 		err := client.Conn.WriteMessage(websocket.TextMessage, []byte(data))
@@ -64,36 +60,40 @@ func (h *Handler) HandleConnection(c *gin.Context) {
 	h.Hub.Mutex.Unlock()
 
 	defer func() {
-			h.Hub.Mutex.Lock()
-			delete(h.Hub.Clients, client)
-			h.Hub.Mutex.Unlock()
-			conn.Close()
+		h.Hub.Mutex.Lock()
+		delete(h.Hub.Sessions[sessionId], client)
+		if len(h.Hub.Sessions[sessionId]) == 0 {
+			delete(h.Hub.Sessions, sessionId)
+		}
+		h.Hub.Mutex.Unlock()
+		conn.Close()
 	}()
 
 	for { //run until err then break
-			_, msgBytes, err := conn.ReadMessage()
-			
-			if err != nil {
-					log.Println("Error reading message:", err)
-					break
-			}
-			
-			msg := string(msgBytes)
+		_, msgBytes, err := conn.ReadMessage()
+		
+		if err != nil {
+			log.Println("Error reading message:", err)
+			break
+		}
+		
+		msg := string(msgBytes)
 
-			h.Hub.Mutex.Lock()
-			h.Hub.SessionData[sessionId] = msg
+		h.Hub.Mutex.Lock()
+		h.Hub.SessionData[sessionId] = msg
 
-			for otherClient := range h.Hub.Clients {
-				if otherClient != client { // Skip the sender
-					err := otherClient.Conn.WriteMessage(websocket.TextMessage, msgBytes)
-					if err != nil {
-						log.Println("Error broadcasting message:", err)
-						delete(h.Hub.Clients, otherClient) // Clean up disconnected clients
-					}
+		// Only broadcast to clients in the same session
+		for otherClient := range h.Hub.Sessions[sessionId] {
+			if otherClient != client {
+				err := otherClient.Conn.WriteMessage(websocket.TextMessage, msgBytes)
+				if err != nil {
+					log.Println("Error broadcasting message:", err)
+					delete(h.Hub.Sessions[sessionId], otherClient)
 				}
 			}
+		}
 
-			h.Hub.Mutex.Unlock()
+		h.Hub.Mutex.Unlock()
 	}
 }
 
@@ -103,7 +103,6 @@ type LambdaResponse struct {
 }
 
 func CreateTexFile(c *gin.Context) {
-	w, r := c.Writer, c.Request
 	sessionId := c.Param("sessionId")
 
 	// http.Error(w, "TEST ERROR", http.StatusForbidden)
@@ -111,9 +110,8 @@ func CreateTexFile(c *gin.Context) {
 	// apiResponse.SendErrorResponse(c, http.StatusForbidden, "TEST ERROR")
 	// return
 	var input CreateTexFileInputSchema
-	err := json.NewDecoder(r.Body).Decode(&input)
+	err := json.NewDecoder(c.Request.Body).Decode(&input)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -202,7 +200,7 @@ func CreateTexFile(c *gin.Context) {
 		return
 	}
 	
-	apiResponse.SendPostRequestResponse(c, http.StatusCreated, map[string]interface{}{"pdfUrl": presignedUrl.URL})
+	apiResponse.SendPostRequestResponse(c, http.StatusCreated, gin.H{"pdfUrl": presignedUrl.URL})
 	
 }
 
