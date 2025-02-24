@@ -1,14 +1,10 @@
 import { ReactNode } from "react";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { v4 as uuidv4 } from "uuid";
 type LayoutProps = {
   children: ReactNode;
 };
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const sessionId = uuidv4();
-
+const LayoutAuth: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen w-screen flex flex-col">
       {/* Header */}
@@ -18,24 +14,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <a href="/">
               <h1 className="text-3xl">GoLatex</h1>
             </a>
-            <a href="/about">
-              <Button className="bg-inherit" variant="ghost">
-                About
-              </Button>
-            </a>
-            <a href={`/playground/${sessionId}`}>
-              <Button className="bg-inherit" variant="ghost">
-                Playground
-              </Button>
-            </a>
           </div>
           <div className="flex space-x-2 mr-3 items-center">
-            <Button className="bg-inherit" variant="ghost">
-              Login
-            </Button>
-            <a href="/doc">
-              <Button>Start Writing</Button>
-            </a>
             <ThemeToggle></ThemeToggle>
           </div>
         </div>
@@ -74,8 +54,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         Main Content
         */}
       <div className="flex flex-1">
-        <main className="flex-1 justify-items-center w-full">
-          <div className="w-full">{children}</div>
+        <main className="flex-1 justify-items-center content-center w-full">
+          <div className="w-full">
+            <div className="flex justify-self-center">{children}</div>
+          </div>
         </main>
       </div>
 
@@ -89,4 +71,4 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default Layout;
+export default LayoutAuth;

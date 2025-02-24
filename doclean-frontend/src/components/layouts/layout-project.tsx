@@ -7,7 +7,7 @@ type LayoutProps = {
   children: ReactNode;
 };
 
-const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
+const LayoutProject: React.FC<LayoutProps> = ({ children }) => {
   // const sessionId = uuidv4();
 
   return (
@@ -64,4 +64,4 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
   );
 };
 
-export default LayoutAuthenticated;
+export default LayoutProject;
