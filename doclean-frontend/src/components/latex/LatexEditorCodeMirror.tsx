@@ -3,6 +3,11 @@ import { useParams } from "react-router-dom";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { cloneDeep } from "lodash";
+import {
+  getCurrentEditorData,
+  setCurrFileIdForCurrUserIdInSessionId,
+} from "@/stores/editorSlice";
+
 import "@/components/latex/styles.css";
 
 import "codemirror/lib/codemirror.css";
@@ -18,61 +23,35 @@ import "codemirror/addon/dialog/dialog.js";
 
 import CodeMirror from "codemirror";
 
-import { useTheme } from "@/components/theme-provider";
-import { TexFileService } from "@/services/texFileService";
+import { useTheme } from "@/context/ThemeProvider";
+import { TexFileService } from "@/services/latex/texFileService";
 
 import { Search, Loader2 } from "lucide-react";
 
-import { Tree } from "antd";
-import type { GetProps, TreeDataNode } from "antd";
-
-type DirectoryTreeProps = GetProps<typeof Tree.DirectoryTree>;
-
-const { DirectoryTree } = Tree;
-const treeData: TreeDataNode[] = [
-  {
-    title: "parent 0",
-    key: "0-0",
-    children: [
-      { title: "leaf 0-0", key: "0-0-0", isLeaf: true },
-      { title: "leaf 0-1", key: "0-0-1", isLeaf: true },
-    ],
-  },
-  {
-    title: "parent 1",
-    key: "0-1",
-    children: [
-      { title: "leaf 1-0", key: "0-1-0", isLeaf: true },
-      { title: "leaf 1-1", key: "0-1-1", isLeaf: true },
-    ],
-  },
-];
 import { Button } from "@/components/ui/button";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
+import { FileTreeRefHandle } from "@/components/latex/FileTreeComponent";
+import FileTreeComponent from "@/components/latex/FileTreeComponent";
 
 const LatexEditorCodeMirror: React.FC = () => {
   const { theme } = useTheme();
   const { sessionId } = useParams<{ sessionId: string }>();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const fileTreeRef = useRef<FileTreeRefHandle>(null);
+
+  const [ws, setWs] = useState<WebSocket | null>(null);
   const [isCompileButtonLoading, setIsCompileButtonLoading] =
     useState<boolean>(false);
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [codeMirrorComponent, setCodeMirrorComponent] = useState<HTMLElement>();
   const [editorInstance, setEditorInstance] = useState<any>(null);
   const [editorContent, setEditorContent] = useState<string>("");
-
-  const onSelect: DirectoryTreeProps["onSelect"] = (keys, info) => {
-    console.log("Trigger Select", keys, info);
-  };
-
-  const onExpand: DirectoryTreeProps["onExpand"] = (keys, info) => {
-    console.log("Trigger Expand", keys, info);
-  };
 
   useEffect(() => {
     if (!codeMirrorComponent) {
@@ -183,19 +162,35 @@ const LatexEditorCodeMirror: React.FC = () => {
     };
     const accessToken = localStorage.getItem("accessToken");
     const socket = new WebSocket(
-      `ws://localhost:8080/api/v1/latex/${sessionId}`,
-      ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+      `ws://localhost:8080/api/v1/latex/${sessionId}`
+      // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
     );
-
+    setWs(socket);
     socket.onmessage = (event: any) => {
       const { data } = event;
+      try {
+        const dataFromInfoBroadcast = JSON.parse(data);
+        console.log(dataFromInfoBroadcast);
+        if (dataFromInfoBroadcast.sessionId !== sessionId) return;
+        if (dataFromInfoBroadcast.infoType === "file_created") {
+          if (fileTreeRef.current) {
+            console.log("debug r u here");
+            fileTreeRef.current.updateTreeData(
+              dataFromInfoBroadcast.data.fileTree
+            );
+          }
+        }
+      } catch (err) {
+        console.log("debug on hello");
+        editor.setValue(data);
+        setEditorContent(data);
+      }
 
-      editor.setValue(data);
-      setEditorContent(data);
+      // if ()
     };
 
     if (!editorContent) {
-      getTEXFromS3();
+      // getTEXFromS3();
     }
 
     // socket.on('connect_error', (err) => {
@@ -214,8 +209,9 @@ const LatexEditorCodeMirror: React.FC = () => {
     //   setUsers(users)
     //   console.log(users)
     // })
-
+    // editor.
     editor.on("change", (instance, changes) => {
+      console.log("debug on change", changes);
       const { origin } = changes;
       // if (origin === '+input' || origin === '+delete' || origin === 'cut') {
       if (origin !== "setValue") {
@@ -232,24 +228,6 @@ const LatexEditorCodeMirror: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (iframeRef.current) {
-      iframeRef.current.contentWindow?.postMessage(
-        { type: "latex", editorContent },
-        "*"
-      );
-    }
-  }, [editorContent]);
-
-  useEffect(() => {
-    if (iframeRef.current) {
-      iframeRef.current.contentWindow?.postMessage(
-        { type: "theme", theme },
-        "*"
-      );
-    }
-  }, [theme]);
-
   const triggerSearch = () => {
     const dialog = document.querySelector(".CodeMirror-dialog");
 
@@ -264,7 +242,7 @@ const LatexEditorCodeMirror: React.FC = () => {
     if (!sessionId) return;
     setIsCompileButtonLoading(true);
     try {
-      const res = await TexFileService.createTexFile({
+      const res = await TexFileService.compileToPdf({
         sessionId,
         data: { content: editorContent },
       });
@@ -279,6 +257,12 @@ const LatexEditorCodeMirror: React.FC = () => {
     } finally {
       setIsCompileButtonLoading(false);
     }
+  };
+
+  const setContent = (content: string) => {
+    console.log("debug on set content", content);
+    editorInstance.setValue(content);
+    // setEditorContent(content);
   };
 
   return (
@@ -306,13 +290,12 @@ const LatexEditorCodeMirror: React.FC = () => {
 
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel defaultSize={20} minSize={10}>
-          <DirectoryTree
-            multiple
-            // draggable
-            defaultExpandAll
-            onSelect={onSelect}
-            onExpand={onExpand}
-            treeData={treeData}
+          <FileTreeComponent
+            ref={fileTreeRef}
+            theme={theme}
+            sessionId={sessionId}
+            setContent={setContent}
+            // sendFileOrFolderCreatedInfo={sendFileOrFolderCreatedInfo}
           />
         </ResizablePanel>
         <ResizableHandle
@@ -326,17 +309,19 @@ const LatexEditorCodeMirror: React.FC = () => {
               (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
             }
           >
-            <Button
-              className={
-                "bg-inherit " +
-                (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
-              }
-              variant="ghost"
-              size="icon"
-              onClick={triggerSearch}
-            >
-              <Search className="absolute h-[1.2rem] w-[1.2rem] stroke-[3px]" />
-            </Button>
+            <TooltipWrapper tooltipContent={"Search this file"}>
+              <Button
+                className={
+                  "bg-inherit " +
+                  (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+                }
+                variant="ghost"
+                size="icon"
+                onClick={triggerSearch}
+              >
+                <Search className="absolute h-[1.2rem] w-[1.2rem] stroke-[3px]" />
+              </Button>
+            </TooltipWrapper>
           </div>
           <textarea id="code-editor" />
         </ResizablePanel>
@@ -351,20 +336,22 @@ const LatexEditorCodeMirror: React.FC = () => {
               (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
             }
           >
-            <Button
-              className="mr-3"
-              onClick={compileTexToPdf}
-              disabled={isCompileButtonLoading}
-            >
-              {isCompileButtonLoading ? (
-                <>
-                  <Loader2 className="animate-spin mr-1" />
-                  Compiling...
-                </>
-              ) : (
-                "Compiles"
-              )}
-            </Button>
+            <TooltipWrapper tooltipContent={"Compile to PDF"}>
+              <Button
+                className="mr-3"
+                onClick={compileTexToPdf}
+                disabled={isCompileButtonLoading}
+              >
+                {isCompileButtonLoading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-1" />
+                    Compiling...
+                  </>
+                ) : (
+                  "Compiles"
+                )}
+              </Button>
+            </TooltipWrapper>
           </div>
           <iframe
             id="preview"

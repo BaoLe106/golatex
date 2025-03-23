@@ -2,9 +2,9 @@ import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { v4 as uuidv4 } from "uuid";
-type LayoutProps = {
+interface LayoutProps {
   children: ReactNode;
-};
+}
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sessionId = uuidv4();

@@ -37,7 +37,7 @@ const UserConfirmationView: React.FC = () => {
         email: currentUserEmail,
         confirmationCode: confirmationCode,
       });
-
+      navigate("/project");
       // console.log("debug res in confirm", res);
       // navigate("../confirm", {
       //   state: {

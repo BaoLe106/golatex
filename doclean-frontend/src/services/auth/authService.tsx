@@ -42,6 +42,18 @@ export const AuthService = (() => {
     return res.data;
   };
 
+  const getUserInfoByUserEmail = async () => {
+    const apiUrl = `/auth/userInfo`;
+    const res = await apiClient.get(apiUrl);
+    return res.data;
+  };
+
+  const authCheck = async () => {
+    const apiUrl = `/auth/authCheck`;
+    const res = await apiClient.get(apiUrl);
+    return res;
+  };
+
   const signUp = async (data: UserSchema) => {
     const apiUrl = `/auth/signup`;
     const config = {
@@ -61,7 +73,8 @@ export const AuthService = (() => {
       },
     };
     const res = await apiClient.post(apiUrl, data, config);
-    return res.data;
+    // console.log("debug in confirmSignUp", res);
+    return res;
   };
 
   const signIn = async (data: UserSchema) => {
@@ -76,7 +89,9 @@ export const AuthService = (() => {
   };
 
   return {
+    getUserInfoByUserEmail,
     getNewAccessToken,
+    authCheck,
     signUp,
     confirmSignUp,
     signIn,

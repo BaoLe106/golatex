@@ -1,9 +1,9 @@
 import { ReactNode } from "react";
 
-type ContainerLayoutProps = {
+interface ContainerLayoutProps {
   children: ReactNode;
   className?: string;
-};
+}
 
 const ContainerLayout: React.FC<ContainerLayoutProps> = ({
   children,

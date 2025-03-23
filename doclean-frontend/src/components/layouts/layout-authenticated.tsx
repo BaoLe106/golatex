@@ -11,9 +11,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 // import { v4 as uuidv4 } from "uuid";
-type LayoutProps = {
+interface LayoutProps {
   children: ReactNode;
-};
+}
 
 const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
   // const sessionId = uuidv4();

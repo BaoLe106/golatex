@@ -14,9 +14,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+import { useAuth } from "@/context/AuthProvider";
 import { AuthService } from "@/services/auth/authService";
 
 const LoginView: React.FC = () => {
+  const { user, setUser, setIsAuthenticated } = useAuth();
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -31,15 +34,17 @@ const LoginView: React.FC = () => {
 
   const handleLogin = async () => {
     try {
-      const res = await AuthService.signIn({
+      await AuthService.signIn({
         email: formData.email,
         password: formData.password,
       });
-      console.log("debug res", res);
+      // console.log("debug res", res);
 
-      localStorage.setItem("accessToken", res?.authData.AccessToken);
-      localStorage.setItem("refreshToken", res?.authData.RefreshToken);
+      // localStorage.setItem("accessToken", res?.authData.AccessToken);
+      // localStorage.setItem("refreshToken", res?.authData.RefreshToken);
       sessionStorage.setItem("currentUserEmail", formData.email);
+      setUser(formData.email);
+      setIsAuthenticated(true);
       // dispatch(setToken(res?.data?.user.AccessToken));
       navigate("/project");
     } catch (err: any) {
