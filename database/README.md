@@ -11,11 +11,22 @@
 
 where database, username, password is in `docker-compose.yml` file
 
+## CREATE NEW TABLE IN DATABASE
+
+`migrate create -ext sql -dir db/migrations -seq <migration-file-name>`
+
+If there were no errors, we should have two files available under db/migrations folder:
+
+`000001_<migration-file-name>.down.sql`
+`000001_<migration-file-name>.up.sql`
+
 ## DATABASE MIGRATIONS
 
 1. Run in terminal: `export POSTGRESQL_URL='postgres://admin:golatex_admin@localhost:5000/golatex?sslmode=disable'`
-2. To migrate UP database: `migrate -database ${POSTGRESQL_URL} -path db/migrations up`
-3. To migrate DOWN database: `migrate -database ${POSTGRESQL_URL} -path db/migrations down`
+2. To migrate UP database: `migrate -database ${POSTGRESQL_URL} -path db/migrations up <step>`
+3. To migrate DOWN database: `migrate -database ${POSTGRESQL_URL} -path db/migrations down <step>`
+
+where step is the number of steps you want to migrate up/down from the latest migration
 
 ## Share a Database Data to other developers as Database Dump
 
