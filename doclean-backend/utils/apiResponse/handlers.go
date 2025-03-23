@@ -8,10 +8,10 @@ func SendErrorResponse(c *gin.Context, statusCode int, message string) {
 	c.Abort() // Stops further processing (like `return`)
 }
 
-func SendGetRequestResponse(c *gin.Context, statusCode int, data interface{}) {
+func SendGetRequestResponse(c *gin.Context, statusCode int, data any) {
 	c.JSON(statusCode, data)
 }
-func SendPostRequestResponse(c *gin.Context, statusCode int, data interface{}) {
+func SendPostRequestResponse(c *gin.Context, statusCode int, data any) {
 	c.JSON(statusCode, data)
 }
 

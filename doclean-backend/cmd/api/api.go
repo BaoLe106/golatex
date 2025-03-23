@@ -10,6 +10,7 @@ import (
 	"github.com/BaoLe106/doclean/doclean-backend/configs"
 	"github.com/BaoLe106/doclean/doclean-backend/services/auth"
 	"github.com/BaoLe106/doclean/doclean-backend/services/latex"
+	"github.com/BaoLe106/doclean/doclean-backend/services/projects"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/helper"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/logger"
 	"github.com/gin-gonic/gin"
@@ -78,6 +79,7 @@ func (server *APIServer) Run() error {
 	apiV1 := router.Group("/api/v1");
 	latex.AddLatexRoutes(apiV1, cognitoAuth)
 	auth.AddAuthRoutes(apiV1, cognitoAuth)
+	projects.AddProjectRoutes(apiV1, cognitoAuth)
 	
 	logger.BasicLogHandler(logger.BasicLogInput{
 		Status: true,
