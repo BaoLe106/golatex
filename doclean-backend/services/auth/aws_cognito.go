@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -76,20 +75,20 @@ func (ca *CognitoAuth) ValidateToken(tokenString string) (*jwt.Token, error) {
 	}
 
 	// Validate claims
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || !token.Valid {
-		return nil, errors.New("invalid token claims")
-	}
+	// _, ok := token.Claims.(jwt.MapClaims)
+	// if !ok || !token.Valid {
+	// 	return nil, errors.New("invalid token claims")
+	// }
 
 	// Verify token use
-	if tokenUse, ok := claims["token_use"].(string); !ok || tokenUse != "access" {
-		return nil, errors.New("invalid token use")
-	}
+	// if tokenUse, ok := claims["token_use"].(string); !ok || tokenUse != "access" {
+	// 	return nil, errors.New("invalid token use")
+	// }
 
 	// Verify client ID
-	if aud, ok := claims["client_id"].(string); !ok || aud != ca.config.ClientID {
-		return nil, errors.New("invalid client id")
-	}
+	// if aud, ok := claims["client_id"].(string); !ok || aud != ca.config.ClientID {
+	// 	return nil, errors.New("invalid client id")
+	// }
 
 	return token, nil
 }
@@ -97,30 +96,15 @@ func (ca *CognitoAuth) ValidateToken(tokenString string) (*jwt.Token, error) {
 // Middleware for protecting routes
 func (ca *CognitoAuth) AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get the Authorization header
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
+		// Get the Cookie
+		accessToken, err := c.Cookie("AccessToken")
+		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Authorization header required")
-
-			// c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			// 	"error": "Authorization header required",
-			// })
 			return
 		}
-
-		// Extract the token from the Authorization header
-		tokenParts := strings.Split(authHeader, "Bearer ")
-		if len(tokenParts) != 2 {
-			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid authorization header format")
-			// c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			// 	"error": "Invalid authorization header format",
-			// })
-			return
-		}
-		tokenString := tokenParts[1]
 
 		// Validate the token
-		token, err := ca.ValidateToken(tokenString)
+		token, err := ca.ValidateToken(accessToken)
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
 			// c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{

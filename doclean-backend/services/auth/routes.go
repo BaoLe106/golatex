@@ -9,15 +9,17 @@ import (
 func AddAuthRoutes(rg *gin.RouterGroup, cognitoAuth *CognitoAuth) {
 	authRoute := rg.Group("/auth")
 	// authHandler := NewHandler()
-
-	// authRoute.Use(
-	// 	TierMiddleware(TierGuest, cognitoAuth),
-	// 	// user_tier_middleware.ProjectLimitMiddleware(),
-	// )
 	authRoute.POST("/refresh", cognitoAuth.RefreshToken)
 	authRoute.POST("/signup", cognitoAuth.SignUp)
 	authRoute.POST("/signin", cognitoAuth.SignIn)
 	authRoute.POST("/confirmSignup", cognitoAuth.ConfirmSignUp)
+	authRoute.Use(
+		TierMiddleware(TierFree, cognitoAuth),
+		// user_tier_middleware.ProjectLimitMiddleware(),
+	)
+	authRoute.GET("/userInfo", cognitoAuth.GetUserInfoByUserEmailHandler)
+	authRoute.GET("/authCheck", cognitoAuth.AuthCheck)
+	
 	// CollaborationLimitMiddleware(latexHandler), latexHandler.HandleConnection)
 	// latexRoute.GET("/:sessionId", latexHandler.HandleConnection)
 	// latexRoute.POST("/tex/:sessionId", CreateTexFile)

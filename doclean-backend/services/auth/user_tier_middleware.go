@@ -1,18 +1,16 @@
-package latex
+package auth
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/BaoLe106/doclean/doclean-backend/services/auth"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
 
 	// "github.com/BaoLe106/doclean/doclean-backend/services/latex"
 	"github.com/gin-gonic/gin"
 )
 
-func TierMiddleware(tier UserTier, cognitoAuth *auth.CognitoAuth) gin.HandlerFunc {
+func TierMiddleware(tier UserTier, cognitoAuth *CognitoAuth) gin.HandlerFunc {
     return func(c *gin.Context) {
         limits := TierConfigs[tier]
         
@@ -48,7 +46,7 @@ func TierMiddleware(tier UserTier, cognitoAuth *auth.CognitoAuth) gin.HandlerFun
 //     return 0
 // }
 
-func WebSocketAuthMiddleware(cognitoAuth *auth.CognitoAuth) gin.HandlerFunc {
+func WebSocketAuthMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
     return func(c *gin.Context) {
         subprotocols := c.Request.Header.Get("Sec-WebSocket-Protocol")
         tokens := strings.Split(subprotocols, ", ")
@@ -64,27 +62,27 @@ func WebSocketAuthMiddleware(cognitoAuth *auth.CognitoAuth) gin.HandlerFunc {
     }
 }
 
-func CollaborationLimitMiddleware(handler *Handler) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        // tier := c.MustGet("userTier").(UserTier)
-        limits := c.MustGet("tierLimits").(TierLimits)
-        currentCollaborators := 0
-        // Get current number of collaborators for this session
-        sessionID := c.Param("sessionId")
+// func CollaborationLimitMiddleware(handler *latex.Handler) gin.HandlerFunc {
+//     return func(c *gin.Context) {
+//         // tier := c.MustGet("userTier").(UserTier)
+//         limits := c.MustGet("tierLimits").(TierLimits)
+//         currentCollaborators := 0
+//         // Get current number of collaborators for this session
+//         sessionID := c.Param("sessionId")
 
-        if clients, exists := handler.Hub.Sessions[sessionID]; exists {
-					currentCollaborators = len(clients) + 1
-        }
-        fmt.Println("#DEBUG::collab num", currentCollaborators)
+//         if clients, exists := handler.Hub.Sessions[sessionID]; exists {
+// 					currentCollaborators = len(clients) + 1
+//         }
+//         fmt.Println("#DEBUG::collab num", currentCollaborators)
 
-        if currentCollaborators > limits.MaxCollaborators {
-            apiResponse.SendErrorResponse(c, http.StatusForbidden, "Maximum collaborator limit reached for your tier")
-            return
-        }
+//         if currentCollaborators > limits.MaxCollaborators {
+//             apiResponse.SendErrorResponse(c, http.StatusForbidden, "Maximum collaborator limit reached for your tier")
+//             return
+//         }
 
-        c.Next()
-    }
-}
+//         c.Next()
+//     }
+// }
 
 // func ProjectLimitMiddleware() gin.HandlerFunc {
 //     return func(c *gin.Context) {
