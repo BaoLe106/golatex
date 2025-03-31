@@ -25,9 +25,11 @@ require (
 	github.com/aws/smithy-go v1.22.2 // indirect
 	github.com/bytedance/sonic v1.11.6 // indirect
 	github.com/bytedance/sonic/loader v0.1.1 // indirect
+	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.3.0 // indirect
+	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -66,6 +68,7 @@ require (
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/jwx v1.2.30
 	github.com/lib/pq v1.10.9
+	github.com/redis/go-redis/v9 v9.7.3
 	github.com/rs/cors v1.11.1
 	golang.org/x/crypto v0.28.0
 	golang.org/x/net v0.30.0 // indirect

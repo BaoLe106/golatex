@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"github.com/BaoLe106/doclean/doclean-backend/configs"
+	"github.com/BaoLe106/doclean/doclean-backend/redis"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
@@ -53,6 +54,13 @@ func (cognitoAuth *CognitoAuth) RefreshToken(c *gin.Context) {
 }
 
 func (cognitoAuth *CognitoAuth) AuthCheck(c *gin.Context) {
+	_, err := redis.RedisClient.Get(c, "AccessToken").Result()
+
+	if err == nil {
+		apiResponse.SendGetRequestResponse(c, http.StatusOK, "")
+		return
+	}
+
 	accessToken, err := c.Cookie("AccessToken")
 	if err != nil || accessToken == "" {
 		apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
@@ -218,11 +226,15 @@ func (cognitoAuth *CognitoAuth) SignIn(c *gin.Context) {
 		// }
 	}
 
+	var AccessToken = initiateAuthRes.AuthenticationResult.AccessToken
+	var IdToken = initiateAuthRes.AuthenticationResult.IdToken
+	var RefreshToken = initiateAuthRes.AuthenticationResult.RefreshToken
+
 	// authResult = output.AuthenticationResult
-	c.SetCookie("AccessToken", *initiateAuthRes.AuthenticationResult.AccessToken, 3600, "/", "localhost", false, true)
-	c.SetCookie("IdToken", *initiateAuthRes.AuthenticationResult.IdToken, 3600, "/", "localhost", false, true)
-	c.SetCookie("RefreshToken", *initiateAuthRes.AuthenticationResult.RefreshToken, 86400, "/", "localhost", false, true)
-	
+	c.SetCookie("AccessToken", *AccessToken, 3600, "/", "localhost", false, true)
+	c.SetCookie("IdToken", *IdToken, 3600, "/", "localhost", false, true)
+	c.SetCookie("RefreshToken", *RefreshToken, 86400, "/", "localhost", false, true)
+	redis.RedisClient.Set(c, "AccessToken", *AccessToken, 3600)
 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/BaoLe106/doclean/doclean-backend/cmd/api"
 	"github.com/BaoLe106/doclean/doclean-backend/configs"
 	"github.com/BaoLe106/doclean/doclean-backend/db"
+	"github.com/BaoLe106/doclean/doclean-backend/redis"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/logger"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/joho/godotenv"
@@ -25,7 +26,7 @@ func main() {
 	)
 
 	db.PostgresqlStorage(connStr)
-	
+	redis.InitRedisClient()
 	// initStorage(db)
 	godotenv.Load()
 	server := api.NewAPIServer(":8080")
