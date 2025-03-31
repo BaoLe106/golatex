@@ -2,7 +2,7 @@ package redis
 
 import "github.com/redis/go-redis/v9"
 
-func redis_connect() {
+func redis_connect() *redis.Client {
 	// ctx := context.Background()
 	// ctx := gin.Context.Background()
 
