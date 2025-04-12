@@ -1,25 +1,20 @@
-# Dockerfile for Go Backend
-FROM golang:1.23.2-alpine
+# Stage 1: Build stage for TeX Live
+FROM registry.gitlab.com/islandoftex/images/texlive:latest AS texlive-stage
 
-# RUN apt update && apt install --no-install-recommends -y wget perl-tk && \
-#     apt clean && rm -rf /var/lib/apt/lists/*
+# Install necessary packages for TeX Live
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN apk update && apk add --no-cache wget perl-tk bash
+# Stage 2: Go Backend
+FROM golang:1.24.2-bookworm
 
-# Install TeX Live full.
-RUN wget -qO- https://mirror.ctan.org/systems/texlive/tlnet/install-tl-unx.tar.gz | tar -xzvf - && \
-    mv install-tl-* install-tl && cd install-tl && \
-    echo "selected_scheme scheme-full" > profile && \
-    echo "tlpdbopt_install_docfiles 0" >> profile && \
-    echo "tlpdbopt_install_srcfiles 0" >> profile && \
-    ./install-tl -repository https://mirror.ctan.org/systems/texlive/tlnet -profile profile && \
-    cd .. && rm -rf install-tl
+# Copy TeX Live from the first stage
+COPY --from=texlive-stage /usr/local/texlive/ /usr/local/texlive
 
 # Make TeX Live tools available on path.
-ENV PATH="${PATH}:/usr/local/texlive/2024/bin/x86_64-linuxmusl"
-
-# Ensure TeX Live format files are properly configured
-# RUN texconfig rehash
+ENV PATH="/usr/local/texlive/2025/bin/x86_64-linux:$PATH"
 
 # RUN which pdflatex
 RUN pdflatex --version
@@ -38,6 +33,6 @@ COPY . .
 
 # Expose the port your Go app listens on
 EXPOSE 8080
-# RUN pdflatex --version
+
 # Run the Go app
 CMD ["air", "-c", ".air.toml"]

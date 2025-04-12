@@ -20,6 +20,12 @@ doclean/
 └── docker-compose.yml
 ```
 
+```
+docker network create golatex-network
+```
+
+
+
 
 # Ignore everything below this line:
 which mean at `doclean/`

@@ -13,4 +13,4 @@ services:
       - golatex-network
 networks:
   golatex-network:
-    external: true # Use the existing network from the database
+    external: true # Use the existing network
