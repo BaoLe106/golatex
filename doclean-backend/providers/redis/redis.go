@@ -3,6 +3,7 @@ package redisProvider
 import (
 	"context"
 
+	"github.com/BaoLe106/doclean/doclean-backend/configs"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/logger"
 	"github.com/redis/go-redis/v9"
 )
@@ -13,9 +14,9 @@ func InitRedisClient() {
 	ctx := context.Background()
 
 	RedisClient = redis.NewClient(&redis.Options{
-		Addr:     "redis-13336.c1.us-west-2-2.ec2.redns.redis-cloud.com:13336",
-		Username: "default",
-		Password: "V7zaKlth6aw37KsyVJNzAbH8FgxqjDnL",
+		Addr:     configs.Envs.RedisAddr,
+		Username: configs.Envs.RedisUsername,
+		Password: configs.Envs.RedisPassword,
 		DB:       0,
 	})
 	

@@ -19,6 +19,9 @@ type Config struct {
 	AccessKey 			string
 	SecretAccessKey string
 	Region 					string
+	RedisAddr				string
+	RedisUsername		string
+	RedisPassword 	string
 	// JWTSecret              string
 	// JWTExpirationInSeconds int64
 }
@@ -41,6 +44,10 @@ func initConfig() Config {
 		AccessKey:					getEnv("ACCESS_KEY", "default"),
 		SecretAccessKey:		getEnv("SECRET_ACCESS_KEY", "default"),
 		Region:							getEnv("REGION", "default"),
+
+		RedisAddr:					getEnv("REDIS_ADDR", ""),
+		RedisUsername:			getEnv("REDIS_USERNAME", "default"),
+		RedisPassword:			getEnv("REDIS_PASSWORD", ""),
 		// JWTSecret:              getEnv("JWT_SECRET", "not-so-secret-now-is-it?"),
 		// JWTExpirationInSeconds: getEnvAsInt("JWT_EXPIRATION_IN_SECONDS", 3600 * 24 * 7),
 	}
