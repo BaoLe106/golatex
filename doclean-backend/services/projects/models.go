@@ -18,3 +18,7 @@ type ProjectSchema struct {
 type GetProjectInfoByProjectIdPayload struct {
 	ProjectID       		uuid.UUID 	`json:"projectId"`
 }
+
+type CreateProjectPayload struct {
+	ProjectTier 			string    	`json:"projectTier"`
+}

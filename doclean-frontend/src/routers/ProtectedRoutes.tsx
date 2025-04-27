@@ -1,9 +1,10 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { AuthService } from "@/services/auth/authService";
+import { useAuth } from "@/context/AuthProvider";
 
 const ProtectedRoutes = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const { isAuthenticated } = useAuth();
 
   // useEffect(() => {
   //   const checkAuth = async () => {

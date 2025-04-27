@@ -1,4 +1,6 @@
 import { ReactNode } from "react";
+import { ProjectService } from "@/services/projects/projectService";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { v4 as uuidv4 } from "uuid";
@@ -8,6 +10,19 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sessionId = uuidv4();
+  const navigate = useNavigate();
+  const createProject = async (sessionId: string) => {
+    if (!sessionId) return;
+    try {
+      const res = await ProjectService.createProject(sessionId, "GUEST");
+      if (res.status !== 201) {
+        throw new Error(res.data.error);
+      }
+      navigate(`/project/${sessionId}`);
+    } catch (err: any) {
+      console.log("debug catch err", err);
+    }
+  };
 
   return (
     <div className="min-h-screen w-screen flex flex-col">
@@ -31,14 +46,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             </a>
           </div>
           <div className="flex space-x-2 mr-3 items-center">
-            <a href="/login">
+            {/* <a href="/login">
               <Button className="bg-inherit" variant="ghost">
                 Login
               </Button>
-            </a>
-            <a href="/doc">
-              <Button>Start Writing</Button>
-            </a>
+            </a> */}
+            {/* <a href={`/project/${sessionId}`}> */}
+            <Button onClick={() => createProject(sessionId)}>
+              Start Writing
+            </Button>
+            {/* </a> */}
 
             <ThemeToggle></ThemeToggle>
           </div>

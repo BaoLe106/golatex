@@ -2,9 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import App from "@/App.tsx";
 import ProtectedRoutes from "@/routers/ProtectedRoutes";
 import AppLayout from "@/components/layouts/AppLayout";
-import Layout from "@/components/layouts/layout";
-import LayoutAuth from "@/components/layouts/layout-auth";
-import LayoutAuthenticated from "@/components/layouts/layout-authenticated";
+import AppLayoutForAuthenticationPages from "@/components/layouts/AppLayoutForAuthenticationPages";
 
 import AboutView from "@/components/view/AboutView";
 import PlaygroundView from "@/components/view/PlaygroundView";
@@ -15,22 +13,36 @@ import RegisterView from "@/components/view/RegisterView";
 import UserConfirmationView from "@/components/view/UserConfirmationView";
 import ProjectManagementView from "@/components/view/ProjectManagementView";
 
+import NotFoundView from "@/components/view/NotFoundView";
 import ForbiddenView from "@/components/view/ForbiddenView";
 
 const router = createBrowserRouter([
   {
     element: <AppLayout />,
+    // errorElement: <NotFoundView />,
     children: [
       { path: "/", element: <App /> },
       { path: "/about", element: <AboutView /> },
       { path: "/playground/:sessionId", element: <PlaygroundView /> },
-      { path: "/project/:sessionId", element: <ProjectView /> },
       { path: "/forbidden", element: <ForbiddenView /> },
+      {
+        // element: <ProtectedRoutes />,
+        children: [
+          { path: "/project/:sessionId", element: <ProjectView /> },
+          // { path: "/project", element: <ProjectManagementView /> },
+        ],
+      },
+      { path: "*", element: <NotFoundView /> },
+
+      // { path: "/login", element: <LoginView /> },
+    ],
+  },
+  {
+    element: <AppLayoutForAuthenticationPages />,
+    children: [
       { path: "/login", element: <LoginView /> },
       { path: "/register", element: <RegisterView /> },
       { path: "/confirm", element: <UserConfirmationView /> },
-      { path: "/project", element: <ProjectManagementView /> },
-      // { path: "/login", element: <LoginView /> },
     ],
   },
 ]);

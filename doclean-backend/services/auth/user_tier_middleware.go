@@ -5,17 +5,46 @@ import (
 	"strings"
 
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
+	"github.com/golang-jwt/jwt/v4"
 
 	// "github.com/BaoLe106/doclean/doclean-backend/services/latex"
 	"github.com/gin-gonic/gin"
 )
 
-func TierMiddleware(tier UserTier, cognitoAuth *CognitoAuth) gin.HandlerFunc {
+func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
     return func(c *gin.Context) {
-        limits := TierConfigs[tier]
+
+        idToken, err := c.Cookie("IdToken")
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Authorization header required")
+			return
+		}
+
+		validatedIdToken, err := cognitoAuth.ValidateToken(idToken)
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+		// Optional: Extract and store user claims
+		claims, ok := validatedIdToken.Claims.(jwt.MapClaims);  
+        if !ok {
+			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
+			return
+		}
+
+
+        userInfo, err := GetUserInfoByUserEmail(claims["email"].(string))
+        if err != nil {
+            apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+            return
+        }
+
+
+        limits := TierConfigs[UserTier(userInfo.UserTier)]
         
         // Store tier information in context
-        c.Set("userTier", tier)
+        c.Set("userTier", UserTier(userInfo.UserTier))
         c.Set("tierLimits", limits)
 
         // Check if authentication is required for this tier

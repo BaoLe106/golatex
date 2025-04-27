@@ -1,8 +1,8 @@
 version: "3.9"
 services:
   backend:
-    image: golatex-backend # Use the existing image
-    container_name: golatex-backend-container
+    image: golatex-backend-dev-v2 # Use the existing image
+    container_name: golatex-backend-container-dev-v2
     ports:
       - "8080:8080"
     volumes:

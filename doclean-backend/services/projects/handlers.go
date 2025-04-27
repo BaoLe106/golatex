@@ -3,6 +3,7 @@ package projects
 import (
 	// "encoding/base64"
 
+	"encoding/json"
 	"net/http"
 
 	// "strings"
@@ -22,4 +23,25 @@ func GetProjectInfoByProjectIdHandler (c *gin.Context) {
 	}
 
 	apiResponse.SendGetRequestResponse(c, http.StatusOK, project)
+}
+
+
+func CreateProjectInfoHandler(c *gin.Context) {
+	projectId := c.Param("projectId")
+
+	var input CreateProjectPayload
+
+	err := json.NewDecoder(c.Request.Body).Decode(&input)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	err = CreateProjectInfo(projectId, input.ProjectTier)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
 }

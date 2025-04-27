@@ -2,11 +2,25 @@ import { useEffect, useState, useImperativeHandle, forwardRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { TexFileService } from "@/services/latex/texFileService";
 import {
+  CreateFilePayload,
+  // CompileToPdfPayload,
+  FileData,
+} from "@/services/latex/models";
+import {
   getCurrentEditorData,
   setCurrFileIdForCurrUserIdInSessionId,
 } from "@/stores/editorSlice";
 
-import { FilePlus, FolderPlus, Check, X } from "lucide-react";
+import {
+  Folder,
+  File,
+  FilePlus,
+  FolderPlus,
+  Check,
+  X,
+  ChevronRight,
+  ChevronDown,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,17 +46,21 @@ export interface FileTreeRefHandle {
 interface FileTreeComponentProps {
   theme: string;
   sessionId: string | undefined;
-  setContent: (content: string) => void;
+  setContent: (content: FileData) => void;
+  setIsThereABibFile: (isThereABibFile: boolean) => void;
 }
 
 const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
-  ({ theme, sessionId, setContent }, ref) => {
+  ({ theme, sessionId, setContent, setIsThereABibFile }, ref) => {
     const [isAddingFile, setIsAddingFile] = useState<boolean>(false);
     const [isAddingFolder, setIsAddingFolder] = useState<boolean>(false);
     const [fileName, setFileName] = useState<string>("");
     const [folderName, setFolderName] = useState<string>("");
     const [currSelectedFolder, setCurrSelectedFolder] = useState<string>("");
     const [treeData, setTreeData] = useState<TreeDataNode[]>([]);
+    const [filesData, setFilesData] = useState<FileData[]>([]);
+    const [isFinishedCreatingFileOrFolder, setIsFinishedCreatingFileOrFolder] =
+      useState<boolean>(false);
 
     useImperativeHandle(ref, () => ({
       updateTreeData: (newTreeData: TreeDataNode[]) => {
@@ -53,9 +71,14 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
 
     useEffect(() => {
       if (!sessionId) return;
-      console.log("debug u r in the file tree component");
       fetchFiles(sessionId);
     }, []);
+
+    useEffect(() => {
+      if (!sessionId) return;
+      if (!isFinishedCreatingFileOrFolder) return;
+      fetchFiles(sessionId);
+    }, [isFinishedCreatingFileOrFolder]);
 
     const getParentFolders = (key: string) => {
       if (key.length === 3) return key;
@@ -97,17 +120,43 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           sessionId
         );
 
-        // const filesInputForGetTreeData = files.map((file: any) => {
-        //   const fileDir =
-        //     file.fileDir.substring(41) + (file.fileType === "folder" ? "" : "/");
-        //   // console.log(fileDir);
-        //   if (file.fileType === "folder") {
-        //     return { fileDir: fileDir };
-        //   }
+        //       fileId: string;
+        // projectId: string;
+        // fileName: string;
+        // fileType: string;
+        // fileDir: string;
+        // content: string;
+        // createdBy: string;
+        // lastUpdatedBy: string;
+        console.log("debug files", files);
+        console.log("debug fileTree", fileTree);
 
-        //   return { fileDir: fileDir + file.fileName + "." + file.fileType };
-        // });
-        console.log(files);
+        const promises: Promise<any>[] = [];
+        files.forEach((file: any) => {
+          if (file.fileType !== "folder") {
+            if (file.fileType === "bib") 
+              setIsThereABibFile(true);
+            
+            promises.push(
+              TexFileService.createFile({
+                fileId: file.fileId,
+                projectId: sessionId,
+                fileName: file.fileName,
+                fileType: file.fileType,
+                fileDir: file.fileDir,
+                content: file.content,
+                createdBy: file.createdBy,
+                lastUpdatedBy: file.lastUpdatedBy,
+              } as CreateFilePayload)
+            );
+          }
+            
+        });
+
+        Promise.all(promises).then((values) => {
+          console.log(values);
+        });
+        setFilesData(files);
         setTreeData(fileTree);
       } catch (err) {
         console.error(err);
@@ -134,12 +183,25 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
 
       if (info.node.isLeaf) {
         if (!sessionId) return;
-        setCurrFileIdForCurrUserIdInSessionId({
-          [sessionId]: {
-            userId: "asdjkadshjk",
-            fileId: "ajsdkashd",
-          },
-        });
+        console.log("debug info node", info);
+        const currFileDir = filesData.find(
+          (file: any) => file.fileId === info.node.fileId
+        )?.fileDir;
+        console.log("debug currFileData", currFileDir);
+        const nodeTitleSplit = info.node.title.split(".");
+        setContent({
+          fileId: info.node.fileId,
+          fileName: nodeTitleSplit[0],
+          fileType: nodeTitleSplit[1],
+          fileDir: currFileDir,
+          content: info.node.content,
+        } as FileData);
+        // setCurrFileIdForCurrUserIdInSessionId({
+        //   [sessionId]: {
+        //     userId: "asdjkadshjk",
+        //     fileId: "ajsdkashd",
+        //   },
+        // });
         // setContent(info.node.content);
       }
     };
@@ -180,6 +242,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           throw new Error(res.data.error);
         }
         console.log("debug r u here");
+        setIsFinishedCreatingFileOrFolder(true);
         // await fetchFiles(sessionId);
       } catch (err) {
         console.error(err);
@@ -219,7 +282,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
         if (res.status !== 201) {
           throw new Error(res.data.error);
         }
-
+        setIsFinishedCreatingFileOrFolder(true);
         // await fetchFiles(sessionId);
       } catch (err) {
         console.error(err);
@@ -351,71 +414,39 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           </TooltipWrapper>
         </div>
         <DirectoryTree
+          className="bg-inherit "
           // multiple
           // draggable
           defaultExpandAll
+          // rootClassName="text-black dark:text-white"
+          // showIcon
+          switcherIcon={(node: any) => {
+            // console.log(node.expanded);
+            return node.expanded ? (
+              <ChevronDown className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+            ) : (
+              <ChevronRight className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+            );
+          }}
+          icon={(node: any) => {
+            // console.log("debug node", node);
+            // if (node.isLeaf)
+            return node.data.isLeaf ? (
+              <File className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+            ) : (
+              <Folder className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+            );
+          }}
+          titleRender={(node: any) => {
+            return (
+              <span className="text-black dark:text-white dark:hover:text-white">
+                {node.title}
+              </span>
+            );
+          }}
           onSelect={onSelect}
           onExpand={onExpand}
           treeData={treeData}
-          // treeData={[
-          //   ...treeData,
-          //   ...(isAddingFile
-          //     ? [
-          //         {
-          //           key: "0-1-3",
-          //           title: (
-          //             <div className="inline w-28 h-6">
-          //               <Input
-          //                 autoFocus
-          //                 className="!inline !w-24 !h-6"
-          //                 value={fileName}
-          //                 onChange={handleFileNameChange}
-          //                 onKeyDown={(e) =>
-          //                   e.key === "Enter"
-          //                     ? handleAddFile()
-          //                     : e.key === "Escape" && setIsAddingFile(false)
-          //                 }
-          //                 // onBlur={() => setIsAddingFile(false)}
-          //                 placeholder="Enter file name"
-          //               />
-          //               <div className="flex ml-6 mt-2">
-          //                 <Check
-          //                   className="h-4 mr-1 cursor-pointer hover:stroke-[3px] hover:text-[#1677ff]"
-          //                   onClick={handleAddFile}
-          //                 />
-          //                 <X
-          //                   className="h-4 cursor-pointer hover:stroke-[3px] hover:text-red-600"
-          //                   onClick={() => setIsAddingFile(false)}
-          //                 />
-          //               </div>
-          //             </div>
-          //           ),
-          //           selectable: false,
-          //           // key: "new-file-input",
-          //           isLeaf: true, // Ensure it is a file
-          //         },
-          //       ]
-          //     : isAddingFolder
-          //     ? [
-          //         {
-          //           title: (
-          //             <Input
-          //               autoFocus
-          //               className="!inline !w-32 !h-6"
-          //               value={folderName}
-          //               onChange={handleFolderNameChange}
-          //               onKeyDown={(e) => e.key === "Enter" && handleAddFolder()}
-          //               // onBlur={() => setIsAddingFolder(false)}
-          //               placeholder="Enter folder name"
-          //             />
-          //           ),
-          //           selectable: false,
-          //           key: "new-folder-input",
-          //           isLeaf: false, // Ensure it is a folder
-          //         },
-          //       ]
-          //     : []),
-          // ]}
         />
       </>
     );

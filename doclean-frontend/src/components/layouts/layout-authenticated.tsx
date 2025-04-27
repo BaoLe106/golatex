@@ -93,7 +93,7 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
       </div>
 
       {/* Footer */}
-      <footer className="p-3 border-t bg-white dark:bg-black">
+      <footer className="p-3 border-t bg-white dark:bg-black z-50">
         <div className="text-center">
           <p>©2024 GoLatex. All rights reserved.</p>
         </div>

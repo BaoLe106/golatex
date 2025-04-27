@@ -14,4 +14,19 @@ interface CreateFilePayload {
   lastUpdatedBy: string;
 }
 
-export type { CompileToPdfPayload, CreateFilePayload };
+interface FileData {
+  fileId: string;
+  fileName: string;
+  fileType: string;
+  fileDir: string;
+  content: string;
+}
+
+// interface ContentData {
+//   fileName: string;
+//   fileType: string;
+//   fileDir: string;
+//   content: string;
+// }
+
+export type { CompileToPdfPayload, CreateFilePayload, FileData };

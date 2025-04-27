@@ -14,7 +14,17 @@ export const ProjectService = (() => {
     return res.data;
   };
 
+  const createProject = async (sessionId: string, projectTier: string) => {
+    const apiUrl = `/project/${sessionId}`;
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    return await apiClient.post(apiUrl, { projectTier: projectTier }, config);
+  };
   return {
     getProjectByProjectId,
+    createProject,
   };
 })();

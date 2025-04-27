@@ -18,7 +18,7 @@ export const TexFileService = (() => {
   };
 
   const getFilesByProjectId = async (sessionId: string) => {
-    const apiUrl = `/latex/file/${sessionId}`;
+    const apiUrl = `/file/${sessionId}`;
     // const config = {
     //   headers: {
     //     "x-role": roleId
@@ -30,7 +30,7 @@ export const TexFileService = (() => {
   };
 
   const createFile = async (data: CreateFilePayload) => {
-    const apiUrl = `/latex/file/${data.projectId}`;
+    const apiUrl = `/file/${data.projectId}`;
     const config = {
       headers: {
         "Content-Type": "application/json",

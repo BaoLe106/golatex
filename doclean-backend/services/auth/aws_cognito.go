@@ -21,7 +21,7 @@ func NewCognitoAuth(cfg CognitoConfig) (*CognitoAuth, error) {
 		config.WithRegion(cfg.Region),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load AWS config: %v", err)
+		return nil, err
 	}
 
 	// Create Cognito service client
@@ -34,7 +34,7 @@ func NewCognitoAuth(cfg CognitoConfig) (*CognitoAuth, error) {
 	// Fetch the JWKS (JSON Web Key Set)
 	keySet, err := jwk.Fetch(context.Background(), jwksURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch JWKS: %v", err)
+		return nil, err
 	}
 
 	return &CognitoAuth{
@@ -104,7 +104,7 @@ func (ca *CognitoAuth) AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Validate the token
-		token, err := ca.ValidateToken(accessToken)
+		validatedAccessToken, err := ca.ValidateToken(accessToken)
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
 			// c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
@@ -113,15 +113,8 @@ func (ca *CognitoAuth) AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Store the validated token in the Gin context
-		c.Set("token", token)
-
-		// Optional: Extract and store user claims
-		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			c.Set("userID", claims["sub"])
-			c.Set("email", claims["email"])
-			// Add any other claims you want to access in your handlers
-		}
+		// Store the validated access token in the Gin context
+		c.Set("token", validatedAccessToken)
 
 		c.Next()
 	}

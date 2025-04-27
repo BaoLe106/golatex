@@ -52,10 +52,12 @@ require (
 )
 
 require (
+	github.com/aws/aws-lambda-go v1.48.0
 	github.com/aws/aws-sdk-go-v2 v1.36.3
 	github.com/aws/aws-sdk-go-v2/config v1.29.8
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.49.4
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.78.0
+	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
 	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-playground/locales v0.14.1 // indirect

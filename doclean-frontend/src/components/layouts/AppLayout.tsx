@@ -6,17 +6,23 @@ import LayoutAuthenticated from "@/components/layouts/layout-authenticated";
 import { useAuth } from "@/context/AuthProvider";
 
 const AppLayout = () => {
-  const { isAuthenticated } = useAuth(); // Your auth hook/context
+  // const { isAuthenticated } = useAuth(); // Your auth hook/context
 
-  return isAuthenticated ? (
-    <LayoutAuthenticated>
-      <Outlet />
-    </LayoutAuthenticated>
-  ) : isAuthenticated !== null ? (
+  return (
     <Layout>
       <Outlet />
     </Layout>
-  ) : null;
+  );
+
+  // return isAuthenticated ? (
+  //   <LayoutAuthenticated>
+  //     <Outlet />
+  //   </LayoutAuthenticated>
+  // ) : isAuthenticated !== null ? (
+  //   <Layout>
+  //     <Outlet />
+  //   </Layout>
+  // ) : null;
 };
 
 export default AppLayout;

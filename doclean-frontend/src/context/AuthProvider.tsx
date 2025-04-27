@@ -6,6 +6,7 @@ import {
   useCallback,
   useMemo,
 } from "react";
+
 import { AuthService } from "@/services/auth/authService";
 
 // Define the auth context type
@@ -29,23 +30,33 @@ export const useAuth = () => {
   }
   return context;
 };
-
+const bypassAuthCheckRoutes: Record<string, boolean> = {
+  "/login": true,
+  "/register": true,
+  "/confirm": true,
+};
 // AuthProvider component to wrap around your app
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  // const location = useLocation();
   const [user, setUser] = useState<any | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
+    let isMounted: boolean = true;
+    const currPath = window.location.pathname;
+
     const authCheck = async () => {
       try {
         const res = await AuthService.authCheck();
-        if (res.status === 200) setIsAuthenticated(true);
-        else setIsAuthenticated(false);
+        if (isMounted)
+          if (res.status === 200) setIsAuthenticated(true);
+          else setIsAuthenticated(false);
       } catch (err) {
-        setIsAuthenticated(false);
+        if (isMounted) setIsAuthenticated(false);
       }
     };
-    authCheck();
+
+    if (!bypassAuthCheckRoutes[currPath]) authCheck();
   }, []);
 
   const value = {

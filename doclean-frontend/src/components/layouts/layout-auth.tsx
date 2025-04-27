@@ -1,10 +1,13 @@
 import { ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { v4 as uuidv4 } from "uuid";
 type LayoutProps = {
   children: ReactNode;
 };
 
 const LayoutAuth: React.FC<LayoutProps> = ({ children }) => {
+  const sessionId = uuidv4();
   return (
     <div className="min-h-screen w-screen flex flex-col">
       {/* Header */}
@@ -13,6 +16,16 @@ const LayoutAuth: React.FC<LayoutProps> = ({ children }) => {
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
               <h1 className="text-3xl">GoLatex</h1>
+            </a>
+            <a href="/about">
+              <Button className="bg-inherit" variant="ghost">
+                About
+              </Button>
+            </a>
+            <a href={`/playground/${sessionId}`}>
+              <Button className="bg-inherit" variant="ghost">
+                Playground
+              </Button>
             </a>
           </div>
           <div className="flex space-x-2 mr-3 items-center">

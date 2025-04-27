@@ -12,11 +12,11 @@ import (
 type UserTier string
 
 const (
-    TierPlayground UserTier = "playground"
-    TierGuest      UserTier = "guest"
-    TierFree       UserTier = "free"
-    TierBasic      UserTier = "basic"
-    TierStandard   UserTier = "standard"
+    TierPlayground UserTier = "PLAYGROUND"
+    TierGuest      UserTier = "GUEST"
+    TierFree       UserTier = "FREE"
+    TierBasic      UserTier = "BASIC"
+    TierStandard   UserTier = "STANDARD"
 )
 
 type TierLimits struct {
