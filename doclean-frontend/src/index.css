@@ -31,6 +31,7 @@ body {
   display: flex;
   place-items: center;
   min-width: 320px;
+  overflow-x: hidden;
   min-height: 100vh;
 }
 
@@ -55,8 +56,13 @@ button {
 } */
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  /* outline: 4px auto -webkit-focus-ring-color; */
+  outline: none;
 }
+
+/* .ant-tree-node-content-wrapper:before {
+  background: red;
+} */
 
 @media (prefers-color-scheme: light) {
   :root {
@@ -73,6 +79,8 @@ button:focus-visible {
 
 @layer base {
   :root {
+    --header-height: 64px;
+
     --background: 0 0% 100%;
     --foreground: 0 0% 3.9%;
     --card: 0 0% 100%;
@@ -98,8 +106,18 @@ button:focus-visible {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
+    --header-height: 64px;
+
     --background: 0 0% 3.9%;
     --foreground: 0 0% 98%;
     --card: 0 0% 3.9%;
@@ -124,12 +142,46 @@ button:focus-visible {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
   }
+}
+
+/* span.ant-tree-switcher.ant-tree-switcher_open,
+span.ant-tree-switcher.ant-tree-switcher_close {
+  margin-left: 16px !important;
+} */
+
+.ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background-color: transparent !important;
+}
+
+.ant-tree-node-content-wrapper.ant-tree-node-selected::before {
+  background-color: #d1d5db !important;
+}
+
+.dark .ant-tree-node-content-wrapper.ant-tree-node-selected::before {
+  background-color: #515357 !important;
 }
 
 @layer base {
   * {
     @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;

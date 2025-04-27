@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:17 # Use the version you need
+    container_name: golatex-postgres-container
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: golatex_admin
+      POSTGRES_DB: golatex
+    ports:
+      - "5000:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data # Persistent storage
+    networks:
+      - golatex-network
+
+volumes:
+  pg_data:
+    driver: local
+
+networks:
+  golatex-network:
+    external: true

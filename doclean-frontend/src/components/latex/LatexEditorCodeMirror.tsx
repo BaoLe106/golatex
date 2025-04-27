@@ -1,27 +1,79 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useParams } from "react-router-dom";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-// import { cloneDeep } from "lodash";
+import { cloneDeep, has, set } from "lodash";
+import {
+  getCurrentEditorData,
+  setCurrFileIdForCurrUserIdInSessionId,
+} from "@/stores/editorSlice";
 
-import { useParams } from "react-router-dom";
+import "@/components/latex/styles.css";
+
 import "codemirror/lib/codemirror.css";
 import "codemirror/theme/material-ocean.css";
 import "codemirror/mode/javascript/javascript";
 import "codemirror/mode/stex/stex";
 import "codemirror/keymap/sublime";
+
+import "codemirror/addon/search/search.js";
+import "codemirror/addon/search/searchcursor.js";
+import "codemirror/addon/search/jump-to-line.js";
+import "codemirror/addon/dialog/dialog.js";
+
 import CodeMirror from "codemirror";
 
-import { useTheme } from "@/components/theme-provider";
-import { TexFileService } from "@/services/texFileService";
+import { useTheme } from "@/context/ThemeProvider";
+import { TexFileService } from "@/services/latex/texFileService";
+
+import { Search, Loader2, Terminal } from "lucide-react";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
+
+import { FileTreeRefHandle } from "@/components/latex/FileTreeComponent";
+import FileTreeComponent from "@/components/latex/FileTreeComponent";
+
+import {
+  // CreateFilePayload,
+  // CompileToPdfPayload,
+  FileData,
+} from "@/services/latex/models";
 
 const LatexEditorCodeMirror: React.FC = () => {
   const { theme } = useTheme();
+  const { sessionId } = useParams<{ sessionId: string }>();
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const fileTreeRef = useRef<FileTreeRefHandle>(null);
+
+  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [isCompileButtonLoading, setIsCompileButtonLoading] =
+    useState<boolean>(false);
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [codeMirrorComponent, setCodeMirrorComponent] = useState<HTMLElement>();
-  const { sessionId } = useParams<{ sessionId: string }>();
+  const [editorInstance, setEditorInstance] = useState<any>(null);
   const [editorContent, setEditorContent] = useState<string>("");
+  const [compileFile, setCompileFile] = useState({
+    compileFileId: "",
+    compileFileName: "",
+    compileFileType: "",
+    compileFileDir: "",
+  });
+  // const [formData, setFormData] = useState({
+  //     email: "",
+  //     password: "",
+  //     passwordAgain: "",
+  //   });
+  const [compileError, setCompileError] = useState<string>("");
+  const [hasContentFromFile, setHasContentFromFile] = useState<boolean>(false);
+  const [isThereABibFile, setIsThereABibFile] = useState<boolean>(false);
 
   useEffect(() => {
     if (!codeMirrorComponent) {
@@ -37,7 +89,7 @@ const LatexEditorCodeMirror: React.FC = () => {
     }
     if (theme === "light") {
       (CodeMirrorTheme[0] as HTMLElement).style.backgroundColor = "#FFFFFF";
-      (CodeMirrorGuttersTheme[0] as HTMLElement).style.background = "#F0F0F0";
+      (CodeMirrorGuttersTheme[0] as HTMLElement).style.background = "#FFFFFF";
     } else {
       (CodeMirrorTheme[0] as HTMLElement).style.backgroundColor = "#0F111A";
       (CodeMirrorGuttersTheme[0] as HTMLElement).style.background = "#0F111A";
@@ -49,19 +101,53 @@ const LatexEditorCodeMirror: React.FC = () => {
       "code-editor"
     ) as HTMLTextAreaElement;
     const editor = CodeMirror.fromTextArea(documentEditor, {
+      extraKeys: { "Ctrl-F": "findPersistent" },
+      lineWrapping: true,
       lineNumbers: true,
       keyMap: "sublime",
       theme: "material-ocean",
       mode: "stex",
     });
+
+    setEditorInstance(editor);
+
+    const originalOpenDialog = editor.openDialog;
+    editor.openDialog = function (template, callback, options = {}) {
+      return originalOpenDialog.call(editor, template, callback, {
+        ...options,
+        closeOnBlur: false,
+      });
+    };
+
+    const codeMirrorDialog =
+      document.getElementsByClassName("CodeMirror-dialog");
+    if (codeMirrorDialog && codeMirrorDialog.length) {
+      console.log("debug dialog", codeMirrorDialog);
+      (codeMirrorDialog[0] as HTMLElement).style.position = "absolute";
+      (codeMirrorDialog[0] as HTMLElement).style.top = "0";
+    }
+
+    var charWidth = editor.defaultCharWidth(),
+      basePadding = 4;
+    editor.on("renderLine", function (cm, line, elt) {
+      var off =
+        CodeMirror.countColumn(line.text, null, cm.getOption("tabSize") ?? 0) *
+        charWidth;
+      elt.style.textIndent = "-" + off + "px";
+      elt.style.paddingLeft = basePadding + off + "px";
+    });
+
     const CodeMirrorComponent = document.getElementsByClassName("CodeMirror");
     setCodeMirrorComponent(CodeMirrorComponent[0] as HTMLElement);
-    (CodeMirrorComponent[0] as HTMLElement).style.width = "40%";
-    (CodeMirrorComponent[0] as HTMLElement).style.height = "89vh";
+
+    (CodeMirrorComponent[0] as HTMLElement).style.height = "0vh";
+
+    // if (!hasContentFromFile)
+    //   (CodeMirrorComponent[0] as HTMLElement).style.display = "none";
 
     const getTEXFromS3 = async () => {
       const s3Client = new S3Client({
-        region: import.meta.env.VITE_AWS_BUCKET_REGION,
+        region: import.meta.env.VITE_AWS_REGION,
         credentials: {
           accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY,
           secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
@@ -94,27 +180,32 @@ const LatexEditorCodeMirror: React.FC = () => {
           }
 
           editor.setValue(fileContent);
-          setEditorContent(fileContent);
+          // setEditorContent(fileContent);
         }
       } catch (err) {
         console.log("debug catch err", err);
       }
     };
+    const accessToken = localStorage.getItem("accessToken");
+    let socket: WebSocket;
+    const currPath = window.location.pathname;
+    if (currPath.includes("/playground")) {
+      socket = new WebSocket(
+        `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
+        // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+      );
+    } else {
+      socket = new WebSocket(
+        `ws://localhost:8080/api/v1/latex/${sessionId}`
+        // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+      );
+    }
 
-    const socket = new WebSocket(
-      `ws://localhost:8080/api/v1/latex/${sessionId}`
-    );
+    setWs(socket);
 
-    socket.onmessage = (event: any) => {
-      const { data } = event;
-
-      editor.setValue(data);
-      setEditorContent(data);
-    };
-
-    // if (!editorContent) {
-    //   getTEXFromS3();
-    // }
+    if (!editorContent) {
+      // getTEXFromS3();
+    }
 
     // socket.on('connect_error', (err) => {
     //   console.log(`connect_error due to ${err.message}`)
@@ -133,14 +224,22 @@ const LatexEditorCodeMirror: React.FC = () => {
     //   console.log(users)
     // })
 
-    editor.on("change", (instance, changes) => {
-      const { origin } = changes;
-      // if (origin === '+input' || origin === '+delete' || origin === 'cut') {
-      if (origin !== "setValue") {
-        setEditorContent(instance.getValue());
-        socket.send(instance.getValue());
-      }
-    });
+    // editor.on("change", (instance, changes) => {
+    //   // console.log("debug on change", changes);
+    //   const { origin } = changes;
+    //   // if (origin === '+input' || origin === '+delete' || origin === 'cut') {
+    //   if (origin !== "setValue") {
+    //     setEditorContent(instance.getValue());
+    //     console.log("debug on change", compileFile);
+    //     socket.send(
+    //       JSON.stringify({
+    //         fileId: compileFile.compileFileId,
+    //         fileContent: instance.getValue(),
+    //       })
+    //     );
+    //   }
+    // });
+
     // editor.on("cursorActivity", (instance) => {
     // console.log(instance.cursorCoorcode-editor())
     // });
@@ -151,88 +250,228 @@ const LatexEditorCodeMirror: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (iframeRef.current) {
-      iframeRef.current.contentWindow?.postMessage(
-        { type: "latex", editorContent },
-        "*"
-      );
-    }
-  }, [editorContent]);
+    if (!ws || !compileFile.compileFileId || !editorInstance) return;
 
-  useEffect(() => {
-    if (iframeRef.current) {
-      iframeRef.current.contentWindow?.postMessage(
-        { type: "theme", theme },
-        "*"
-      );
-    }
-  }, [theme]);
+    setTimeout(() => {
+      editorInstance.refresh();
+    }, 1);
+    // Define the event handlers
+    const handleEditorChange = (instance: any, changes: any) => {
+      const { origin } = changes;
+      if (origin !== "setValue") {
+        ws.send(
+          JSON.stringify({
+            fileId: compileFile.compileFileId,
+            fileContent: instance.getValue(),
+          })
+        );
+      }
+    };
 
-  const getPDFFromS3 = async () => {
-    const s3Client = new S3Client({
-      region: import.meta.env.VITE_AWS_BUCKET_REGION,
-      credentials: {
-        accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY,
-        secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-      },
-    });
+    const handleWsMessage = (event: any) => {
+      const { data } = event;
+      const dataFromInfoBroadcast = JSON.parse(data);
 
-    try {
-      const getPdfCommand = new GetObjectCommand({
-        Bucket: "golatex--tex-and-pdf-files",
-        Key: `pdf/${sessionId}/sample.pdf`,
-        ResponseContentType: "application/pdf",
-        ResponseContentDisposition: "inline",
-      });
+      try {
+        if (dataFromInfoBroadcast.sessionId !== sessionId)
+          throw new Error("sessionId not match");
+        if (
+          dataFromInfoBroadcast.infoType === "file_created" ||
+          dataFromInfoBroadcast.infoType === "file_content_saved"
+        ) {
+          if (fileTreeRef.current) {
+            fileTreeRef.current.updateTreeData(
+              dataFromInfoBroadcast.data.fileTree
+            );
+          }
+        }
+      } catch (err) {
+        if (
+          !compileFile.compileFileId ||
+          compileFile.compileFileId !== dataFromInfoBroadcast.fileId
+        )
+          return;
 
-      const signedUrl = await getSignedUrl(s3Client, getPdfCommand, {
-        expiresIn: 3600,
-      }); // Expires in 1 hour
+        editorInstance.setValue(dataFromInfoBroadcast.fileContent);
+      }
+    };
 
-      setPdfUrl(signedUrl);
-    } catch (err) {
-      console.log("debug catch err", err);
+    // Attach the event listeners
+    editorInstance.on("change", handleEditorChange);
+    ws.addEventListener("message", handleWsMessage);
+
+    // Cleanup function to remove event listeners when compileFile changes or component unmounts
+    return () => {
+      editorInstance.off("change", handleEditorChange);
+      ws.removeEventListener("message", handleWsMessage);
+    };
+  }, [compileFile, ws, sessionId, editorInstance]);
+
+  const triggerSearch = () => {
+    const dialog = document.querySelector(".CodeMirror-dialog");
+
+    if (dialog) {
+      dialog.remove();
+    } else {
+      editorInstance.execCommand("findPersistent");
     }
   };
 
-  const convertToTex = async () => {
+  const compileTexToPdf = async () => {
     if (!sessionId) return;
-    const res = await TexFileService.createTexFile({
-      sessionId,
-      data: { content: editorContent },
-    });
-    if (res.status === 200) {
+    setIsCompileButtonLoading(true);
+    try {
+      setCompileError("");
+      const res = await TexFileService.compileToPdf({
+        sessionId,
+        data: {
+          isThereABibFile: isThereABibFile,
+          ...compileFile,
+        },
+      });
+      if (res.status !== 201) {
+        throw new Error(res.data.error);
+      }
+
+      console.log(res.data.pdfUrl);
+      setPdfUrl(res.data.pdfUrl);
+    } catch (err: any) {
+      console.log("debug catch err", err);
+      setCompileError(err.response.data.error);
+    } finally {
+      setIsCompileButtonLoading(false);
     }
-    console.log(res);
+  };
+
+  const setContent = (data: FileData) => {
+    console.log("debug on set content", data);
+    setCompileFile({
+      compileFileId: data.fileId,
+      compileFileName: data.fileName,
+      compileFileType: data.fileType,
+      compileFileDir: data.fileDir,
+    });
+
+    if (!hasContentFromFile && codeMirrorComponent) {
+      setHasContentFromFile(true);
+      codeMirrorComponent.style.height = "89vh";
+    }
+
+    editorInstance.setValue(data.content);
   };
 
   return (
     <div>
-      <div style={{ width: "100%", backgroundColor: "red" }}>
-        <div
-          style={{ backgroundColor: "green", width: "120px" }}
-          onClick={convertToTex}
-          // onClick={showPreview}
-        >
-          Create TEX
-        </div>
-        <div
-          style={{ backgroundColor: "yellow", width: "120px" }}
-          onClick={getPDFFromS3}
-          // onClick={showPreview}
-        >
-          Get files
-        </div>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "row" }}>
-        <textarea id="code-editor" />
-        <iframe
-          id="preview"
-          src={pdfUrl}
-          style={{ width: "60%", height: "89vh" }}
-        ></iframe>
-      </div>
+      <ResizablePanelGroup direction="horizontal">
+        <ResizablePanel defaultSize={20} minSize={10}>
+          <FileTreeComponent
+            ref={fileTreeRef}
+            theme={theme}
+            sessionId={sessionId}
+            setContent={setContent}
+            setIsThereABibFile={(value: boolean) => setIsThereABibFile(value)}
+            // sendFileOrFolderCreatedInfo={sendFileOrFolderCreatedInfo}
+          />
+        </ResizablePanel>
+        <ResizableHandle
+          withHandle
+          className={theme === "dark" ? "bg-black" : ""}
+        />
+        <ResizablePanel defaultSize={40} minSize={20}>
+          <div
+            className={
+              "flex items-center h-11 " +
+              (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
+            }
+          >
+            <TooltipWrapper tooltipContent={"Search this file"}>
+              <Button
+                className={
+                  "bg-inherit " +
+                  (theme === "dark" ? "hover:bg-accent" : "hover:bg-white") +
+                  (!hasContentFromFile ? " hidden" : "")
+                }
+                variant="ghost"
+                size="icon"
+                onClick={triggerSearch}
+              >
+                <Search className="absolute h-[1.2rem] w-[1.2rem] stroke-[3px]" />
+              </Button>
+            </TooltipWrapper>
+          </div>
+          {/* <textarea
+            id="code-editor"
+            className={!hasContentFromFile ? `hidden` : ""}
+          /> */}
+          <textarea id="code-editor" />
+          {!hasContentFromFile && (
+            <Alert className="w-2/3 border-none justify-self-center">
+              <Terminal className="h-6 w-6" />
+              <AlertTitle className="text-2xl">Info:</AlertTitle>
+              <AlertDescription className="text-base">
+                No file is selected. Please select a file from the left panel.
+              </AlertDescription>
+            </Alert>
+          )}
+        </ResizablePanel>
+        <ResizableHandle
+          withHandle
+          className={theme === "dark" ? "bg-black" : ""}
+        />
+        <ResizablePanel defaultSize={40} minSize={20} className="mr-4">
+          <div
+            className={
+              "flex items-center h-11 " +
+              (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
+            }
+          >
+            <TooltipWrapper tooltipContent={"Compile to PDF"}>
+              <Button
+                className="mr-3"
+                onClick={compileTexToPdf}
+                disabled={isCompileButtonLoading}
+              >
+                {isCompileButtonLoading ? (
+                  <>
+                    <Loader2 className="animate-spin mr-1" />
+                    Compiling...
+                  </>
+                ) : (
+                  "Compiles"
+                )}
+              </Button>
+            </TooltipWrapper>
+            <p className="text-sm text-gray-500 italic">
+              to be compiled file:
+              <span className="font-semibold text-gray-600">
+                {" "}
+                {compileFile.compileFileName +
+                  "." +
+                  compileFile.compileFileType}
+              </span>
+            </p>
+          </div>
+          {compileError ? (
+            <Alert
+              variant="destructive"
+              className="w-11/12 border-none justify-self-center"
+            >
+              <Terminal className="h-6 w-6" />
+              <AlertTitle className="text-2xl">Error:</AlertTitle>
+              <AlertDescription className="text-base">
+                {compileError}
+              </AlertDescription>
+            </Alert>
+          ) : (
+            // <div className="text-red-500 text-sm italic">{compileError}</div>
+            <iframe
+              id="preview"
+              src={pdfUrl}
+              style={{ height: "89vh", width: "100%" }}
+            ></iframe>
+          )}
+        </ResizablePanel>
+      </ResizablePanelGroup>
     </div>
   );
 };

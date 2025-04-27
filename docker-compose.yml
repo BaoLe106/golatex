@@ -1,38 +1,24 @@
-version: "3.8"
+version: "3.9"
 services:
   backend:
-    build:
-      context: ./backend
-    container_name: doclean-backend
+    image: golatex-backend # Use the existing image
+    container_name: golatex-backend-container
     ports:
       - "8080:8080"
-    depends_on:
-      - db
-    environment:
-      - DB_HOST=${HOST}
-      - DB_PORT=${PORT}
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
-
-  frontend:
-    build:
-      context: ./frontend
-    container_name: doclean-frontend
-    ports:
-      - "3000:80"
-
-  db:
-    image: postgres:17
-    container_name: doclean-db
-    environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
     volumes:
-      - doclean-db:/var/lib/postgresql/data
+      - ./doclean-backend:/app
+      - /app/tmp
+    command: ["air", "-c", ".air.toml"]
+  frontend:
+    image: golatex-frontend
+    container_name: golatex-frontend-container
     ports:
-      - "5432:5432"
-
-volumes:
-  doclean-db:
+      - "3006:3006"
+    volumes:
+      - ./doclean-frontend:/app
+      - ./doclean-frontend/node_modules:/app/node_modules
+    env_file:
+      - .env
+    stdin_open: true
+    tty: true
+    command: npm run dev

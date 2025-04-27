@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  backend:
+    image: golatex-backend-staging # Use the existing image
+    container_name: golatex-backend-container-staging
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/tmp
+    command: ["server"]
+    networks:
+      - golatex-network
+networks:
+  golatex-network:
+    external: true # Use the existing network

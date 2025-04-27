@@ -2,18 +2,53 @@ package db
 
 import (
 	"database/sql"
-	"log"
 
+	"github.com/BaoLe106/doclean/doclean-backend/utils/logger"
 	_ "github.com/lib/pq"
 )
 
-func PostgresqlStorage(connStr string) (*sql.DB, error) {
+var DB *sql.DB
 
-	// connStr := "postgresql://172.26.149.249:5432/doclean-db"
-	db, err := sql.Open("postgres", connStr)
+func PostgresqlStorage(connStr string) {
+	var err error
+	DB, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal(err)
+		logger.BasicLogHandler(logger.BasicLogInput{
+			Status: false,
+			Message: err.Error(),
+		})
+		return;
 	}
-	return db, nil
-	
+
+	err = DB.Ping()
+	if err != nil {
+		logger.BasicLogHandler(logger.BasicLogInput{
+			Status: false,
+			Message: err.Error(),
+		})
+		return;
+	}
+
+	logger.BasicLogHandler(logger.BasicLogInput{
+		Status: true,
+		Message: "DB: Successfully connected!",
+	})
+	return
 }
+
+
+// func initStorage(db *sql.DB) {
+// 	err := db.Ping()
+// 	if err != nil {
+// 		logger.BasicLogHandler(logger.BasicLogInput{
+// 			Status: false,
+// 			Message: err.Error(),
+// 		})
+// 		return;
+// 	}
+
+// 	logger.BasicLogHandler(logger.BasicLogInput{
+// 		Status: true,
+// 		Message: "DB: Successfully connected!",
+// 	})
+// }
