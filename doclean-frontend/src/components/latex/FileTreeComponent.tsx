@@ -11,6 +11,8 @@ import {
   setCurrFileIdForCurrUserIdInSessionId,
 } from "@/stores/editorSlice";
 
+import UploadFileComponent from "@/components/latex/UploadFileComponent";
+
 import {
   Folder,
   File,
@@ -18,8 +20,10 @@ import {
   FolderPlus,
   Check,
   X,
+  Save,
   ChevronRight,
   ChevronDown,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +58,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
   ({ theme, sessionId, setContent, setIsThereABibFile }, ref) => {
     const [isAddingFile, setIsAddingFile] = useState<boolean>(false);
     const [isAddingFolder, setIsAddingFolder] = useState<boolean>(false);
+    const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
     const [fileName, setFileName] = useState<string>("");
     const [folderName, setFolderName] = useState<string>("");
     const [currSelectedFolder, setCurrSelectedFolder] = useState<string>("");
@@ -293,8 +298,18 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       }
     };
 
+    // const onClick
+
+    
+
     return (
       <>
+        <UploadFileComponent 
+          isOpen={isUploadingFile} 
+          theme={theme} 
+          sessionId={sessionId} 
+          closeDialog={() => setIsUploadingFile(false)}
+        />
         <Dialog
           open={isAddingFile || isAddingFolder}
           onOpenChange={() =>
@@ -371,12 +386,27 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                 />
               </div>
             </div>
-            <DialogFooter className="sm:justify-start">
+            <DialogFooter className="sm:justify-between">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">
                   Close
                 </Button>
               </DialogClose>
+              <Button
+                type="submit" 
+                disabled={isAddingFile ? !Boolean(fileName.length) : isAddingFolder ? !Boolean(folderName.length) : true}
+                className="px-3" 
+                onClick={() => {
+                  if (isAddingFile) {
+                    handleAddFile();
+                  } else if (isAddingFolder) {
+                    handleAddFolder();
+                  }
+                }}
+              >
+                <Save/>
+                Save
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -411,6 +441,20 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
             >
               <FolderPlus className="absolute w-[1.2rem] h-[1.2rem]" />
             </Button>
+          </TooltipWrapper>
+          <TooltipWrapper tooltipContent={"Upload file"}>
+            <Button
+              className={
+                "bg-inherit " +
+                (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+              }
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsUploadingFile(!isUploadingFile)}
+            >
+              <Upload className="absolute w-[1.2rem] h-[1.2rem]" />
+            </Button>
+            
           </TooltipWrapper>
         </div>
         <DirectoryTree
