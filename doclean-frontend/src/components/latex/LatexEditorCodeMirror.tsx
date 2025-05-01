@@ -9,25 +9,22 @@ import {
 } from "@/stores/editorSlice";
 
 import "@/components/latex/styles.css";
-
 import "codemirror/lib/codemirror.css";
 import "codemirror/theme/material-ocean.css";
 import "codemirror/mode/javascript/javascript";
 import "codemirror/mode/stex/stex";
 import "codemirror/keymap/sublime";
-
 import "codemirror/addon/search/search.js";
 import "codemirror/addon/search/searchcursor.js";
 import "codemirror/addon/search/jump-to-line.js";
 import "codemirror/addon/dialog/dialog.js";
-
 import CodeMirror from "codemirror";
 
 import { useTheme } from "@/context/ThemeProvider";
+import useWebRTCConnection from "@/hooks/useWebRTCConnection";
 import { TexFileService } from "@/services/latex/texFileService";
 
 import { Search, Loader2, Terminal } from "lucide-react";
-
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +33,6 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
-
 import { FileTreeRefHandle } from "@/components/latex/FileTreeComponent";
 import FileTreeComponent from "@/components/latex/FileTreeComponent";
 
@@ -46,14 +42,72 @@ import {
   FileData,
 } from "@/services/latex/models";
 
+
 const LatexEditorCodeMirror: React.FC = () => {
   const { theme } = useTheme();
   const { sessionId } = useParams<{ sessionId: string }>();
 
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fileTreeRef = useRef<FileTreeRefHandle>(null);
-
+  const isLocalChange = useRef<boolean>(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
+
+  const { 
+    isConnected, 
+    sendData: sendDataToPeers 
+  } = useWebRTCConnection({
+    sessionId: sessionId,
+    signalServerUrl: window.location.pathname.includes("/playground") 
+      ? `ws://localhost:8080/api/v1/latex/playground/${sessionId}` 
+      : `ws://localhost:8080/api/v1/latex/${sessionId}`,
+    onConnectionEstablished: () => {
+      console.log('WebRTC connection established');
+    },
+    onDataReceived: (event: any) => {
+      // Handle data from peers
+      const {type, data} = event;
+      // if (data.type === 'content_update' && data.fileId) {
+      //   handleRemoteContentUpdate(data.fileId, data.content);
+      // }
+      switch (type) {
+        case 'content_update':
+          handleRemoteContentUpdate(data.fileId, data.content);
+          break;
+        default:
+          console.log("debug data at on receive", data);
+          // const dataFromInfoBroadcast = JSON.parse(data);
+  
+        // try {
+        //   if (dataFromInfoBroadcast.sessionId !== sessionId)
+        //     throw new Error("sessionId not match");
+        //   if (
+        //     dataFromInfoBroadcast.infoType === "file_created" ||
+        //     dataFromInfoBroadcast.infoType === "file_content_saved"
+        //   ) {
+        //     if (fileTreeRef.current) {
+        //       fileTreeRef.current.updateTreeData(
+        //         dataFromInfoBroadcast.data.fileTree
+        //       );
+        //     }
+        //   }
+        // } catch (err) {
+        //   if (
+        //     !compileFile.compileFileId ||
+        //     compileFile.compileFileId !== dataFromInfoBroadcast.fileId
+        //   )
+        //     return;
+  
+        //   editorInstance.setValue(dataFromInfoBroadcast.fileContent);
+        // }
+        // };
+
+          console.log('debug type on received:', type);
+      }
+      
+    }
+  });
+
+
   const [isCompileButtonLoading, setIsCompileButtonLoading] =
     useState<boolean>(false);
   const [pdfUrl, setPdfUrl] = useState<string>("");
@@ -74,6 +128,22 @@ const LatexEditorCodeMirror: React.FC = () => {
   const [compileError, setCompileError] = useState<string>("");
   const [hasContentFromFile, setHasContentFromFile] = useState<boolean>(false);
   const [isThereABibFile, setIsThereABibFile] = useState<boolean>(false);
+
+   // Handle content updates received from WebRTC peers
+  const handleRemoteContentUpdate = (fileId: string, newContent: string) => {
+    // Make sure we're not processing our own changes
+    if (isLocalChange.current) return;
+    
+    // Update editor with content from peer
+    if (editorInstance) {
+      editorInstance.setValue(newContent);
+    }
+    
+    // Update state
+    // setContent(newContent);
+  };
+
+
 
   useEffect(() => {
     if (!codeMirrorComponent) {
@@ -187,21 +257,21 @@ const LatexEditorCodeMirror: React.FC = () => {
       }
     };
     const accessToken = localStorage.getItem("accessToken");
-    let socket: WebSocket;
-    const currPath = window.location.pathname;
-    if (currPath.includes("/playground")) {
-      socket = new WebSocket(
-        `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
-        // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
-      );
-    } else {
-      socket = new WebSocket(
-        `ws://localhost:8080/api/v1/latex/${sessionId}`
-        // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
-      );
-    }
+    // let socket: WebSocket;
+    // const currPath = window.location.pathname;
+    // if (currPath.includes("/playground")) {
+    //   socket = new WebSocket(
+    //     `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
+    //     // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+    //   );
+    // } else {
+    //   socket = new WebSocket(
+    //     `ws://localhost:8080/api/v1/latex/${sessionId}`
+    //     // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+    //   );
+    // }
 
-    setWs(socket);
+    // setWs(socket);
 
     if (!editorContent) {
       // getTEXFromS3();
@@ -244,9 +314,9 @@ const LatexEditorCodeMirror: React.FC = () => {
     // console.log(instance.cursorCoorcode-editor())
     // });
 
-    return () => {
-      socket.close();
-    };
+    // return () => {
+    //   socket.close();
+    // };
   }, []);
 
   useEffect(() => {
@@ -259,12 +329,22 @@ const LatexEditorCodeMirror: React.FC = () => {
     const handleEditorChange = (instance: any, changes: any) => {
       const { origin } = changes;
       if (origin !== "setValue") {
-        ws.send(
-          JSON.stringify({
+        isLocalChange.current = true;
+
+        if (isConnected) {
+          sendDataToPeers({
+            type: 'content_update',
             fileId: compileFile.compileFileId,
-            fileContent: instance.getValue(),
-          })
-        );
+            content: instance.getValue()
+          });
+        }
+
+        // ws.send(
+        //   JSON.stringify({
+        //     fileId: compileFile.compileFileId,
+        //     fileContent: instance.getValue(),
+        //   })
+        // );
       }
     };
 
@@ -298,14 +378,15 @@ const LatexEditorCodeMirror: React.FC = () => {
 
     // Attach the event listeners
     editorInstance.on("change", handleEditorChange);
-    ws.addEventListener("message", handleWsMessage);
+    // ws.addEventListener("message", handleWsMessage);
 
     // Cleanup function to remove event listeners when compileFile changes or component unmounts
     return () => {
       editorInstance.off("change", handleEditorChange);
-      ws.removeEventListener("message", handleWsMessage);
+      // ws.removeEventListener("message", handleWsMessage);
     };
-  }, [compileFile, ws, sessionId, editorInstance]);
+  }, [compileFile, sessionId, editorInstance, isConnected]);
+  // }, [compileFile, ws, sessionId, editorInstance, isConnected]);
 
   const triggerSearch = () => {
     const dialog = document.querySelector(".CodeMirror-dialog");

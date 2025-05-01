@@ -2,8 +2,8 @@ package projects
 
 import (
 	// "encoding/base64"
-
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	// "strings"
@@ -12,9 +12,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetProjectInfoByProjectIdHandler (c *gin.Context) {
+func GetProjectInfoByProjectIdHandler(c *gin.Context) {
 	projectId := c.Param("projectId")
-	
 
 	project, err := GetProjectInfoByProjectId(projectId)
 	if err != nil {
@@ -24,7 +23,6 @@ func GetProjectInfoByProjectIdHandler (c *gin.Context) {
 
 	apiResponse.SendGetRequestResponse(c, http.StatusOK, project)
 }
-
 
 func CreateProjectInfoHandler(c *gin.Context) {
 	projectId := c.Param("projectId")
@@ -36,7 +34,7 @@ func CreateProjectInfoHandler(c *gin.Context) {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-
+	fmt.Println("debug input", input)
 	err = CreateProjectInfo(projectId, input.ProjectTier)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())

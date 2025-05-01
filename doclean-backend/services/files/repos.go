@@ -30,7 +30,7 @@ func GetTreeData(input []InputItem) []Node {
 		var aParentDir, bParentDir string
 		aParts := strings.Split(a.FileDir, "/")
 		bParts := strings.Split(b.FileDir, "/")
-		
+
 		if len(aParts) > 1 {
 			aParentDir = aParts[1]
 		}
@@ -46,7 +46,7 @@ func GetTreeData(input []InputItem) []Node {
 		// Identify if a or b is a directory (no ".")
 		aIsDir := false
 		bIsDir := false
-		
+
 		if len(aParts) > 0 {
 			aIsDir = !strings.Contains(aParts[len(aParts)-1], ".")
 		}
@@ -72,7 +72,7 @@ func GetTreeData(input []InputItem) []Node {
 		// }
 		filePath = strings.TrimPrefix(filePath, "/")
 		pathParts := strings.Split(filePath, "/")
-		
+
 		// Check if this is an empty folder
 		// An empty folder is either explicitly marked with a trailing slash or
 		// it's a path without file extension and not equal to a root file
@@ -90,19 +90,19 @@ func GetTreeData(input []InputItem) []Node {
 			if isFolder {
 				// It's a folder in the root
 				rootNode.Directories = append(rootNode.Directories, Node{
-					FileID: 	item.FileID,
-					Title: 		pathParts[0],
-					Key:    	"placeholder", // Temporary key, will be fixed later
-					IsLeaf: 	false,
+					FileID: item.FileID,
+					Title:  pathParts[0],
+					Key:    "placeholder", // Temporary key, will be fixed later
+					IsLeaf: false,
 				})
 			} else {
 				// It's a file in the root
 				rootNode.Files = append(rootNode.Files, Node{
-					FileID: 	item.FileID,
-					Title: 		pathParts[0],
-					Content: 	item.FileContent,
-					Key:    	"placeholder", // Temporary key, will be fixed later
-					IsLeaf: 	true,
+					FileID:  item.FileID,
+					Title:   pathParts[0],
+					Content: item.FileContent,
+					Key:     "placeholder", // Temporary key, will be fixed later
+					IsLeaf:  true,
 				})
 			}
 			continue
@@ -143,8 +143,8 @@ func GetTreeData(input []InputItem) []Node {
 				// newKey := fmt.Sprintf()
 				newKey := currentKey + "-" + strconv.Itoa(folderIndex)
 				folderNode := Node{
-					FileID: 	item.FileID,
-					Title:		folderName,
+					FileID:   item.FileID,
+					Title:    folderName,
 					Key:      newKey,
 					Children: []Node{},
 				}
@@ -162,11 +162,11 @@ func GetTreeData(input []InputItem) []Node {
 		if !isFolder {
 			fileName := pathParts[len(pathParts)-1]
 			*currentLevel = append(*currentLevel, Node{
-				FileID: 	item.FileID,
-				Title:    fileName,
-				Content: 	item.FileContent,
-				Key:    	currentKey + "-" +  strconv.Itoa(len(*currentLevel)),
-				IsLeaf: 	true,
+				FileID:  item.FileID,
+				Title:   fileName,
+				Content: item.FileContent,
+				Key:     currentKey + "-" + strconv.Itoa(len(*currentLevel)),
+				IsLeaf:  true,
 			})
 		}
 	}
@@ -184,7 +184,7 @@ func GetTreeData(input []InputItem) []Node {
 // fixKeys recursively ensures all nodes have proper keys
 func fixKeys(nodes []Node, parentKey string) {
 	for i := range nodes {
-		nodes[i].Key = parentKey + "-" +  strconv.Itoa(i)
+		nodes[i].Key = parentKey + "-" + strconv.Itoa(i)
 
 		// If the node has a children array, process it
 		if len(nodes[i].Children) > 0 {
@@ -208,15 +208,15 @@ func fixKeys(nodes []Node, parentKey string) {
 	}
 }
 
-
-func GetFilesByProjectId(projectId string) (*GetFilesByProjectIdSchema, error){
+func GetFilesByProjectId(projectId string) (*GetFilesByProjectIdSchema, error) {
 	result, err := db.DB.Query(`
 		SELECT 
 			file_id, 
 			file_name, 
 			file_type, 
 			file_dir,
-			content, 
+			content,
+			origin,
 			last_updated_by, 
 			last_updated_at
 		FROM file_info 
@@ -227,8 +227,8 @@ func GetFilesByProjectId(projectId string) (*GetFilesByProjectIdSchema, error){
 	)
 
 	if err != nil {
-    return nil, err
-  }
+		return nil, err
+	}
 
 	defer result.Close()
 
@@ -243,6 +243,7 @@ func GetFilesByProjectId(projectId string) (*GetFilesByProjectIdSchema, error){
 			&file.FileType,
 			&file.FileDir,
 			&file.Content,
+			&file.Origin,
 			&file.LastUpdatedBy,
 			&file.LastUpdatedAt,
 		); err != nil {
@@ -251,14 +252,14 @@ func GetFilesByProjectId(projectId string) (*GetFilesByProjectIdSchema, error){
 		var fileDir string = file.FileDir[41:]
 
 		input.FileID = file.FileID
-		if (file.FileType != "folder") {
+		if file.FileType != "folder" {
 			fileDir += "/"
 			input.FileDir = fileDir + file.FileName + "." + file.FileType
 			input.FileContent = &file.Content
 		} else {
 			input.FileDir = fileDir
 		}
-		
+
 		inputs = append(inputs, input)
 		files = append(files, file)
 	}
@@ -266,7 +267,7 @@ func GetFilesByProjectId(projectId string) (*GetFilesByProjectIdSchema, error){
 	fileTree := GetTreeData(inputs)
 
 	return &GetFilesByProjectIdSchema{
-		Files: files,
+		Files:    files,
 		FileTree: fileTree,
 	}, nil
 }
@@ -279,7 +280,8 @@ func GetFileByFileId(fileId uuid.UUID) (*FileSchema, error) {
 			file_name, 
 			file_type, 
 			file_dir,
-			content, 
+			content,
+			origin, 
 			last_updated_by, 
 			last_updated_at
 		FROM file_info 
@@ -290,18 +292,19 @@ func GetFileByFileId(fileId uuid.UUID) (*FileSchema, error) {
 		&file.FileType,
 		&file.FileDir,
 		&file.Content,
+		&file.Origin,
 		&file.LastUpdatedBy,
 		&file.LastUpdatedAt,
 	)
 
 	if err != nil {
-    return nil, err
+		return nil, err
 	}
 
 	return &file, nil
 }
 
-func CreateFile(input CreateFilePayload) error{
+func CreateFile(input CreateFilePayload) error {
 	_, err := db.DB.Exec(`
 		INSERT INTO file_info (
 			file_id,
@@ -313,33 +316,35 @@ func CreateFile(input CreateFilePayload) error{
 			created_by,
 			created_at,
 			last_updated_by,
-			last_updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, NOW())
-	`, 
-		input.FileID, 
-		input.ProjectID, 
-		input.FileName, 
+			last_updated_at,
+			origin
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, NOW(), $9)
+	`,
+		input.FileID,
+		input.ProjectID,
+		input.FileName,
 		input.FileType,
 		input.FileDir,
-		input.Content, 
-		input.CreatedBy, 
+		input.Content,
+		input.CreatedBy,
 		input.LastUpdatedBy,
+		input.Origin,
 	)
 
 	return err
 }
 
-func SaveFileContent(input SaveFileContentPayload) error{
+func SaveFileContent(input SaveFileContentPayload) error {
 	_, err := db.DB.Exec(`
 		UPDATE file_info 
 		SET content = $1, last_updated_at = NOW()
 		WHERE 
 			file_id = $2
 			AND project_id = $3
-	`, 
-		input.Content, 
-		input.FileID, 
-		input.ProjectID, 
+	`,
+		input.Content,
+		input.FileID,
+		input.ProjectID,
 	)
 
 	return err

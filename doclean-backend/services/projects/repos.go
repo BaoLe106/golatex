@@ -3,9 +3,9 @@ package projects
 import (
 	"github.com/BaoLe106/doclean/doclean-backend/db"
 	"github.com/google/uuid"
-) 
+)
 
-func GetProjectInfoByProjectId(projectId string) (*ProjectSchema, error){
+func GetProjectInfoByProjectId(projectId string) (*ProjectSchema, error) {
 	result := db.DB.QueryRow(`
 		SELECT 
 			project_id,
@@ -17,9 +17,9 @@ func GetProjectInfoByProjectId(projectId string) (*ProjectSchema, error){
 		FROM project_info
 		WHERE project_id = $1
 	`, projectId)
-	
+
 	project := ProjectSchema{}
-	
+
 	err := result.Scan(&project.ProjectID, &project.ProjectName, &project.ProjectTier, &project.ProjectShareType, &project.LastUpdatedBy, &project.LastUpdatedAt)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func CreateProjectOwner(projectId uuid.UUID, userId uuid.UUID, email string) err
 
 func CreateProjectInfo(projectId string, projectTier string) error {
 	// sessionId = project_id
-	
+
 	_, err := db.DB.Exec(`
 		INSERT INTO project_info (
 			project_id,

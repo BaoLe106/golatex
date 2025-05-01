@@ -9,9 +9,9 @@ import (
 
 func AddProjectRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	projectRoute := rg.Group("/project")
-	
-	projectRoute.GET("/:projectId", GetProjectInfoByProjectIdHandler) 
-	projectRoute.POST("/:projectId", CreateProjectInfoHandler) 
+
+	projectRoute.GET("/:projectId", GetProjectInfoByProjectIdHandler)
+	projectRoute.POST("/:projectId", CreateProjectInfoHandler)
 	// router.HandleFunc("/login", h.Login).Methods("POST")
 
 	// Protected routes (JWT middleware applied)

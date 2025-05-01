@@ -23,7 +23,7 @@ func AddLatexRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	wsProvider.NewHandler()
 	jobManager := files.JobMngr
 	// jobManager := NewJobManager()
-	latexRoute.GET("/playground/:sessionId", 
+	latexRoute.GET("/playground/:sessionId",
 		// CollaborationLimitMiddleware(latexHandler),
 		// WebSocketAuthMiddleware(cognitoAuth),
 		func(ctx *gin.Context) {
@@ -36,19 +36,16 @@ func AddLatexRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	// 	// user_tier_middleware.ProjectLimitMiddleware(),
 	// )
 
-	latexRoute.GET("/:sessionId", 
+	latexRoute.GET("/:sessionId",
 		// CollaborationLimitMiddleware(latexHandler),
 		// WebSocketAuthMiddleware(cognitoAuth),
 		func(ctx *gin.Context) {
 			HandleConnection(ctx, jobManager)
 		},
 	)
-	
+
 	// latexRoute.GET("/session", SessionHandler)
 	// latexRoute.GET("/:sessionId", latexHandler.HandleConnection)
-	
-		
-	
+
 	latexRoute.POST("/pdf/:sessionId", CompileToPdf)
 }
-

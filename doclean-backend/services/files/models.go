@@ -13,76 +13,78 @@ import (
 )
 
 type CreateFilePayload struct {
-	FileID       		uuid.UUID 	`json:"fileId"`
-	ProjectID     	uuid.UUID 	`json:"projectId"`
-	FileName     		string    	`json:"fileName"`
-	FileType 				string    	`json:"fileType"`
-	FileDir					string    	`json:"fileDir"`
-	Content       	string    	`json:"content"`
-	CreatedBy     	uuid.UUID 	`json:"createdBy"`
-	LastUpdatedBy   uuid.UUID 	`json:"lastUpdatedBy"`
+	FileID        uuid.UUID `json:"fileId"`
+	ProjectID     uuid.UUID `json:"projectId"`
+	FileName      string    `json:"fileName"`
+	FileType      string    `json:"fileType"`
+	FileDir       string    `json:"fileDir"`
+	Content       string    `json:"content"`
+	CreatedBy     uuid.UUID `json:"createdBy"`
+	LastUpdatedBy uuid.UUID `json:"lastUpdatedBy"`
+	Origin        int       `json:"origin"` //0 -> create from app; 1 -> import from local then upload to s3
 }
 
 type SaveFileContentPayload struct {
-	FileID       		uuid.UUID 	`json:"fileId"`
-	ProjectID       uuid.UUID 	`json:"projectId"`
-	Content         string    	`json:"content"`
-	LastUpdatedBy   uuid.UUID 	`json:"lastUpdatedBy"`
+	FileID        uuid.UUID `json:"fileId"`
+	ProjectID     uuid.UUID `json:"projectId"`
+	Content       string    `json:"content"`
+	LastUpdatedBy uuid.UUID `json:"lastUpdatedBy"`
 }
 
 type FileSchema struct {
-	FileID       		uuid.UUID 	`json:"fileId"`
-	FileName     		string    	`json:"fileName"`
-	FileType 				string    	`json:"fileType"`
-	FileDir 				string    	`json:"fileDir"`
-	Content       	string    	`json:"content"`
-	LastUpdatedBy   uuid.UUID 	`json:"lastUpdatedBy"`
-	LastUpdatedAt   time.Time 	`json:"lastUpdatedAt"`
+	FileID        uuid.UUID `json:"fileId"`
+	FileName      string    `json:"fileName"`
+	FileType      string    `json:"fileType"`
+	FileDir       string    `json:"fileDir"`
+	Content       string    `json:"content"`
+	Origin        int       `json:"origin"`
+	LastUpdatedBy uuid.UUID `json:"lastUpdatedBy"`
+	LastUpdatedAt time.Time `json:"lastUpdatedAt"`
 }
 
 // Node represents a node in the file tree
 type Node struct {
-	FileID      uuid.UUID `json:"fileId"`
-	Title   		string 		`json:"title"`
-	Key     		string  	`json:"key"`
-	Content 		*string		`json:"content"`
-	IsLeaf  		bool    	`json:"isLeaf,omitempty"`
-	Children 		[]Node 		`json:"children,omitempty"`
+	FileID   uuid.UUID `json:"fileId"`
+	Title    string    `json:"title"`
+	Key      string    `json:"key"`
+	Content  *string   `json:"content"`
+	IsLeaf   bool      `json:"isLeaf,omitempty"`
+	Children []Node    `json:"children,omitempty"`
 }
 
 // InputItem represents the input file directory structure
 type InputItem struct {
-	FileID       		uuid.UUID 	`json:"fileId"`
-	FileDir 				string 			`json:"fileDir"`
-	FileContent			*string 		`json:"fileContent"`
+	FileID      uuid.UUID `json:"fileId"`
+	FileDir     string    `json:"fileDir"`
+	FileContent *string   `json:"fileContent"`
 }
 
 type GetFilesByProjectIdSchema struct {
-	Files 				[]FileSchema	`json:"files"`
-	FileTree			[]Node				`json:"fileTree"`
+	Files    []FileSchema `json:"files"`
+	FileTree []Node       `json:"fileTree"`
 }
 
-
 type BroadcastInfoPayload struct {
-	Hub					*wsProvider.Hub			`json:"hub"`
-	SessionId 	string							`json:"sessionId"`
-	InfoType 		string  						`json:"infoType"`
+	Hub       *wsProvider.Hub `json:"hub"`
+	SessionId string          `json:"sessionId"`
+
+	InfoType string `json:"infoType"`
 }
 
 type JobManager struct {
 	SaveFileContentJobs chan SaveFileContentPayload
 	AfterCreateFileJobs chan BroadcastInfoPayload
-	Errors chan error
-	WG   sync.WaitGroup
+	Errors              chan error
+	WG                  sync.WaitGroup
 }
 
 var JobMngr *JobManager
 
-func InitJobManager()  {
+func InitJobManager() {
 	jm := &JobManager{
 		SaveFileContentJobs: make(chan SaveFileContentPayload, 10),
 		AfterCreateFileJobs: make(chan BroadcastInfoPayload, 10),
-		Errors: make(chan error, 10),
+		Errors:              make(chan error, 10),
 	}
 
 	go saveFileContentWorker(jm.SaveFileContentJobs, jm.Errors, &jm.WG)
@@ -98,9 +100,9 @@ func (jm *JobManager) Close() {
 	jm.WG.Wait()
 }
 
-func broadcastCreateFileInfoToSession(message BroadcastInfoPayload) error{
-	message.Hub.Mutex.Lock()
-	defer message.Hub.Mutex.Unlock()
+func broadcastCreateFileInfoToSession(message BroadcastInfoPayload) error {
+	message.Hub.Mutex.RLock()
+	defer message.Hub.Mutex.RUnlock()
 
 	fmt.Println("##LOG##: Boardcasting: ", message.InfoType)
 	result, err := GetFilesByProjectId(message.SessionId)
@@ -108,27 +110,47 @@ func broadcastCreateFileInfoToSession(message BroadcastInfoPayload) error{
 		return err
 	}
 
-	newMessage := map[string]any {
-		"sessionId": message.SessionId,
-		"infoType": message.InfoType,
-		"data": result,
+	newMessage := wsProvider.SignalingMessage{
+		Type:      message.InfoType,
+		SessionID: message.SessionId,
+		Data:      result,
+		// "sessionId": message.SessionId,
+		// "infoType":  message.InfoType,
+		// "data":      result,
 	}
 	msgBytes, _ := json.Marshal(newMessage)
 
-	for client := range message.Hub.Sessions[message.SessionId] {
-		err := client.Conn.WriteMessage(websocket.TextMessage, msgBytes)
-		fmt.Println("##LOG##: write msg")
-		if err != nil {
-			log.Println("Error broadcasting file event:", err)
-			delete(message.Hub.Sessions[message.SessionId], client)
-			return err
+	// Check if session exists
+	sessionPeers, exists := message.Hub.Sessions[message.SessionId]
+	if !exists {
+		return fmt.Errorf("session %s not found", message.SessionId)
+	}
+
+	// Broadcast to all peers in the session
+	for peerId, conn := range sessionPeers {
+		if err := conn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
+			log.Printf("Error broadcasting to peer %s: %v", peerId, err)
+
+			// Upgrade to write lock if we need to remove the peer
+			message.Hub.Mutex.RUnlock()
+			message.Hub.Mutex.Lock()
+			delete(message.Hub.Sessions[message.SessionId], peerId)
+			if len(message.Hub.Sessions[message.SessionId]) == 0 {
+				delete(message.Hub.Sessions, message.SessionId)
+				delete(message.Hub.SessionData, message.SessionId)
+			}
+			message.Hub.Mutex.Unlock()
+			message.Hub.Mutex.RLock()
+
+			continue
 		}
 	}
+
 	return nil
 }
 
-func broadcastCreateFileInfoToSessionWorker(jobs <-chan BroadcastInfoPayload, errors chan <- error, wg *sync.WaitGroup) {
-	for job := range jobs  {
+func broadcastCreateFileInfoToSessionWorker(jobs <-chan BroadcastInfoPayload, errors chan<- error, wg *sync.WaitGroup) {
+	for job := range jobs {
 		if err := broadcastCreateFileInfoToSession(job); err != nil {
 			errors <- err
 		} else {
@@ -138,8 +160,7 @@ func broadcastCreateFileInfoToSessionWorker(jobs <-chan BroadcastInfoPayload, er
 	}
 }
 
-
-func saveFileContentWorker(saveFileContentJobs <-chan SaveFileContentPayload, errors chan <- error, wg *sync.WaitGroup) {
+func saveFileContentWorker(saveFileContentJobs <-chan SaveFileContentPayload, errors chan<- error, wg *sync.WaitGroup) {
 	for job := range saveFileContentJobs {
 		if err := SaveFileContent(job); err != nil {
 			errors <- err
@@ -152,10 +173,10 @@ func saveFileContentWorker(saveFileContentJobs <-chan SaveFileContentPayload, er
 }
 
 // EnqueueJob adds a job to the queue
-func (jm *JobManager) EnqueueSaveFileContentJob(job SaveFileContentPayload) <- chan error{
+func (jm *JobManager) EnqueueSaveFileContentJob(job SaveFileContentPayload) <-chan error {
 	done := make(chan error, 1)
 	jm.WG.Add(1)
-	
+
 	jm.SaveFileContentJobs <- job
 	go func() {
 		jm.WG.Wait()
@@ -168,10 +189,10 @@ func (jm *JobManager) EnqueueSaveFileContentJob(job SaveFileContentPayload) <- c
 	return done
 }
 
-func (jm *JobManager) EnqueueBroadcastCreateFileInfoToSessionJob(job BroadcastInfoPayload) <- chan error{
+func (jm *JobManager) EnqueueBroadcastCreateFileInfoToSessionJob(job BroadcastInfoPayload) <-chan error {
 	done := make(chan error, 1)
 	jm.WG.Add(1)
-	
+
 	jm.AfterCreateFileJobs <- job
 	go func() {
 		err := <-jm.Errors

@@ -6,18 +6,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
-
 func AddFileRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	fileRoute := rg.Group("/file")
 
 	jobManager := JobMngr
 
 	fileRoute.GET("/:sessionId", GetFilesByProjectIdHandler)
-	fileRoute.POST("/:sessionId", 
+	fileRoute.POST("/:sessionId",
 		func(ctx *gin.Context) {
 			CreateFileHandler(ctx, jobManager, wsProvider.Handler.Hub)
 		},
-		
 	)
 }
