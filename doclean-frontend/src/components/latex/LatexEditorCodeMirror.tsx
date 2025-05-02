@@ -42,7 +42,6 @@ import {
   FileData,
 } from "@/services/latex/models";
 
-
 const LatexEditorCodeMirror: React.FC = () => {
   const { theme } = useTheme();
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -51,62 +50,6 @@ const LatexEditorCodeMirror: React.FC = () => {
   const fileTreeRef = useRef<FileTreeRefHandle>(null);
   const isLocalChange = useRef<boolean>(false);
   const [ws, setWs] = useState<WebSocket | null>(null);
-
-  const { 
-    isConnected, 
-    sendData: sendDataToPeers 
-  } = useWebRTCConnection({
-    sessionId: sessionId,
-    signalServerUrl: window.location.pathname.includes("/playground") 
-      ? `ws://localhost:8080/api/v1/latex/playground/${sessionId}` 
-      : `ws://localhost:8080/api/v1/latex/${sessionId}`,
-    onConnectionEstablished: () => {
-      console.log('WebRTC connection established');
-    },
-    onDataReceived: (event: any) => {
-      // Handle data from peers
-      const {type, data} = event;
-      // if (data.type === 'content_update' && data.fileId) {
-      //   handleRemoteContentUpdate(data.fileId, data.content);
-      // }
-      switch (type) {
-        case 'content_update':
-          handleRemoteContentUpdate(data.fileId, data.content);
-          break;
-        default:
-          console.log("debug data at on receive", data);
-          // const dataFromInfoBroadcast = JSON.parse(data);
-  
-        // try {
-        //   if (dataFromInfoBroadcast.sessionId !== sessionId)
-        //     throw new Error("sessionId not match");
-        //   if (
-        //     dataFromInfoBroadcast.infoType === "file_created" ||
-        //     dataFromInfoBroadcast.infoType === "file_content_saved"
-        //   ) {
-        //     if (fileTreeRef.current) {
-        //       fileTreeRef.current.updateTreeData(
-        //         dataFromInfoBroadcast.data.fileTree
-        //       );
-        //     }
-        //   }
-        // } catch (err) {
-        //   if (
-        //     !compileFile.compileFileId ||
-        //     compileFile.compileFileId !== dataFromInfoBroadcast.fileId
-        //   )
-        //     return;
-  
-        //   editorInstance.setValue(dataFromInfoBroadcast.fileContent);
-        // }
-        // };
-
-          console.log('debug type on received:', type);
-      }
-      
-    }
-  });
-
 
   const [isCompileButtonLoading, setIsCompileButtonLoading] =
     useState<boolean>(false);
@@ -129,21 +72,71 @@ const LatexEditorCodeMirror: React.FC = () => {
   const [hasContentFromFile, setHasContentFromFile] = useState<boolean>(false);
   const [isThereABibFile, setIsThereABibFile] = useState<boolean>(false);
 
-   // Handle content updates received from WebRTC peers
+  const { isConnected, sendData: sendDataToPeers } = useWebRTCConnection({
+    peerId: compileFile.compileFileId,
+    sessionId: sessionId,
+    signalServerUrl: window.location.pathname.includes("/playground")
+      ? `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
+      : `ws://localhost:8080/api/v1/latex/${sessionId}`,
+    onConnectionEstablished: () => {
+      console.log("WebRTC connection established");
+    },
+    onDataReceived: (event: any) => {
+      // Handle data from peers
+      const { type, data } = event;
+      // if (data.type === 'content_update' && data.fileId) {
+      //   handleRemoteContentUpdate(data.fileId, data.content);
+      // }
+      switch (type) {
+        case "content_update":
+          handleRemoteContentUpdate(data.fileId, data.content);
+          break;
+        default:
+          console.log("debug data at on receive", data);
+          // const dataFromInfoBroadcast = JSON.parse(data);
+
+          // try {
+          //   if (dataFromInfoBroadcast.sessionId !== sessionId)
+          //     throw new Error("sessionId not match");
+          //   if (
+          //     dataFromInfoBroadcast.infoType === "file_created" ||
+          //     dataFromInfoBroadcast.infoType === "file_content_saved"
+          //   ) {
+          //     if (fileTreeRef.current) {
+          //       fileTreeRef.current.updateTreeData(
+          //         dataFromInfoBroadcast.data.fileTree
+          //       );
+          //     }
+          //   }
+          // } catch (err) {
+          //   if (
+          //     !compileFile.compileFileId ||
+          //     compileFile.compileFileId !== dataFromInfoBroadcast.fileId
+          //   )
+          //     return;
+
+          //   editorInstance.setValue(dataFromInfoBroadcast.fileContent);
+          // }
+          // };
+
+          console.log("debug type on received:", type);
+      }
+    },
+  });
+
+  // Handle content updates received from WebRTC peers
   const handleRemoteContentUpdate = (fileId: string, newContent: string) => {
     // Make sure we're not processing our own changes
     if (isLocalChange.current) return;
-    
+
     // Update editor with content from peer
     if (editorInstance) {
       editorInstance.setValue(newContent);
     }
-    
+
     // Update state
     // setContent(newContent);
   };
-
-
 
   useEffect(() => {
     if (!codeMirrorComponent) {
@@ -333,9 +326,9 @@ const LatexEditorCodeMirror: React.FC = () => {
 
         if (isConnected) {
           sendDataToPeers({
-            type: 'content_update',
+            type: "content_update",
             fileId: compileFile.compileFileId,
-            content: instance.getValue()
+            content: instance.getValue(),
           });
         }
 

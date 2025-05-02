@@ -53,7 +53,7 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 	// First, wait for the join message to get peerId
 	_, joinMsgBytes, err := conn.ReadMessage()
 	if err != nil {
-		log.Println("Error reading join message:", err)
+		fmt.Println("Error reading join message:", err)
 		conn.Close()
 		return
 	}
@@ -61,18 +61,19 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 	var joinMsg wsProvider.SignalingMessage
 
 	if err := json.Unmarshal(joinMsgBytes, &joinMsg); err != nil {
-		log.Println("Error unmarshalling join message:", err)
+		fmt.Println("Error unmarshalling join message:", err)
 		conn.Close()
 		return
 	}
 
 	if joinMsg.Type != "join" {
-		log.Println("First message must be of type 'join'")
+		fmt.Println("First message must be of type 'join'")
 		conn.Close()
 		return
 	}
 
 	peerId := joinMsg.PeerID
+	fmt.Println("joinMsg", joinMsg)
 
 	// client := &wsProvider.Client{Conn: conn, SessionID: sessionId}
 	// Register the connection with the hub
@@ -103,6 +104,7 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 	wsProvider.Handler.Hub.Mutex.RLock()
 	for otherPeerId, otherConn := range wsProvider.Handler.Hub.Sessions[sessionId] {
 		if otherPeerId != peerId {
+			fmt.Println("otherPeerId", otherPeerId)
 			// Tell existing peer about the new peer
 			otherConn.WriteJSON(map[string]interface{}{
 				"type":      "join",
@@ -127,7 +129,7 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 		// Notify other peers about the leaving peer
 		for _, otherConn := range wsProvider.Handler.Hub.Sessions[sessionId] {
 			otherConn.WriteJSON(map[string]interface{}{
-				"type":      "peer-left",
+				"type":      "leave",
 				"peerId":    peerId,
 				"sessionId": sessionId,
 			})

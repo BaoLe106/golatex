@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 
 // Types for our WebRTC implementation
 interface PeerMessage {
@@ -7,6 +7,7 @@ interface PeerMessage {
 }
 
 interface WebRTCConnectionOptions {
+  peerId: string;
   sessionId: string | undefined;
   signalServerUrl: string; // Your existing WebSocket server for signaling
   onConnectionEstablished?: () => void;
@@ -15,117 +16,157 @@ interface WebRTCConnectionOptions {
 
 // This is a custom hook, not a React component
 const useWebRTCConnection = ({
+  peerId,
   sessionId,
   signalServerUrl,
   onConnectionEstablished,
-  onDataReceived
+  onDataReceived,
 }: WebRTCConnectionOptions) => {
   const [isConnected, setIsConnected] = useState(false);
-  const [peerConnections, setPeerConnections] = useState<Record<string, RTCPeerConnection>>({});
-  const [peerDataChannels, setPeerDataChannels] = useState<Record<string, RTCDataChannel>>({});
-  
+  const [peerConnections, setPeerConnections] = useState<
+    Record<string, RTCPeerConnection>
+  >({});
+  const [peerDataChannels, setPeerDataChannels] = useState<
+    Record<string, RTCDataChannel>
+  >({});
+
+  const peerConnectionsRef = useRef(peerConnections);
   const signalSocket = useRef<WebSocket | null>(null);
-  const localPeerId = useRef<string>(crypto.randomUUID());
+  const localPeerId = useRef<string>(peerId);
 
   // WebRTC configuration with STUN servers
   const rtcConfig = {
     iceServers: [
-      { urls: 'stun:stun.l.google.com:19302' },
-      { urls: 'stun:stun1.l.google.com:19302' }
-    ]
+      { urls: "stun:stun.l.google.com:19302" },
+      { urls: "stun:stun1.l.google.com:19302" },
+    ],
   };
 
   useEffect(() => {
-    if (!sessionId) return;
+    console.log("debug peerId change", peerId);
+    if (!peerId) {
+      localPeerId.current = crypto.randomUUID();
+      return;
+    }
+
+    localPeerId.current = peerId;
+  }, [peerId]);
+
+  useEffect(() => {
+    peerConnectionsRef.current = peerConnections;
+  }, [peerConnections]);
+
+  useEffect(() => {
+    console.log("debug ws connect", localPeerId.current, peerId);
+    if (!sessionId || !localPeerId.current) return;
     // Connect to the signaling server
     const socket = new WebSocket(signalServerUrl);
     signalSocket.current = socket;
-
+    console.log("Initiating WebSocket connection to signaling server...");
     // On Open already join to the session server
     socket.onopen = () => {
-      console.log('Connected to signaling server');
+      console.log("Connected to signaling server");
       // Announce ourself to the signaling server
-      socket.send(JSON.stringify({
-        type: 'join',
-        peerId: localPeerId.current,
-        sessionId: sessionId
-      }));
+      socket.send(
+        JSON.stringify({
+          type: "join",
+          peerId: localPeerId.current,
+          sessionId: sessionId,
+        })
+      );
     };
 
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      console.log("debug socket on message", message)
+      console.log("debug socket on message", message);
       handleSignalingMessage(message);
     };
 
     socket.onclose = () => {
-      console.log('Disconnected from signaling server');
+      console.log("Disconnected from signaling server");
     };
 
     socket.onerror = (error) => {
-      console.error('WebSocket error:', error);
+      console.error("WebSocket error:", error);
     };
 
     return () => {
       // Clean up connections when component unmounts
-      Object.values(peerConnections).forEach(pc => pc.close());
+      Object.values(peerConnections).forEach((pc) => pc.close());
       socket.close();
     };
-  }, [sessionId, signalServerUrl]);
+  }, [sessionId, signalServerUrl, peerId]);
 
   const handleSignalingMessage = async (message: any) => {
     if (!sessionId) return;
     const { type, peerId, sessionId: incomingSessionId, data } = message;
-
+    console.log("debug handleSignalingMessage", message);
+    console.log("debug handleSignalingMessage2", incomingSessionId);
     // Ignore messages from other sessions
     if (incomingSessionId !== sessionId) return;
-    
+
     // Ignore our own messages
     if (peerId === localPeerId.current) return;
-
+    const currentPeerConnections = peerConnectionsRef.current;
     switch (type) {
-      case 'join':
+      case "join":
+        console.log("debug join", peerId, data);
         // A new peer joined, initiate connection
         createPeerConnection(peerId, true);
         break;
-      
-      case 'offer':
+
+      case "offer":
+        console.log("debug offer", peerId, data);
+        console.log("debug offer2", currentPeerConnections);
         // Received an offer, create answer
-        if (!peerConnections[peerId]) {
+        if (!currentPeerConnections[peerId]) {
           createPeerConnection(peerId, false);
         }
-        await peerConnections[peerId].setRemoteDescription(new RTCSessionDescription(data));
-        const answer = await peerConnections[peerId].createAnswer();
-        await peerConnections[peerId].setLocalDescription(answer);
-        sendSignalingMessage('answer', peerId, answer);
+        const newRTCSessionDescription = new RTCSessionDescription(data);
+        console.log("debug newRTCSessionDescription", peerId);
+        await currentPeerConnections[peerId].setRemoteDescription(
+          newRTCSessionDescription
+        );
+        const answer = await currentPeerConnections[peerId].createAnswer();
+        await currentPeerConnections[peerId].setLocalDescription(answer);
+        sendSignalingMessage("answer", peerId, answer);
         break;
-      
-      case 'answer':
+
+      case "answer":
         // Received an answer to our offer
-        if (peerConnections[peerId]) {
-          await peerConnections[peerId].setRemoteDescription(new RTCSessionDescription(data));
+        if (currentPeerConnections[peerId]) {
+          const newRTCSessionDescription = new RTCSessionDescription(data);
+          console.log(
+            "debug newRTCSessionDescription",
+            newRTCSessionDescription
+          );
+          await currentPeerConnections[peerId].setRemoteDescription(
+            newRTCSessionDescription
+          );
         }
         break;
-      
-      case 'ice-candidate':
+
+      case "ice-candidate":
         // Add ICE candidate received from peer
-        if (peerConnections[peerId]) {
+        if (currentPeerConnections[peerId]) {
           try {
-            await peerConnections[peerId].addIceCandidate(new RTCIceCandidate(data));
+            await currentPeerConnections[peerId].addIceCandidate(
+              new RTCIceCandidate(data)
+            );
           } catch (err) {
-            console.error('Error adding ICE candidate:', err);
+            console.error("Error adding ICE candidate:", err);
           }
         }
         break;
-        
-      case 'leave':
+
+      case "leave":
         // Peer left, clean up connection
-        if (peerConnections[peerId]) {
-          peerConnections[peerId].close();
-          const updatedConnections = { ...peerConnections };
+        if (currentPeerConnections[peerId]) {
+          currentPeerConnections[peerId].close();
+          const updatedConnections = { ...currentPeerConnections };
           delete updatedConnections[peerId];
           setPeerConnections(updatedConnections);
-          
+
           const updatedChannels = { ...peerDataChannels };
           delete updatedChannels[peerId];
           setPeerDataChannels(updatedChannels);
@@ -134,27 +175,30 @@ const useWebRTCConnection = ({
       default:
         // const handleWsMessage = (event: any) => {
         //   const { data } = event;
-        onDataReceived({type: type, data: data})
-        
+        onDataReceived({ type: type, data: data });
     }
   };
 
   const createPeerConnection = (peerId: string, isInitiator: boolean) => {
-    console.log(`Creating ${isInitiator ? 'initiator' : 'receiver'} peer connection with ${peerId}`);
-    
+    console.log(
+      `Creating ${
+        isInitiator ? "initiator" : "receiver"
+      } peer connection with ${peerId}`
+    );
+
     const peerConnection = new RTCPeerConnection(rtcConfig);
-    
+
     // Set up ICE candidate handling
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
-        sendSignalingMessage('ice-candidate', peerId, event.candidate);
+        sendSignalingMessage("ice-candidate", peerId, event.candidate);
       }
     };
 
     // Connection state handling
     peerConnection.onconnectionstatechange = () => {
       console.log(`Connection state change: ${peerConnection.connectionState}`);
-      if (peerConnection.connectionState === 'connected') {
+      if (peerConnection.connectionState === "connected") {
         setIsConnected(true);
         onConnectionEstablished?.();
       }
@@ -162,16 +206,21 @@ const useWebRTCConnection = ({
 
     // Create data channel or prepare to receive one
     if (isInitiator) {
-      const dataChannel = peerConnection.createDataChannel('dataChannel');
+      const dataChannel = peerConnection.createDataChannel("dataChannel");
       setupDataChannel(dataChannel, peerId);
-      
+
       // Create and send offer
-      peerConnection.createOffer()
-        .then(offer => peerConnection.setLocalDescription(offer))
+      peerConnection
+        .createOffer()
+        .then((offer) => peerConnection.setLocalDescription(offer))
         .then(() => {
-          sendSignalingMessage('offer', peerId, peerConnection.localDescription);
+          sendSignalingMessage(
+            "offer",
+            peerId,
+            peerConnection.localDescription
+          );
         })
-        .catch(err => console.error('Error creating offer:', err));
+        .catch((err) => console.error("Error creating offer:", err));
     } else {
       // Set up to receive data channel
       peerConnection.ondatachannel = (event) => {
@@ -180,32 +229,32 @@ const useWebRTCConnection = ({
     }
 
     // Store the new peer connection
-    setPeerConnections(prev => ({
+    setPeerConnections((prev) => ({
       ...prev,
-      [peerId]: peerConnection
+      [peerId]: peerConnection,
     }));
-    
+
     return peerConnection;
   };
 
   const setupDataChannel = (dataChannel: RTCDataChannel, peerId: string) => {
     dataChannel.onopen = () => {
       console.log(`Data channel with ${peerId} is open`);
-      setPeerDataChannels(prev => ({
+      setPeerDataChannels((prev) => ({
         ...prev,
-        [peerId]: dataChannel
+        [peerId]: dataChannel,
       }));
     };
 
     dataChannel.onclose = () => {
       console.log(`Data channel with ${peerId} is closed`);
-      setPeerDataChannels(prev => {
+      setPeerDataChannels((prev) => {
         const updated = { ...prev };
         delete updated[peerId];
         return updated;
       });
     };
-    
+
     dataChannel.onmessage = (event) => {
       console.log(`Received message from ${peerId}:`, event.data);
       try {
@@ -219,21 +268,23 @@ const useWebRTCConnection = ({
 
   const sendSignalingMessage = (type: string, toPeerId: string, data?: any) => {
     if (signalSocket.current?.readyState === WebSocket.OPEN) {
-      signalSocket.current.send(JSON.stringify({
-        type: type,
-        peerId: localPeerId.current,
-        toPeerId: toPeerId,
-        sessionId: sessionId,
-        data: data
-      }));
+      signalSocket.current.send(
+        JSON.stringify({
+          type: type,
+          peerId: localPeerId.current,
+          toPeerId: toPeerId,
+          sessionId: sessionId,
+          data: data,
+        })
+      );
     }
   };
 
   // Function to send data to all connected peers
   const sendDataToPeers = (data: any) => {
-    const dataString = typeof data === 'string' ? data : JSON.stringify(data);
-    Object.values(peerDataChannels).forEach(dataChannel => {
-      if (dataChannel.readyState === 'open') {
+    const dataString = typeof data === "string" ? data : JSON.stringify(data);
+    Object.values(peerDataChannels).forEach((dataChannel) => {
+      if (dataChannel.readyState === "open") {
         dataChannel.send(dataString);
       }
     });
@@ -244,7 +295,7 @@ const useWebRTCConnection = ({
     isConnected,
     sendData: sendDataToPeers,
     peerConnections,
-    peerDataChannels
+    peerDataChannels,
   };
 };
 
