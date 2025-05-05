@@ -72,16 +72,22 @@ const LatexEditorCodeMirror: React.FC = () => {
   const [hasContentFromFile, setHasContentFromFile] = useState<boolean>(false);
   const [isThereABibFile, setIsThereABibFile] = useState<boolean>(false);
 
-  const { isConnected, sendData: sendDataToPeers } = useWebRTCConnection({
-    peerId: compileFile.compileFileId,
-    sessionId: sessionId,
-    signalServerUrl: window.location.pathname.includes("/playground")
-      ? `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
-      : `ws://localhost:8080/api/v1/latex/${sessionId}`,
-    onConnectionEstablished: () => {
-      console.log("WebRTC connection established");
+  const {
+    connect,
+    isConnected,
+    sendData: sendDataToPeers,
+  } = useWebRTCConnection({
+    // peerId: compileFile.compileFileId,
+    sessionId: compileFile.compileFileId
+      ? compileFile.compileFileId
+      : sessionId,
+    // signalServerUrl: window.location.pathname.includes("/playground")
+    //   ? `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
+    //   : `ws://localhost:8080/api/v1/latex/${sessionId}`,
+    onConnectionEstablished: (peerId: string) => {
+      console.log("WebRTC connection established:", peerId);
     },
-    onDataReceived: (event: any) => {
+    onDataReceived: (peerId: string, event: any) => {
       // Handle data from peers
       const { type, data } = event;
       // if (data.type === 'content_update' && data.fileId) {
@@ -90,6 +96,12 @@ const LatexEditorCodeMirror: React.FC = () => {
       switch (type) {
         case "content_update":
           handleRemoteContentUpdate(data.fileId, data.content);
+          break;
+        case "file_created":
+          if (fileTreeRef.current) {
+            fileTreeRef.current.updateTreeData(data.fileTree);
+          }
+
           break;
         default:
           console.log("debug data at on receive", data);
@@ -251,18 +263,14 @@ const LatexEditorCodeMirror: React.FC = () => {
     };
     const accessToken = localStorage.getItem("accessToken");
     // let socket: WebSocket;
-    // const currPath = window.location.pathname;
-    // if (currPath.includes("/playground")) {
-    //   socket = new WebSocket(
-    //     `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
-    //     // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
-    //   );
-    // } else {
-    //   socket = new WebSocket(
-    //     `ws://localhost:8080/api/v1/latex/${sessionId}`
-    //     // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
-    //   );
-    // }
+    const currPath = window.location.pathname;
+    if (currPath.includes("/playground")) {
+      connect(`ws://localhost:8080/api/v1/latex/playground/${sessionId}`);
+      // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+    } else {
+      connect(`ws://localhost:8080/api/v1/latex/${sessionId}`);
+      // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+    }
 
     // setWs(socket);
 
@@ -313,7 +321,7 @@ const LatexEditorCodeMirror: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!ws || !compileFile.compileFileId || !editorInstance) return;
+    if (!compileFile.compileFileId || !editorInstance) return;
 
     setTimeout(() => {
       editorInstance.refresh();
@@ -321,6 +329,7 @@ const LatexEditorCodeMirror: React.FC = () => {
     // Define the event handlers
     const handleEditorChange = (instance: any, changes: any) => {
       const { origin } = changes;
+      console.log("debug on change", isConnected);
       if (origin !== "setValue") {
         isLocalChange.current = true;
 
