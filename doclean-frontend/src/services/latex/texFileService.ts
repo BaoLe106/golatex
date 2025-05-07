@@ -1,6 +1,7 @@
 import { useApiClient } from "@/services/base";
 import {
   CreateFilePayload,
+  UploadFilePayload,
   CompileToPdfPayload,
 } from "@/services/latex/models";
 
@@ -38,9 +39,20 @@ export const TexFileService = (() => {
     return await apiClient.post(apiUrl, data, config);
   };
 
+  const uploadFiles = async (data: UploadFilePayload) => {
+    const apiUrl = `/file/upload/${data.projectId}`;
+    const config = {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+    return await apiClient.post(apiUrl, data.formData, config);
+  }
+
   return {
     compileToPdf,
-    createFile,
     getFilesByProjectId,
+    createFile,
+    uploadFiles
   };
 })();

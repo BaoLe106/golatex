@@ -68,6 +68,8 @@ type BroadcastInfoPayload struct {
 	Hub       *wsProvider.Hub `json:"hub"`
 	SessionId string          `json:"sessionId"`
 	InfoType  string          `json:"infoType"`
+	FileName  string          `json:"fileName"`
+	FileType  string          `json:"fileType"`
 }
 
 type JobManager struct {
@@ -113,6 +115,10 @@ func broadcastCreateFileInfoToSession(message BroadcastInfoPayload) error {
 		Type:           message.InfoType,
 		SessionID:      message.SessionId,
 		CreateFileData: result,
+		AdditionalData: map[string]string{
+			"fileName": message.FileName,
+			"fileType": message.FileType,
+		},
 	}
 	msgBytes, _ := json.Marshal(newMessage)
 

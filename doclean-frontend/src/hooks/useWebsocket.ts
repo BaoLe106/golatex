@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-
+import { toast } from "sonner"
 interface WebSocketConnectionProps {
   // peerId: string;
   sessionId: string | undefined;
@@ -75,6 +75,9 @@ const useWebsocket = ({
         handlerPeerLeave(peerId);
         break;
       default:
+        if (type === "file_created") {
+          handleNotifyFileCreated(message.additionalData)
+        }
         onDataReceived({ 
           type: type, 
           peerId: peerId,
@@ -84,20 +87,23 @@ const useWebsocket = ({
     }
   }, []);
 
-
   const handleNewPeers = useCallback((newPeerId: string) => {
     // Notify to the session
-    console.log(`${newPeerId} join!`)
+    toast.info(`${newPeerId} join!`)
     peerConnectionsRef.current[newPeerId] = true;
   }, [])
 
   const handlerPeerLeave = useCallback((peerId: string) => {
     // Notify to the session
-    console.log(`${peerId} leave!`)
+    toast.info(`${peerId} leave!`)
     delete peerConnectionsRef.current[peerId];
   }, [])
 
-
+  const handleNotifyFileCreated = useCallback((data: any) => {
+    if (!data) return;
+    const toastMsg = data.fileType === 'folder' ? `New ${data.fileName} folder created`: `New ${data.fileName} file created`
+    toast.info(toastMsg)
+  }, [])
 
 
   // Return an object with connection state and methods

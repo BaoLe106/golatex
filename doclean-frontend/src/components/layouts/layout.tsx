@@ -2,8 +2,10 @@ import { ReactNode } from "react";
 import { ProjectService } from "@/services/projects/projectService";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner"
 import { ThemeToggle } from "@/components/theme-toggle";
 import { v4 as uuidv4 } from "uuid";
+import { useTheme } from "@/context/ThemeProvider";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -11,6 +13,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sessionId = uuidv4();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const createProject = async (sessionId: string) => {
     if (!sessionId) return;
     try {
@@ -97,6 +100,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="flex flex-1">
         <main className="flex-1 justify-items-center w-full">
           <div className="w-full">{children}</div>
+          <Toaster theme={theme} richColors closeButton position="bottom-right" toastOptions={{}}/>
         </main>
       </div>
 

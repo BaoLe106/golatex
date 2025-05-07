@@ -17,4 +17,9 @@ func AddFileRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 			CreateFileHandler(ctx, jobManager, wsProvider.Handler.Hub)
 		},
 	)
+	fileRoute.POST("/upload/:sessionId",
+		func(ctx *gin.Context) {
+			CreateFileHandler(ctx, jobManager, wsProvider.Handler.Hub)
+		},
+	)
 }

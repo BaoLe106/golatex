@@ -14,6 +14,7 @@ type SignalingMessage struct {
 	ToPeerID          string                `json:"toPeerId,omitempty"`
 	UpdateContentData UpdateContentDataType `json:"updateContentData,omitempty"`
 	CreateFileData    any                   `json:"createFileData,omitempty"`
+	AdditionalData    any                   `json:"additionalData,omitempty"`
 }
 
 type SignalingServer struct {

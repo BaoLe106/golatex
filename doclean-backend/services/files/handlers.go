@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 
 	// jobProvider "github.com/BaoLe106/doclean/doclean-backend/providers/job"
 	s3Provider "github.com/BaoLe106/doclean/doclean-backend/providers/s3"
@@ -15,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func GetFilesByProjectIdHandler(c *gin.Context) {
@@ -71,6 +73,7 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		}
 	}
 
+	// File existed, don't create file, just write file to disk
 	if fileFromDb != nil {
 		apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
 		return
@@ -83,10 +86,19 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		return
 	}
 
+	var fileNameBroadcast string
+	if input.FileType != "folder" {
+		fileNameBroadcast = input.FileName + "." + input.FileType
+	} else {
+		fileNameBroadcast = input.FileName
+	}
+
 	payload := BroadcastInfoPayload{
 		Hub:       hub,
 		SessionId: sessionId,
 		InfoType:  "file_created",
+		FileName:  fileNameBroadcast,
+		FileType:  input.FileType,
 	}
 
 	done := jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)
@@ -105,9 +117,16 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		return
 	}
 
-	files := form.File["files"] // "files" is the key name used in the FormData
+	currentFolder := form.Value["currentFolder"]
+	files := form.File["files"]
 
 	// input: fileName, fileType,
+	fileDir := "/tmp" + sessionId + currentFolder[0]
+	// Create session upload directory
+	if err := os.MkdirAll(fileDir, 0755); err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	for _, fileHeader := range files {
 		// Open the file (returns multipart.File)
@@ -121,16 +140,19 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		// Example: Get metadata for AWS S3
 		filename := fileHeader.Filename
 
-		// Save to local disk
-		// dstPath := filepath.Join("uploads", filename)
-		dst, err := os.Create("dstPath")
+		// Build full path: fileDir + filename
+		fileDestinationPath := filepath.Join(fileDir+"/", fileHeader.Filename)
+
+		// Create file destination
+		fileDestination, err := os.Create(fileDestinationPath)
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
 
-		_, err = io.Copy(dst, file)
-		dst.Close()
+		// Save to local disk
+		_, err = io.Copy(fileDestination, file)
+		fileDestination.Close()
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
@@ -145,7 +167,7 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 
 		s3Client := s3Provider.S3Client
 
-		objectKey := fmt.Sprintf("tex/%s/%s", sessionId, filename)
+		objectKey := fmt.Sprintf("output/%s%s/%s", sessionId, currentFolder, filename)
 		_, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
 			// _, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket:      aws.String(os.Getenv("S3_BUCKET")),
@@ -158,12 +180,26 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
+
+		err = CreateFile(CreateFilePayload{
+			FileID:   uuid.New(),
+			FileDir:  fileDir,
+			FileName: filename,
+			FileType: filepath.Ext(filename)[1:],
+			Content:  "",
+		})
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
 	}
 
 	payload := BroadcastInfoPayload{
 		Hub:       hub,
 		SessionId: sessionId,
 		InfoType:  "file_created",
+		// FileName:  fileNameBroadcast,
+		// FileType:  input.FileType,
 	}
 
 	done := jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)

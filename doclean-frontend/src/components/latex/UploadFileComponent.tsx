@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 
 import { TexFileService } from "@/services/latex/texFileService";
 import {
@@ -32,10 +32,11 @@ import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 interface UploadFileComponentProps {
   isOpen: boolean;
   sessionId: string | undefined;
+  currSelectedFolder: string;
   closeDialog: () => void;
 }
 
-const UploadFileComponent: React.FC<UploadFileComponentProps> = ({isOpen, sessionId, closeDialog}) => {
+const UploadFileComponent: React.FC<UploadFileComponentProps> = ({isOpen, sessionId, currSelectedFolder, closeDialog}) => {
   const [toBeUploadedFiles, setToBeUploadedFiles] = useState<File[]>([]);
   const [errorMessageBySize, setErrorMessageBySize] = useState<string>("");
   const [errorMessageByType, setErrorMessageByType] = useState<string>("");
@@ -110,13 +111,19 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({isOpen, sessio
     setToBeUploadedFiles(newToBeUploadedFiles)
   }
 
-  {/* <input
-          id="uploadFileElement"
-          type="file"
-          class="hidden"
-          multiple
-          accept=".tex,.bib,.bst,.sty,.cls,.cbx,.bbx,.lbx,.def,.pdf,.png,.jpg,.jpeg,.eps,.csv,.tsv"
-        ></input> */}
+  const uploadFilesHandler = async () => {
+    if (!sessionId) return;
+    const formData = new FormData();
+    formData.append("currentFolder", currSelectedFolder); // <- Important
+    for (const file of toBeUploadedFiles) {
+      formData.append("files", file); // "files" must match backend key
+    }
+
+    const res = await TexFileService.uploadFiles({
+      'projectId': sessionId,
+      'formData': formData
+    })
+  }
 
   return (
     <Dialog 
@@ -143,7 +150,9 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({isOpen, sessio
               multiple
               // accept=".tex,.bib,.bst,.sty,.cls,.cbx,.bbx,.lbx,.def,.pdf,.png,.jpg,.jpeg,.eps,.csv,.tsv,.txt"
               accept="*"
-              onKeyDown={(e) => e.key === "Escape" && closeDialog}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") closeDialog();
+              }}
               
             />
           </div>

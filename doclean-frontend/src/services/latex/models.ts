@@ -14,6 +14,11 @@ interface CreateFilePayload {
   lastUpdatedBy: string;
 }
 
+interface UploadFilePayload {
+  projectId: string;
+  formData: FormData;
+}
+
 interface FileData {
   fileId: string;
   fileName: string;
@@ -29,4 +34,4 @@ interface FileData {
 //   content: string;
 // }
 
-export type { CompileToPdfPayload, CreateFilePayload, FileData };
+export type { CompileToPdfPayload, CreateFilePayload, UploadFilePayload, FileData };
