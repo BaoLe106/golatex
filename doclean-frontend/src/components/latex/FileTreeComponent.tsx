@@ -306,7 +306,6 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       <>
         <UploadFileComponent 
           isOpen={isUploadingFile} 
-          theme={theme} 
           sessionId={sessionId} 
           closeDialog={() => setIsUploadingFile(false)}
         />

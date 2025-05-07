@@ -31,14 +31,11 @@ import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 
 interface UploadFileComponentProps {
   isOpen: boolean;
-  theme: string;
   sessionId: string | undefined;
   closeDialog: () => void;
 }
 
-const UploadFileComponent: React.FC<UploadFileComponentProps> = ({isOpen, theme, sessionId, closeDialog}) => {
-  console.log(theme, sessionId)
-
+const UploadFileComponent: React.FC<UploadFileComponentProps> = ({isOpen, sessionId, closeDialog}) => {
   const [toBeUploadedFiles, setToBeUploadedFiles] = useState<File[]>([]);
   const [errorMessageBySize, setErrorMessageBySize] = useState<string>("");
   const [errorMessageByType, setErrorMessageByType] = useState<string>("");

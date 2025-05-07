@@ -25,7 +25,6 @@ export const TexFileService = (() => {
     //   }
     // };
     const res = await apiClient.get(apiUrl);
-    console.log("debug res", res);
     return res.data;
   };
 

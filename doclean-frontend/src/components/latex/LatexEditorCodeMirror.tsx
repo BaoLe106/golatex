@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
@@ -21,7 +21,7 @@ import "codemirror/addon/dialog/dialog.js";
 import CodeMirror from "codemirror";
 
 import { useTheme } from "@/context/ThemeProvider";
-import useWebRTCConnection from "@/hooks/useWebRTCConnection";
+import useWebsocket from "@/hooks/useWebsocket";
 import { TexFileService } from "@/services/latex/texFileService";
 
 import { Search, Loader2, Terminal } from "lucide-react";
@@ -36,20 +36,25 @@ import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { FileTreeRefHandle } from "@/components/latex/FileTreeComponent";
 import FileTreeComponent from "@/components/latex/FileTreeComponent";
 
-import {
-  // CreateFilePayload,
-  // CompileToPdfPayload,
-  FileData,
-} from "@/services/latex/models";
+import { FileData } from "@/services/latex/models";
 
 const LatexEditorCodeMirror: React.FC = () => {
   const { theme } = useTheme();
   const { sessionId } = useParams<{ sessionId: string }>();
 
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const editorInstanceRef = useRef<any>(null);
+  const compileFileRef = useRef<{
+    compileFileId: string,
+    compileFileName: string,
+    compileFileType: string,
+    compileFileDir: string,
+  }>({
+    compileFileId: "",
+    compileFileName: "",
+    compileFileType: "",
+    compileFileDir: "",
+  })
   const fileTreeRef = useRef<FileTreeRefHandle>(null);
-  const isLocalChange = useRef<boolean>(false);
-  const [ws, setWs] = useState<WebSocket | null>(null);
 
   const [isCompileButtonLoading, setIsCompileButtonLoading] =
     useState<boolean>(false);
@@ -63,92 +68,58 @@ const LatexEditorCodeMirror: React.FC = () => {
     compileFileType: "",
     compileFileDir: "",
   });
-  // const [formData, setFormData] = useState({
-  //     email: "",
-  //     password: "",
-  //     passwordAgain: "",
-  //   });
   const [compileError, setCompileError] = useState<string>("");
   const [hasContentFromFile, setHasContentFromFile] = useState<boolean>(false);
   const [isThereABibFile, setIsThereABibFile] = useState<boolean>(false);
 
+  // Update the ref whenever states changes
+  useEffect(() => {
+    editorInstanceRef.current = editorInstance;
+  }, [editorInstance]);
+
+  useEffect(() => {
+    compileFileRef.current = compileFile
+  }, [compileFile])
+
+  const onDataReceived = useCallback((receivedData: any) => {
+    const { type, peerId ,data } = receivedData;
+    
+    switch (type) {
+      case "update_content":
+        try {
+          if (!editorInstanceRef.current) return;
+          
+          const currentCompileFile = compileFileRef.current
+          if (
+            !currentCompileFile.compileFileId ||
+            currentCompileFile.compileFileId !== data.fileId
+          ) return;
+          
+          editorInstanceRef.current?.setValue(data.fileContent);
+        } catch (err) {
+          console.log("debug err at editor", err);
+        }
+        break;
+      case "file_created":
+        if (fileTreeRef.current) {
+          fileTreeRef.current.updateTreeData(data.fileTree);
+        }
+        break;
+      default:
+        //any
+    }
+  }, []); // Only include dependencies that are used in the callback
+
   const {
+    currentPeerId,
+    handleSendingMessage,
     connect,
-    isConnected,
-    sendData: sendDataToPeers,
-  } = useWebRTCConnection({
-    // peerId: compileFile.compileFileId,
+  } = useWebsocket({
     sessionId: compileFile.compileFileId
       ? compileFile.compileFileId
       : sessionId,
-    // signalServerUrl: window.location.pathname.includes("/playground")
-    //   ? `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
-    //   : `ws://localhost:8080/api/v1/latex/${sessionId}`,
-    onConnectionEstablished: (peerId: string) => {
-      console.log("WebRTC connection established:", peerId);
-    },
-    onDataReceived: (peerId: string, event: any) => {
-      // Handle data from peers
-      const { type, data } = event;
-      // if (data.type === 'content_update' && data.fileId) {
-      //   handleRemoteContentUpdate(data.fileId, data.content);
-      // }
-      switch (type) {
-        case "content_update":
-          handleRemoteContentUpdate(data.fileId, data.content);
-          break;
-        case "file_created":
-          if (fileTreeRef.current) {
-            fileTreeRef.current.updateTreeData(data.fileTree);
-          }
-
-          break;
-        default:
-          console.log("debug data at on receive", data);
-          // const dataFromInfoBroadcast = JSON.parse(data);
-
-          // try {
-          //   if (dataFromInfoBroadcast.sessionId !== sessionId)
-          //     throw new Error("sessionId not match");
-          //   if (
-          //     dataFromInfoBroadcast.infoType === "file_created" ||
-          //     dataFromInfoBroadcast.infoType === "file_content_saved"
-          //   ) {
-          //     if (fileTreeRef.current) {
-          //       fileTreeRef.current.updateTreeData(
-          //         dataFromInfoBroadcast.data.fileTree
-          //       );
-          //     }
-          //   }
-          // } catch (err) {
-          //   if (
-          //     !compileFile.compileFileId ||
-          //     compileFile.compileFileId !== dataFromInfoBroadcast.fileId
-          //   )
-          //     return;
-
-          //   editorInstance.setValue(dataFromInfoBroadcast.fileContent);
-          // }
-          // };
-
-          console.log("debug type on received:", type);
-      }
-    },
+    onDataReceived: onDataReceived
   });
-
-  // Handle content updates received from WebRTC peers
-  const handleRemoteContentUpdate = (fileId: string, newContent: string) => {
-    // Make sure we're not processing our own changes
-    if (isLocalChange.current) return;
-
-    // Update editor with content from peer
-    if (editorInstance) {
-      editorInstance.setValue(newContent);
-    }
-
-    // Update state
-    // setContent(newContent);
-  };
 
   useEffect(() => {
     if (!codeMirrorComponent) {
@@ -217,9 +188,6 @@ const LatexEditorCodeMirror: React.FC = () => {
 
     (CodeMirrorComponent[0] as HTMLElement).style.height = "0vh";
 
-    // if (!hasContentFromFile)
-    //   (CodeMirrorComponent[0] as HTMLElement).style.display = "none";
-
     const getTEXFromS3 = async () => {
       const s3Client = new S3Client({
         region: import.meta.env.VITE_AWS_REGION,
@@ -255,14 +223,12 @@ const LatexEditorCodeMirror: React.FC = () => {
           }
 
           editor.setValue(fileContent);
-          // setEditorContent(fileContent);
         }
       } catch (err) {
         console.log("debug catch err", err);
       }
     };
     const accessToken = localStorage.getItem("accessToken");
-    // let socket: WebSocket;
     const currPath = window.location.pathname;
     if (currPath.includes("/playground")) {
       connect(`ws://localhost:8080/api/v1/latex/playground/${sessionId}`);
@@ -272,52 +238,9 @@ const LatexEditorCodeMirror: React.FC = () => {
       // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
     }
 
-    // setWs(socket);
-
     if (!editorContent) {
       // getTEXFromS3();
     }
-
-    // socket.on('connect_error', (err) => {
-    //   console.log(`connect_error due to ${err.message}`)
-    // })
-
-    // socket.on('connect', () => {
-    //   socket.emit('CONNECTED_TO_ROOM', { roomId, username })
-    // })
-
-    // socket.on('disconnect', () => {
-    //   socket.emit('DISSCONNECT_FROM_ROOM', { roomId, username })
-    // })
-
-    // socket.on('ROOM:CONNECTION', (users) => {
-    //   setUsers(users)
-    //   console.log(users)
-    // })
-
-    // editor.on("change", (instance, changes) => {
-    //   // console.log("debug on change", changes);
-    //   const { origin } = changes;
-    //   // if (origin === '+input' || origin === '+delete' || origin === 'cut') {
-    //   if (origin !== "setValue") {
-    //     setEditorContent(instance.getValue());
-    //     console.log("debug on change", compileFile);
-    //     socket.send(
-    //       JSON.stringify({
-    //         fileId: compileFile.compileFileId,
-    //         fileContent: instance.getValue(),
-    //       })
-    //     );
-    //   }
-    // });
-
-    // editor.on("cursorActivity", (instance) => {
-    // console.log(instance.cursorCoorcode-editor())
-    // });
-
-    // return () => {
-    //   socket.close();
-    // };
   }, []);
 
   useEffect(() => {
@@ -329,66 +252,29 @@ const LatexEditorCodeMirror: React.FC = () => {
     // Define the event handlers
     const handleEditorChange = (instance: any, changes: any) => {
       const { origin } = changes;
-      console.log("debug on change", isConnected);
       if (origin !== "setValue") {
-        isLocalChange.current = true;
-
-        if (isConnected) {
-          sendDataToPeers({
-            type: "content_update",
-            fileId: compileFile.compileFileId,
-            content: instance.getValue(),
-          });
-        }
-
-        // ws.send(
-        //   JSON.stringify({
-        //     fileId: compileFile.compileFileId,
-        //     fileContent: instance.getValue(),
-        //   })
-        // );
-      }
-    };
-
-    const handleWsMessage = (event: any) => {
-      const { data } = event;
-      const dataFromInfoBroadcast = JSON.parse(data);
-
-      try {
-        if (dataFromInfoBroadcast.sessionId !== sessionId)
-          throw new Error("sessionId not match");
-        if (
-          dataFromInfoBroadcast.infoType === "file_created" ||
-          dataFromInfoBroadcast.infoType === "file_content_saved"
-        ) {
-          if (fileTreeRef.current) {
-            fileTreeRef.current.updateTreeData(
-              dataFromInfoBroadcast.data.fileTree
-            );
-          }
-        }
-      } catch (err) {
-        if (
-          !compileFile.compileFileId ||
-          compileFile.compileFileId !== dataFromInfoBroadcast.fileId
+        handleSendingMessage(
+          JSON.stringify({
+            type: "update_content",
+            peerId: currentPeerId,
+            sessionId: sessionId,
+            updateContentData: {
+              fileId: compileFile.compileFileId,
+              fileContent: instance.getValue(),
+            }
+          })  
         )
-          return;
-
-        editorInstance.setValue(dataFromInfoBroadcast.fileContent);
       }
     };
 
     // Attach the event listeners
     editorInstance.on("change", handleEditorChange);
-    // ws.addEventListener("message", handleWsMessage);
 
     // Cleanup function to remove event listeners when compileFile changes or component unmounts
     return () => {
       editorInstance.off("change", handleEditorChange);
-      // ws.removeEventListener("message", handleWsMessage);
     };
-  }, [compileFile, sessionId, editorInstance, isConnected]);
-  // }, [compileFile, ws, sessionId, editorInstance, isConnected]);
+  }, [compileFile, sessionId, editorInstance]);
 
   const triggerSearch = () => {
     const dialog = document.querySelector(".CodeMirror-dialog");
