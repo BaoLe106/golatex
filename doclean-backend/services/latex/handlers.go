@@ -46,36 +46,33 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Error during connection upgrade:", err)
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	// First, wait for the join message to get peerId
 	_, joinMsgBytes, err := conn.ReadMessage()
 	if err != nil {
-		fmt.Println("Error reading join message:", err)
 		conn.Close()
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var joinMsg wsProvider.SignalingMessage
 
 	if err := json.Unmarshal(joinMsgBytes, &joinMsg); err != nil {
-		fmt.Println("Error unmarshalling join message:", err)
 		conn.Close()
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if joinMsg.Type != "join" {
-		fmt.Println("First message must be of type 'join'")
 		conn.Close()
 		return
 	}
 
 	peerId := joinMsg.PeerID
-	fmt.Println("joinMsg", joinMsg)
 
-	// client := &wsProvider.Client{Conn: conn, SessionID: sessionId}
 	// Register the connection with the hub
 	wsProvider.Handler.Hub.Mutex.Lock()
 	if _, exists := wsProvider.Handler.Hub.Sessions[sessionId]; !exists {
@@ -91,12 +88,12 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 
 	wsProvider.Handler.Hub.Sessions[sessionId][peerId] = conn
 
-	// // Sync the new client with the current state of the session
-	// if data, exists := wsProvider.Handler.Hub.SessionData[sessionId]; exists {
-	//     if err := conn.WriteMessage(websocket.TextMessage, []byte(data)); err != nil {
-	//         log.Println("Error sending session data to client:", err)
-	//     }
-	// }
+	// Sync the new client with the current state of the session
+	if data, exists := wsProvider.Handler.Hub.SessionData[sessionId]; exists {
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(data)); err != nil {
+			log.Println("Error sending session data to client:", err)
+		}
+	}
 
 	wsProvider.Handler.Hub.Mutex.Unlock()
 
@@ -104,7 +101,6 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 	wsProvider.Handler.Hub.Mutex.RLock()
 	for otherPeerId, otherConn := range wsProvider.Handler.Hub.Sessions[sessionId] {
 		if otherPeerId != peerId {
-			fmt.Println("otherPeerId", otherPeerId)
 			// Tell existing peer about the new peer
 			otherConn.WriteJSON(map[string]interface{}{
 				"type":      "join",
@@ -113,11 +109,11 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 			})
 
 			// Tell new peer about existing peer
-			conn.WriteJSON(map[string]interface{}{
-				"type":      "join",
-				"peerId":    otherPeerId,
-				"sessionId": sessionId,
-			})
+			// conn.WriteJSON(map[string]interface{}{
+			// 	"type":      "join",
+			// 	"peerId":    otherPeerId,
+			// 	"sessionId": sessionId,
+			// })
 		}
 	}
 	wsProvider.Handler.Hub.Mutex.RUnlock()
@@ -158,7 +154,6 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 		}
 
 		var msgData wsProvider.SignalingMessage
-		// msg := string(msgBytes)
 		err = json.Unmarshal(msgBytes, &msgData)
 		if err != nil {
 			log.Println("Error unmarshalling message:", err)
@@ -167,14 +162,14 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 		// Handle different message types
 		switch msgData.Type {
 		case "offer", "answer", "ice-candidate":
-			// Forward WebRTC signaling messages
-			wsProvider.Handler.Hub.Mutex.RLock()
-			if targetConn, exists := wsProvider.Handler.Hub.Sessions[sessionId][msgData.ToPeerID]; exists {
-				if err := targetConn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
-					log.Println("Error forwarding WebRTC message:", err)
-				}
-			}
-			wsProvider.Handler.Hub.Mutex.RUnlock()
+			// // Forward WebRTC signaling messages
+			// wsProvider.Handler.Hub.Mutex.RLock()
+			// if targetConn, exists := wsProvider.Handler.Hub.Sessions[sessionId][msgData.ToPeerID]; exists {
+			// 	if err := targetConn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
+			// 		log.Println("Error forwarding WebRTC message:", err)
+			// 	}
+			// }
+			// wsProvider.Handler.Hub.Mutex.RUnlock()
 
 		default:
 			// Handle regular messages (your existing logic)
@@ -204,7 +199,7 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 						return
 					}
 
-					fileIdInUUID, _ := uuid.Parse(msgData.DefaultData.FileID)
+					fileIdInUUID, _ := uuid.Parse(msgData.UpdateContentData.FileID)
 					// if err != nil {
 					// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 					// 	return
@@ -213,7 +208,7 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 					done := jobManager.EnqueueSaveFileContentJob(files.SaveFileContentPayload{
 						FileID:        fileIdInUUID,
 						ProjectID:     sessionIdInUUID,
-						Content:       msgData.DefaultData.FileContent,
+						Content:       msgData.UpdateContentData.FileContent,
 						LastUpdatedBy: uuid.New(),
 					})
 

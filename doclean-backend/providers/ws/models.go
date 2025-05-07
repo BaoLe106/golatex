@@ -8,12 +8,12 @@ import (
 )
 
 type SignalingMessage struct {
-	Type        string      `json:"type"`
-	SessionID   string      `json:"sessionId"`
-	PeerID      string      `json:"peerId"`
-	ToPeerID    string      `json:"toPeerId,omitempty"`
-	Data        interface{} `json:"data,omitempty"`
-	DefaultData MsgData     `json:"defaultData,omitempty"`
+	Type              string                `json:"type"`
+	SessionID         string                `json:"sessionId"`
+	PeerID            string                `json:"peerId"`
+	ToPeerID          string                `json:"toPeerId,omitempty"`
+	UpdateContentData UpdateContentDataType `json:"updateContentData,omitempty"`
+	CreateFileData    any                   `json:"createFileData,omitempty"`
 }
 
 type SignalingServer struct {
@@ -29,7 +29,7 @@ func NewSignalingServer(hub *Hub) *SignalingServer {
 	}
 }
 
-type MsgData struct {
+type UpdateContentDataType struct {
 	FileID      string `json:"fileId"`
 	FileContent string `json:"fileContent"`
 }

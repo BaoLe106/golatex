@@ -67,8 +67,7 @@ type GetFilesByProjectIdSchema struct {
 type BroadcastInfoPayload struct {
 	Hub       *wsProvider.Hub `json:"hub"`
 	SessionId string          `json:"sessionId"`
-
-	InfoType string `json:"infoType"`
+	InfoType  string          `json:"infoType"`
 }
 
 type JobManager struct {
@@ -111,12 +110,9 @@ func broadcastCreateFileInfoToSession(message BroadcastInfoPayload) error {
 	}
 
 	newMessage := wsProvider.SignalingMessage{
-		Type:      message.InfoType,
-		SessionID: message.SessionId,
-		Data:      result,
-		// "sessionId": message.SessionId,
-		// "infoType":  message.InfoType,
-		// "data":      result,
+		Type:           message.InfoType,
+		SessionID:      message.SessionId,
+		CreateFileData: result,
 	}
 	msgBytes, _ := json.Marshal(newMessage)
 
