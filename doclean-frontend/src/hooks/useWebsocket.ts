@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { toast } from "sonner"
+import { toast } from "sonner";
 interface WebSocketConnectionProps {
   // peerId: string;
   sessionId: string | undefined;
@@ -11,7 +11,7 @@ const useWebsocket = ({
   sessionId,
   onDataReceived,
 }: WebSocketConnectionProps) => {
-  const peerConnectionsRef = useRef<Record<string, boolean>>({})
+  const peerConnectionsRef = useRef<Record<string, boolean>>({});
   const wsConnectionRef = useRef<WebSocket | null>(null);
   const localPeerId = useRef<string>(crypto.randomUUID());
 
@@ -43,9 +43,7 @@ const useWebsocket = ({
 
   const handleSendingMessage = useCallback((data: string) => {
     wsConnectionRef.current?.send(data);
-  }, [])
-
-
+  }, []);
 
   const handleReceivedMessage = useCallback(async (message: any) => {
     if (!sessionId) return;
@@ -74,37 +72,55 @@ const useWebsocket = ({
         // Peer left, clean up connection
         handlerPeerLeave(peerId);
         break;
-      default:
-        if (type === "file_created") {
-          handleNotifyFileCreated(message.additionalData)
-        }
-        onDataReceived({ 
-          type: type, 
+      case "file_created":
+        handleNotifyFileCreated(message.additionalData);
+        onDataReceived({
+          type: type,
           peerId: peerId,
           sessionId: incomingSessionId,
-          data: type === "update_content" ? message.updateContentData : message.createFileData
+          data: message.createFileData,
         });
+        break;
+      case "file_uploaded":
+        onDataReceived({
+          type: type,
+          peerId: peerId,
+          sessionId: incomingSessionId,
+          data: message.createFileData,
+        });
+        break;
+      case "update_content":
+        onDataReceived({
+          type: type,
+          peerId: peerId,
+          sessionId: incomingSessionId,
+          data: message.updateContentData,
+        });
+        break;
+      default:
     }
   }, []);
 
   const handleNewPeers = useCallback((newPeerId: string) => {
     // Notify to the session
-    toast.info(`${newPeerId} join!`)
+    toast.info(`${newPeerId} join!`);
     peerConnectionsRef.current[newPeerId] = true;
-  }, [])
+  }, []);
 
   const handlerPeerLeave = useCallback((peerId: string) => {
     // Notify to the session
-    toast.info(`${peerId} leave!`)
+    toast.info(`${peerId} leave!`);
     delete peerConnectionsRef.current[peerId];
-  }, [])
+  }, []);
 
   const handleNotifyFileCreated = useCallback((data: any) => {
     if (!data) return;
-    const toastMsg = data.fileType === 'folder' ? `New ${data.fileName} folder created`: `New ${data.fileName} file created`
-    toast.info(toastMsg)
-  }, [])
-
+    const toastMsg =
+      data.fileType === "folder"
+        ? `New ${data.fileName} folder created`
+        : `New ${data.fileName} file created`;
+    toast.info(toastMsg);
+  }, []);
 
   // Return an object with connection state and methods
   return {

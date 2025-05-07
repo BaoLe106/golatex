@@ -221,7 +221,7 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 						payload := files.BroadcastInfoPayload{
 							Hub:       wsProvider.Handler.Hub,
 							SessionId: sessionId,
-							InfoType:  "file_content_saved",
+							InfoType:  msgData.Type,
 							// Status: "Done",
 						}
 

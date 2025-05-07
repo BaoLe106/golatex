@@ -45,16 +45,16 @@ const LatexEditorCodeMirror: React.FC = () => {
 
   const editorInstanceRef = useRef<any>(null);
   const compileFileRef = useRef<{
-    compileFileId: string,
-    compileFileName: string,
-    compileFileType: string,
-    compileFileDir: string,
+    compileFileId: string;
+    compileFileName: string;
+    compileFileType: string;
+    compileFileDir: string;
   }>({
     compileFileId: "",
     compileFileName: "",
     compileFileType: "",
     compileFileDir: "",
-  })
+  });
   const fileTreeRef = useRef<FileTreeRefHandle>(null);
 
   const [isCompileButtonLoading, setIsCompileButtonLoading] =
@@ -79,23 +79,24 @@ const LatexEditorCodeMirror: React.FC = () => {
   }, [editorInstance]);
 
   useEffect(() => {
-    compileFileRef.current = compileFile
-  }, [compileFile])
+    compileFileRef.current = compileFile;
+  }, [compileFile]);
 
   const onDataReceived = useCallback((receivedData: any) => {
-    const { type, peerId ,data } = receivedData;
-    
+    const { type, peerId, data } = receivedData;
+
     switch (type) {
       case "update_content":
         try {
           if (!editorInstanceRef.current) return;
-          
-          const currentCompileFile = compileFileRef.current
+
+          const currentCompileFile = compileFileRef.current;
           if (
             !currentCompileFile.compileFileId ||
             currentCompileFile.compileFileId !== data.fileId
-          ) return;
-          
+          )
+            return;
+
           editorInstanceRef.current?.setValue(data.fileContent);
         } catch (err) {
           console.log("debug err at editor", err);
@@ -106,20 +107,21 @@ const LatexEditorCodeMirror: React.FC = () => {
           fileTreeRef.current.updateTreeData(data.fileTree);
         }
         break;
+      case "file_uploaded":
+        if (fileTreeRef.current) {
+          fileTreeRef.current.updateTreeData(data.fileTree);
+        }
+        break;
       default:
         //any
     }
   }, []); // Only include dependencies that are used in the callback
 
-  const {
-    currentPeerId,
-    handleSendingMessage,
-    connect,
-  } = useWebsocket({
+  const { currentPeerId, handleSendingMessage, connect } = useWebsocket({
     sessionId: compileFile.compileFileId
       ? compileFile.compileFileId
       : sessionId,
-    onDataReceived: onDataReceived
+    onDataReceived: onDataReceived,
   });
 
   useEffect(() => {
@@ -262,9 +264,9 @@ const LatexEditorCodeMirror: React.FC = () => {
             updateContentData: {
               fileId: compileFile.compileFileId,
               fileContent: instance.getValue(),
-            }
-          })  
-        )
+            },
+          })
+        );
       }
     };
 
@@ -337,6 +339,7 @@ const LatexEditorCodeMirror: React.FC = () => {
           <FileTreeComponent
             ref={fileTreeRef}
             theme={theme}
+            currentPeerId={currentPeerId}
             sessionId={sessionId}
             setContent={setContent}
             setIsThereABibFile={(value: boolean) => setIsThereABibFile(value)}

@@ -68,8 +68,8 @@ type BroadcastInfoPayload struct {
 	Hub       *wsProvider.Hub `json:"hub"`
 	SessionId string          `json:"sessionId"`
 	InfoType  string          `json:"infoType"`
-	FileName  string          `json:"fileName"`
-	FileType  string          `json:"fileType"`
+	FileName  string          `json:"fileName,omitempty"`
+	FileType  string          `json:"fileType,omitempty"`
 }
 
 type JobManager struct {
@@ -111,15 +111,28 @@ func broadcastCreateFileInfoToSession(message BroadcastInfoPayload) error {
 		return err
 	}
 
-	newMessage := wsProvider.SignalingMessage{
-		Type:           message.InfoType,
-		SessionID:      message.SessionId,
-		CreateFileData: result,
-		AdditionalData: map[string]string{
-			"fileName": message.FileName,
-			"fileType": message.FileType,
-		},
+	var newMessage wsProvider.SignalingMessage
+	switch message.InfoType {
+	case "file_created":
+		newMessage = wsProvider.SignalingMessage{
+			Type:           message.InfoType,
+			SessionID:      message.SessionId,
+			CreateFileData: result,
+			AdditionalData: map[string]string{
+				"fileName": message.FileName,
+				"fileType": message.FileType,
+			},
+		}
+	case "file_uploaded":
+		newMessage = wsProvider.SignalingMessage{
+			Type:           message.InfoType,
+			SessionID:      message.SessionId,
+			CreateFileData: result,
+		}
+	default:
+		
 	}
+	
 	msgBytes, _ := json.Marshal(newMessage)
 
 	// Check if session exists

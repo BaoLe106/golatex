@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	// jobProvider "github.com/BaoLe106/doclean/doclean-backend/providers/job"
 	s3Provider "github.com/BaoLe106/doclean/doclean-backend/providers/s3"
@@ -15,6 +16,7 @@ import (
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -117,11 +119,12 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		return
 	}
 
-	currentFolder := form.Value["currentFolder"]
+	currentFolder := form.Value["currentFolder"][0]
+	currentPeerId := form.Value["currentPeerId"][0]
 	files := form.File["files"]
 
 	// input: fileName, fileType,
-	fileDir := "/tmp" + sessionId + currentFolder[0]
+	fileDir := "/tmp/" + sessionId + currentFolder
 	// Create session upload directory
 	if err := os.MkdirAll(fileDir, 0755); err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
@@ -138,7 +141,7 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		defer file.Close()
 
 		// Example: Get metadata for AWS S3
-		filename := fileHeader.Filename
+		fileName := fileHeader.Filename
 
 		// Build full path: fileDir + filename
 		fileDestinationPath := filepath.Join(fileDir+"/", fileHeader.Filename)
@@ -164,10 +167,10 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		// Example: uploadToS3(fileHeader, filename, contentType)
 		file.Seek(0, io.SeekStart) // Reset reader position
 		contentType := fileHeader.Header.Get("Content-Type")
-
+		fmt.Println("#DEBUG::contentType", contentType)
 		s3Client := s3Provider.S3Client
 
-		objectKey := fmt.Sprintf("output/%s%s/%s", sessionId, currentFolder, filename)
+		objectKey := fmt.Sprintf("output/%s%s/%s", sessionId, currentFolder, fileName)
 		_, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
 			// _, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket:      aws.String(os.Getenv("S3_BUCKET")),
@@ -180,26 +183,49 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
+		mtype, err := mimetype.DetectReader(file)
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		fmt.Println("#DEBUG::mtype", mtype)
+		content := ""
+		if strings.HasPrefix(mtype.String(), "text/") {
+			contentBytes, err := io.ReadAll(file)
+			if err != nil {
+				apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+				return
+			}
+
+			content = string(contentBytes)
+		}
+		fmt.Println("#DEBUG::content_from_upload_file", content)
+		projectId, _ := uuid.Parse(sessionId)
+		fileType := filepath.Ext(fileName)
+		fileName = fileName[:len(fileName)-len(fileType)]
+		fileType = fileType[1:]
+		currentPeerUUID, _ := uuid.Parse(currentPeerId)
 
 		err = CreateFile(CreateFilePayload{
 			FileID:   uuid.New(),
+			ProjectID: projectId,
+			FileName: fileName,
+			FileType: fileType,
 			FileDir:  fileDir,
-			FileName: filename,
-			FileType: filepath.Ext(filename)[1:],
-			Content:  "",
+			CreatedBy: currentPeerUUID,
+			LastUpdatedBy: currentPeerUUID,
+			Content:  content,
+			Origin: 1,
 		})
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
 	}
-
 	payload := BroadcastInfoPayload{
 		Hub:       hub,
 		SessionId: sessionId,
-		InfoType:  "file_created",
-		// FileName:  fileNameBroadcast,
-		// FileType:  input.FileType,
+		InfoType:  "file_uploaded",
 	}
 
 	done := jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)

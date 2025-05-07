@@ -23,7 +23,7 @@ import {
   Save,
   ChevronRight,
   ChevronDown,
-  Upload
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,12 +50,16 @@ export interface FileTreeRefHandle {
 interface FileTreeComponentProps {
   theme: string;
   sessionId: string | undefined;
+  currentPeerId: string;
   setContent: (content: FileData) => void;
   setIsThereABibFile: (isThereABibFile: boolean) => void;
 }
 
 const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
-  ({ theme, sessionId, setContent, setIsThereABibFile }, ref) => {
+  (
+    { theme, sessionId, currentPeerId, setContent, setIsThereABibFile },
+    ref
+  ) => {
     const [isAddingFile, setIsAddingFile] = useState<boolean>(false);
     const [isAddingFolder, setIsAddingFolder] = useState<boolean>(false);
     const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
@@ -139,9 +143,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
         const promises: Promise<any>[] = [];
         files.forEach((file: any) => {
           if (file.fileType !== "folder") {
-            if (file.fileType === "bib") 
-              setIsThereABibFile(true);
-            
+            if (file.fileType === "bib") setIsThereABibFile(true);
+
             promises.push(
               TexFileService.createFile({
                 fileId: file.fileId,
@@ -155,7 +158,6 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
               } as CreateFilePayload)
             );
           }
-            
         });
 
         Promise.all(promises).then((values) => {
@@ -232,7 +234,6 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       if (!sessionId) return;
       try {
         const fileNameSplit = fileName.split(".");
-        const newUserId = uuidv4();
         const res = await TexFileService.createFile({
           fileId: uuidv4(),
           projectId: sessionId,
@@ -240,9 +241,9 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           fileType: fileNameSplit[1],
           fileDir: `/tmp/${sessionId}${currSelectedFolder}`,
           content: "",
-          createdBy: newUserId,
-          lastUpdatedBy: newUserId,
-        });
+          createdBy: currentPeerId,
+          lastUpdatedBy: currentPeerId,
+        } as CreateFilePayload);
         if (res.status !== 201) {
           throw new Error(res.data.error);
         }
@@ -272,8 +273,6 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       if (!sessionId) return;
 
       try {
-        // const folderNameSplit = folderName.split(".");
-        const newUserId = uuidv4();
         const res = await TexFileService.createFile({
           fileId: uuidv4(),
           projectId: sessionId,
@@ -281,8 +280,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           fileType: "folder",
           fileDir: `/tmp/${sessionId}${currSelectedFolder}/${folderName}`,
           content: "",
-          createdBy: newUserId,
-          lastUpdatedBy: newUserId,
+          createdBy: currentPeerId,
+          lastUpdatedBy: currentPeerId,
         });
         if (res.status !== 201) {
           throw new Error(res.data.error);
@@ -300,14 +299,13 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
 
     // const onClick
 
-    
-
     return (
       <>
-        <UploadFileComponent 
-          isOpen={isUploadingFile} 
+        <UploadFileComponent
+          isOpen={isUploadingFile}
           currSelectedFolder={currSelectedFolder}
-          sessionId={sessionId} 
+          currentPeerId={currentPeerId}
+          sessionId={sessionId}
           closeDialog={() => setIsUploadingFile(false)}
         />
         <Dialog
@@ -393,9 +391,15 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                 </Button>
               </DialogClose>
               <Button
-                type="submit" 
-                disabled={isAddingFile ? !Boolean(fileName.length) : isAddingFolder ? !Boolean(folderName.length) : true}
-                className="px-3" 
+                type="submit"
+                disabled={
+                  isAddingFile
+                    ? !Boolean(fileName.length)
+                    : isAddingFolder
+                    ? !Boolean(folderName.length)
+                    : true
+                }
+                className="px-3"
                 onClick={() => {
                   if (isAddingFile) {
                     handleAddFile();
@@ -404,7 +408,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                   }
                 }}
               >
-                <Save/>
+                <Save />
                 Save
               </Button>
             </DialogFooter>
@@ -454,7 +458,6 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
             >
               <Upload className="absolute w-[1.2rem] h-[1.2rem]" />
             </Button>
-            
           </TooltipWrapper>
         </div>
         <DirectoryTree
