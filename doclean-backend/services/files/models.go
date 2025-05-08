@@ -130,9 +130,9 @@ func broadcastCreateFileInfoToSession(message BroadcastInfoPayload) error {
 			CreateFileData: result,
 		}
 	default:
-		
+
 	}
-	
+
 	msgBytes, _ := json.Marshal(newMessage)
 
 	// Check if session exists

@@ -207,15 +207,15 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		currentPeerUUID, _ := uuid.Parse(currentPeerId)
 
 		err = CreateFile(CreateFilePayload{
-			FileID:   uuid.New(),
-			ProjectID: projectId,
-			FileName: fileName,
-			FileType: fileType,
-			FileDir:  fileDir,
-			CreatedBy: currentPeerUUID,
+			FileID:        uuid.New(),
+			ProjectID:     projectId,
+			FileName:      fileName,
+			FileType:      fileType,
+			FileDir:       fileDir,
+			CreatedBy:     currentPeerUUID,
 			LastUpdatedBy: currentPeerUUID,
-			Content:  content,
-			Origin: 1,
+			Content:       content,
+			Origin:        1,
 		})
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())

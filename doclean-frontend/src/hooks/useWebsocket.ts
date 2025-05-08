@@ -82,6 +82,7 @@ const useWebsocket = ({
         });
         break;
       case "file_uploaded":
+        handleNotifyFileUploaded(peerId);
         onDataReceived({
           type: type,
           peerId: peerId,
@@ -120,6 +121,10 @@ const useWebsocket = ({
         ? `New ${data.fileName} folder created`
         : `New ${data.fileName} file created`;
     toast.info(toastMsg);
+  }, []);
+
+  const handleNotifyFileUploaded = useCallback((peerId: string) => {
+    toast.info(`${peerId} has uploaded some files`);
   }, []);
 
   // Return an object with connection state and methods

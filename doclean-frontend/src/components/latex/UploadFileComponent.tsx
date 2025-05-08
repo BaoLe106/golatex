@@ -12,6 +12,7 @@ import {
   ChevronDown,
   FileUp,
   Upload,
+  Loader2,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress"
 
 import { UploadFilePayload } from "@/services/latex/models";
 
@@ -47,6 +49,8 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
   currSelectedFolder,
   closeDialog,
 }) => {
+  const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
+  const [uploadFileProgress, setUploadFileProgress] = useState<number>(0);
   const [toBeUploadedFiles, setToBeUploadedFiles] = useState<File[]>([]);
   const [errorMessageBySize, setErrorMessageBySize] = useState<string>("");
   const [errorMessageByType, setErrorMessageByType] = useState<string>("");
@@ -64,30 +68,11 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
     setErrorMessageByType("");
 
     const acceptingFileTypes = [
-      ".tex",
-      ".bib",
-      ".aux",
-      ".bbl",
-      ".blg",
-      ".log",
-      ".out",
-      ".inp",
-      ".bst",
-      ".sty",
-      ".cls",
-      ".dbx",
-      ".cbx",
-      ".bbx",
-      ".lbx",
-      ".def",
-      ".pdf",
-      ".png",
-      ".jpg",
-      ".jpeg",
-      ".eps",
-      ".csv",
-      ".tsv",
-      ".txt",
+      ".tex", ".bib", ".aux", ".bbl", ".blg",
+      ".log", ".out", ".inp", ".bst", ".sty",
+      ".cls", ".dbx", ".cbx", ".bbx", ".lbx",
+      ".def", ".pdf", ".png", ".jpg", ".jpeg",
+      ".eps", ".csv", ".tsv", ".txt",
     ];
 
     const dataTransfer = new DataTransfer();
@@ -152,6 +137,19 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
 
   const uploadFilesHandler = async () => {
     if (!sessionId) return;
+    setIsUploadingFile(true);
+    const estimatedTime = 2000; // 5 seconds
+    const updateInterval = 50; // update every 50ms
+
+    const totalSteps = estimatedTime / updateInterval;
+
+    // Simulate progress
+    let currentStep = 0;
+    const interval = setInterval(() => {
+      currentStep++;
+      setUploadFileProgress(Math.min((currentStep / totalSteps) * 100, 99));
+    }, updateInterval);
+
     const formData = new FormData();
     formData.append("currentFolder", currSelectedFolder);
     formData.append("currentPeerId", currentPeerId);
@@ -166,6 +164,8 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
       console.log("debug res", res);
     } catch (err) {
       console.log("debug err", err);
+    } finally {
+      setIsUploadingFile(false)
     }
   };
 
@@ -203,7 +203,7 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
         {errorMessageByType && (
           <div className="text-red-600">{errorMessageByType}</div>
         )}
-        <ScrollArea className="h-[360px] rounded-md border p-4">
+        <ScrollArea className="h-[360px] rounded-md border p-4" disabled={isUploadingFile}>
           {toBeUploadedFiles &&
             toBeUploadedFiles.map((file, idx) => (
               <ul key={idx} className="flex text-sm sm:justify-between">
@@ -220,6 +220,7 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
               </ul>
             ))}
         </ScrollArea>
+        <Progress value={33} />
 
         <DialogFooter className="sm:justify-between">
           <DialogClose asChild>
@@ -230,11 +231,21 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
           <Button
             type="submit"
             className="px-3"
-            disabled={!Boolean(toBeUploadedFiles.length)}
+            disabled={!Boolean(toBeUploadedFiles.length) || isUploadingFile}
             onClick={uploadFilesHandler}
           >
-            <Upload />
-            Upload
+            {isUploadingFile ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Uploading...
+              </>
+            ) : (
+              <>
+                <Upload />
+                Upload
+              </>
+            )}
+            
           </Button>
         </DialogFooter>
       </DialogContent>
