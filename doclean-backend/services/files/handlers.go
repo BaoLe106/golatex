@@ -170,7 +170,8 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		fmt.Println("#DEBUG::contentType", contentType)
 		s3Client := s3Provider.S3Client
 
-		objectKey := fmt.Sprintf("output/%s%s/%s", sessionId, currentFolder, fileName)
+		objectKey := fmt.Sprintf("input/%s%s/%s", sessionId, currentFolder, fileName)
+		fmt.Println("#DEBUG::objectKey", objectKey)
 		_, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
 			// _, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket:      aws.String(os.Getenv("S3_BUCKET")),
@@ -183,13 +184,16 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
+		file.Seek(0, io.SeekStart) // Reset reader position
 		mtype, err := mimetype.DetectReader(file)
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
+
 		fmt.Println("#DEBUG::mtype", mtype)
 		content := ""
+		file.Seek(0, io.SeekStart) // Reset reader position - IMPORTANT
 		if strings.HasPrefix(mtype.String(), "text/") {
 			contentBytes, err := io.ReadAll(file)
 			if err != nil {
@@ -199,7 +203,8 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 
 			content = string(contentBytes)
 		}
-		fmt.Println("#DEBUG::content_from_upload_file", content)
+
+		// fmt.Println("#DEBUG::content_from_upload_file", content)
 		projectId, _ := uuid.Parse(sessionId)
 		fileType := filepath.Ext(fileName)
 		fileName = fileName[:len(fileName)-len(fileType)]

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-
+import { toast } from "sonner";
 import { TexFileService } from "@/services/latex/texFileService";
 import {
   Folder,
@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/dialog";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Progress } from "@/components/ui/progress"
 
 import { UploadFilePayload } from "@/services/latex/models";
 
@@ -50,7 +49,6 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
   closeDialog,
 }) => {
   const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
-  const [uploadFileProgress, setUploadFileProgress] = useState<number>(0);
   const [toBeUploadedFiles, setToBeUploadedFiles] = useState<File[]>([]);
   const [errorMessageBySize, setErrorMessageBySize] = useState<string>("");
   const [errorMessageByType, setErrorMessageByType] = useState<string>("");
@@ -138,18 +136,6 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
   const uploadFilesHandler = async () => {
     if (!sessionId) return;
     setIsUploadingFile(true);
-    const estimatedTime = 2000; // 5 seconds
-    const updateInterval = 50; // update every 50ms
-
-    const totalSteps = estimatedTime / updateInterval;
-
-    // Simulate progress
-    let currentStep = 0;
-    const interval = setInterval(() => {
-      currentStep++;
-      setUploadFileProgress(Math.min((currentStep / totalSteps) * 100, 99));
-    }, updateInterval);
-
     const formData = new FormData();
     formData.append("currentFolder", currSelectedFolder);
     formData.append("currentPeerId", currentPeerId);
@@ -161,11 +147,15 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
         projectId: sessionId,
         formData: formData,
       } as UploadFilePayload);
-      console.log("debug res", res);
+      
+      if (res.status !== 201) {
+        throw new Error("Error uploading file");
+      }
     } catch (err) {
-      console.log("debug err", err);
+      toast.error('Error uploading file')
     } finally {
       setIsUploadingFile(false)
+      closeDialog()
     }
   };
 
@@ -203,7 +193,7 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
         {errorMessageByType && (
           <div className="text-red-600">{errorMessageByType}</div>
         )}
-        <ScrollArea className="h-[360px] rounded-md border p-4" disabled={isUploadingFile}>
+        <ScrollArea className="h-[360px] rounded-md border p-4">
           {toBeUploadedFiles &&
             toBeUploadedFiles.map((file, idx) => (
               <ul key={idx} className="flex text-sm sm:justify-between">
@@ -211,16 +201,19 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
                   <FileUp className="w-4 h-4 mr-1" />
                   {file.name}
                 </span>
-                <TooltipWrapper tooltipContent={"Remove file"}>
-                  <X
-                    className="mt-1 w-4 h-4 cursor-pointer"
-                    onClick={() => removeOnUploadFile(file.name)}
-                  />
-                </TooltipWrapper>
+                {!isUploadingFile ? (
+                  <TooltipWrapper tooltipContent={"Remove file"}>
+                    <X
+                      className='mt-1 w-4 h-4 cursor-pointer'
+                      onClick={() => removeOnUploadFile(file.name)}
+                    />
+                  </TooltipWrapper>
+                ) : (
+                  <X className='mt-1 w-4 h-4'/>
+                )}
               </ul>
             ))}
         </ScrollArea>
-        <Progress value={33} />
 
         <DialogFooter className="sm:justify-between">
           <DialogClose asChild>
@@ -245,7 +238,6 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
                 Upload
               </>
             )}
-            
           </Button>
         </DialogFooter>
       </DialogContent>

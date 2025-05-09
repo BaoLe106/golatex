@@ -76,16 +76,14 @@ const useWebsocket = ({
         handleNotifyFileCreated(message.additionalData);
         onDataReceived({
           type: type,
-          peerId: peerId,
           sessionId: incomingSessionId,
           data: message.createFileData,
         });
         break;
       case "file_uploaded":
-        handleNotifyFileUploaded(peerId);
+        handleNotifyFileUploaded();
         onDataReceived({
           type: type,
-          peerId: peerId,
           sessionId: incomingSessionId,
           data: message.createFileData,
         });
@@ -93,7 +91,6 @@ const useWebsocket = ({
       case "update_content":
         onDataReceived({
           type: type,
-          peerId: peerId,
           sessionId: incomingSessionId,
           data: message.updateContentData,
         });
@@ -123,8 +120,8 @@ const useWebsocket = ({
     toast.info(toastMsg);
   }, []);
 
-  const handleNotifyFileUploaded = useCallback((peerId: string) => {
-    toast.info(`${peerId} has uploaded some files`);
+  const handleNotifyFileUploaded = useCallback(() => {
+    toast.info(`Some files has been uploaded`);
   }, []);
 
   // Return an object with connection state and methods

@@ -83,7 +83,7 @@ const LatexEditorCodeMirror: React.FC = () => {
   }, [compileFile]);
 
   const onDataReceived = useCallback((receivedData: any) => {
-    const { type, peerId, data } = receivedData;
+    const { type, data } = receivedData;
 
     switch (type) {
       case "update_content":
