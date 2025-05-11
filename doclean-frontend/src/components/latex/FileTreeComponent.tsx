@@ -52,12 +52,20 @@ interface FileTreeComponentProps {
   sessionId: string | undefined;
   currentPeerId: string;
   setContent: (content: FileData) => void;
+  setMedia: (data: any) => void;
   setIsThereABibFile: (isThereABibFile: boolean) => void;
 }
 
 const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
   (
-    { theme, sessionId, currentPeerId, setContent, setIsThereABibFile },
+    {
+      theme,
+      sessionId,
+      currentPeerId,
+      setContent,
+      setMedia,
+      setIsThereABibFile,
+    },
     ref
   ) => {
     const [isAddingFile, setIsAddingFile] = useState<boolean>(false);
@@ -128,41 +136,32 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
         const { files, fileTree } = await TexFileService.getFilesByProjectId(
           sessionId
         );
-
-        //       fileId: string;
-        // projectId: string;
-        // fileName: string;
-        // fileType: string;
-        // fileDir: string;
-        // content: string;
-        // createdBy: string;
-        // lastUpdatedBy: string;
         console.log("debug files", files);
         console.log("debug fileTree", fileTree);
 
-        const promises: Promise<any>[] = [];
-        files.forEach((file: any) => {
-          if (file.fileType !== "folder") {
-            if (file.fileType === "bib") setIsThereABibFile(true);
+        // const promises: Promise<any>[] = [];
+        // files.forEach((file: any) => {
+        //   if (file.fileType !== "folder") {
+        //     if (file.fileType === "bib") setIsThereABibFile(true);
 
-            promises.push(
-              TexFileService.createFile({
-                fileId: file.fileId,
-                projectId: sessionId,
-                fileName: file.fileName,
-                fileType: file.fileType,
-                fileDir: file.fileDir,
-                content: file.content,
-                createdBy: file.createdBy,
-                lastUpdatedBy: file.lastUpdatedBy,
-              } as CreateFilePayload)
-            );
-          }
-        });
+        //     promises.push(
+        //       TexFileService.createFile({
+        //         fileId: file.fileId,
+        //         projectId: sessionId,
+        //         fileName: file.fileName,
+        //         fileType: file.fileType,
+        //         fileDir: file.fileDir,
+        //         content: file.content,
+        //         createdBy: file.createdBy,
+        //         lastUpdatedBy: file.lastUpdatedBy,
+        //       } as CreateFilePayload)
+        //     );
+        //   }
+        // });
 
-        Promise.all(promises).then((values) => {
-          console.log(values);
-        });
+        // Promise.all(promises).then((values) => {
+        //   console.log(values);
+        // });
         setFilesData(files);
         setTreeData(fileTree);
       } catch (err) {
@@ -191,18 +190,28 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       if (info.node.isLeaf) {
         if (!sessionId) return;
         console.log("debug info node", info);
-        const currFileDir = filesData.find(
+        const currFile = filesData.find(
           (file: any) => file.fileId === info.node.fileId
-        )?.fileDir;
-        console.log("debug currFileData", currFileDir);
+        );
+        console.log("debug currFileData", currFile);
         const nodeTitleSplit = info.node.title.split(".");
-        setContent({
-          fileId: info.node.fileId,
-          fileName: nodeTitleSplit[0],
-          fileType: nodeTitleSplit[1],
-          fileDir: currFileDir,
-          content: info.node.content,
-        } as FileData);
+        if (currFile?.fileType === "png" || currFile?.fileType === "pdf") {
+          console.log("debug set media", currFile?.fileType);
+          setMedia({
+            fileId: info.node.fileId,
+            fileType: currFile?.fileType,
+            url: currFile?.content,
+          });
+        } else {
+          setContent({
+            fileId: info.node.fileId,
+            fileName: nodeTitleSplit[0],
+            fileType: nodeTitleSplit[1],
+            fileDir: currFile?.fileDir,
+            content: info.node.content,
+          } as FileData);
+        }
+
         // setCurrFileIdForCurrUserIdInSessionId({
         //   [sessionId]: {
         //     userId: "asdjkadshjk",

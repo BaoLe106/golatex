@@ -95,6 +95,13 @@ const useWebsocket = ({
           data: message.updateContentData,
         });
         break;
+      case "update_content_with_file":
+        onDataReceived({
+          type: type,
+          sessionId: incomingSessionId,
+          data: message.createFileData,
+        });
+        break;
       default:
     }
   }, []);

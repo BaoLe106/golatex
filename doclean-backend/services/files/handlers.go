@@ -1,7 +1,6 @@
 package files
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	// jobProvider "github.com/BaoLe106/doclean/doclean-backend/providers/job"
 	s3Provider "github.com/BaoLe106/doclean/doclean-backend/providers/s3"
@@ -21,14 +21,67 @@ import (
 	"github.com/google/uuid"
 )
 
-func GetFilesByProjectIdHandler(c *gin.Context) {
+func GetFilesByProjectIdHandler(c *gin.Context, jobManager *JobManager) {
 	projectId := c.Param("sessionId")
 	result, err := GetFilesByProjectId(projectId)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	// fmt.Println("DEBUG::get_files", result)
+	s3Client := s3Provider.S3Client
+	for i := range result.Files {
+		file := &result.Files[i]
+
+		go func(f *FileSchema) {
+			if err := <-jobManager.EnqueueCreateFileOnLocalJob(CreateFileOnLocalJobPayload{
+				ProjectID: projectId,
+				FileID: f.FileID,
+				FileName: f.FileName,
+				FileType: f.FileType,
+				FileDir: f.FileDir,
+				Content: f.Content,
+			}); err != nil {
+        fmt.Println(err)
+			}
+		}(file)
+
+		if file.FileType == "png" || file.FileType == "pdf" {
+			objectKey := fmt.Sprintf("input/%s/%s", projectId, file.FileName + "." + file.FileType)
+			if file.FileType == "png" {
+				presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
+					&s3.GetObjectInput{
+						Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
+						Key:                        aws.String(objectKey),
+						ResponseContentType:        aws.String("image/png"),
+						ResponseContentDisposition: aws.String("inline"),
+					},
+					s3.WithPresignExpires(time.Minute*60),
+				)
+				if err != nil {
+					apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+					return
+				}
+
+				file.Content = presignedUrl.URL
+			} else if file.FileType == "pdf" {
+				presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
+					&s3.GetObjectInput{
+						Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
+						Key:                        aws.String(objectKey),
+						ResponseContentType:        aws.String("application/pdf"),
+						ResponseContentDisposition: aws.String("inline"),
+					},
+					s3.WithPresignExpires(time.Minute*60),
+				)
+				if err != nil {
+					apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+					return
+				}
+
+				file.Content = presignedUrl.URL
+			}
+		}
+	}
 	apiResponse.SendGetRequestResponse(c, http.StatusOK, result)
 }
 
@@ -67,19 +120,19 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		return
 	}
 
-	fileFromDb, err := GetFileByFileId(input.FileID)
-	if err != nil {
-		if err != sql.ErrNoRows {
-			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-			return
-		}
-	}
+	// fileFromDb, err := GetFileByFileId(input.FileID)
+	// if err != nil {
+	// 	if err != sql.ErrNoRows {
+	// 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+	// 		return
+	// 	}
+	// }
 
-	// File existed, don't create file, just write file to disk
-	if fileFromDb != nil {
-		apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
-		return
-	}
+	// // File existed, don't create file, just write file to disk
+	// if fileFromDb != nil {
+	// 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
+	// 	return
+	// }
 
 	err = CreateFile(input)
 	if err != nil {

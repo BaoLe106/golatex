@@ -11,7 +11,11 @@ func AddFileRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 
 	jobManager := JobMngr
 
-	fileRoute.GET("/:sessionId", GetFilesByProjectIdHandler)
+	fileRoute.GET("/:sessionId",
+		func(ctx *gin.Context) {
+			GetFilesByProjectIdHandler(ctx, jobManager)
+		},
+	)
 	fileRoute.POST("/:sessionId",
 		func(ctx *gin.Context) {
 			CreateFileHandler(ctx, jobManager, wsProvider.Handler.Hub)

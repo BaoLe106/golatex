@@ -7,6 +7,12 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type UpdateContentDataType struct {
+	FileID      string `json:"fileId"`
+	FileContent string `json:"fileContent,omitempty"`
+	ReplaceRange any `json:"replaceRange"`
+}
+
 type SignalingMessage struct {
 	Type              string                `json:"type"`
 	SessionID         string                `json:"sessionId"`
@@ -28,11 +34,6 @@ func NewSignalingServer(hub *Hub) *SignalingServer {
 		Hub:      hub,
 		Sessions: make(map[string]map[string]*websocket.Conn),
 	}
-}
-
-type UpdateContentDataType struct {
-	FileID      string `json:"fileId"`
-	FileContent string `json:"fileContent"`
 }
 
 type Hub struct {

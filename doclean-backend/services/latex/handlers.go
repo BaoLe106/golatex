@@ -200,29 +200,23 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 					}
 
 					fileIdInUUID, _ := uuid.Parse(msgData.UpdateContentData.FileID)
-					// if err != nil {
-					// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-					// 	return
-					// }
-
-					done := jobManager.EnqueueSaveFileContentJob(files.SaveFileContentPayload{
-						FileID:        fileIdInUUID,
-						ProjectID:     sessionIdInUUID,
-						Content:       msgData.UpdateContentData.FileContent,
-						LastUpdatedBy: uuid.New(),
-					})
 
 					go func() {
+						done := jobManager.EnqueueSaveFileContentJob(files.SaveFileContentPayload{
+							FileID:        fileIdInUUID,
+							ProjectID:     sessionIdInUUID,
+							Content:       msgData.UpdateContentData.FileContent,
+							LastUpdatedBy: uuid.New(),
+						})
 						if err := <-done; err != nil {
 							fmt.Println("Error saving to DB:", err.Error())
 							return
 						}
-
+						
 						payload := files.BroadcastInfoPayload{
 							Hub:       wsProvider.Handler.Hub,
 							SessionId: sessionId,
-							InfoType:  msgData.Type,
-							// Status: "Done",
+							InfoType:  "update_content_with_file",
 						}
 
 						done = jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)
@@ -231,9 +225,7 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 							fmt.Println("Error creating file to DB:", err.Error())
 						}
 					}()
-
 				}
-
 			})
 		}
 	}

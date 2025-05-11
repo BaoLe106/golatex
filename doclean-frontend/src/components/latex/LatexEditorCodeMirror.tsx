@@ -69,6 +69,11 @@ const LatexEditorCodeMirror: React.FC = () => {
     compileFileType: "",
     compileFileDir: "",
   });
+  const [mediaFile, setMediaFile] = useState({
+    fileId: "",
+    fileType: "",
+    url: "",
+  });
   const [compileError, setCompileError] = useState<string>("");
   const [hasContentFromFile, setHasContentFromFile] = useState<boolean>(false);
   const [isThereABibFile, setIsThereABibFile] = useState<boolean>(false);
@@ -96,8 +101,13 @@ const LatexEditorCodeMirror: React.FC = () => {
             currentCompileFile.compileFileId !== data.fileId
           )
             return;
-
-          editorInstanceRef.current?.setValue(data.fileContent);
+          const { replacement, from, to } = data.replaceRange;
+          editorInstanceRef.current?.replaceRange(
+            replacement, //replacement
+            from, //from
+            to, //to
+            "setValue" //origin
+          );
         } catch (err) {
           console.log("debug err at editor", err);
         }
@@ -112,8 +122,13 @@ const LatexEditorCodeMirror: React.FC = () => {
           fileTreeRef.current.updateTreeData(data.fileTree);
         }
         break;
+      case "update_content_with_file":
+        if (fileTreeRef.current) {
+          fileTreeRef.current.updateTreeData(data.fileTree);
+        }
+        break;
       default:
-        //any
+      //any
     }
   }, []); // Only include dependencies that are used in the callback
 
@@ -254,7 +269,7 @@ const LatexEditorCodeMirror: React.FC = () => {
     }, 1);
     // Define the event handlers
     const handleEditorChange = (instance: any, changes: any) => {
-      const { origin } = changes;
+      const { origin, from, to, text } = changes;
       if (origin !== "setValue") {
         handleSendingMessage(
           JSON.stringify({
@@ -264,6 +279,18 @@ const LatexEditorCodeMirror: React.FC = () => {
             updateContentData: {
               fileId: compileFile.compileFileId,
               fileContent: instance.getValue(),
+              replaceRange: {
+                replacement:
+                  text[0] === text[1] && text[0] === "" ? "\n" : text[0],
+                from: {
+                  line: from.line,
+                  ch: from.ch,
+                },
+                to: {
+                  line: to.line,
+                  ch: to.ch,
+                },
+              },
             },
           })
         );
@@ -330,6 +357,16 @@ const LatexEditorCodeMirror: React.FC = () => {
     }
 
     editorInstance.setValue(data.content);
+    setMediaFile({ fileId: "", fileType: "", url: "" });
+  };
+
+  const setMedia = (data: any) => {
+    if (codeMirrorComponent) {
+      setHasContentFromFile(false);
+      codeMirrorComponent.style.height = "0vh";
+    }
+    console.log("debug data", data);
+    setMediaFile(data);
   };
 
   return (
@@ -342,6 +379,7 @@ const LatexEditorCodeMirror: React.FC = () => {
             currentPeerId={currentPeerId}
             sessionId={sessionId}
             setContent={setContent}
+            setMedia={setMedia}
             setIsThereABibFile={(value: boolean) => setIsThereABibFile(value)}
             // sendFileOrFolderCreatedInfo={sendFileOrFolderCreatedInfo}
           />
@@ -377,7 +415,7 @@ const LatexEditorCodeMirror: React.FC = () => {
             className={!hasContentFromFile ? `hidden` : ""}
           /> */}
           <textarea id="code-editor" />
-          {!hasContentFromFile && (
+          {!hasContentFromFile && !mediaFile.fileType ? (
             <Alert className="w-2/3 border-none justify-self-center">
               <Terminal className="h-6 w-6" />
               <AlertTitle className="text-2xl">Info:</AlertTitle>
@@ -385,7 +423,17 @@ const LatexEditorCodeMirror: React.FC = () => {
                 No file is selected. Please select a file from the left panel.
               </AlertDescription>
             </Alert>
-          )}
+          ) : !hasContentFromFile && mediaFile.fileType === "png" ? (
+            <div className="justify-self-center flex-col justify-items-center">
+              <Button className="mb-2">Download</Button>
+              <img src={mediaFile.url}></img>
+            </div>
+          ) : !hasContentFromFile && mediaFile.fileType === "pdf" ? (
+            <iframe
+              src={mediaFile.url}
+              style={{ height: "89vh", width: "100%" }}
+            ></iframe>
+          ) : null}
         </ResizablePanel>
         <ResizableHandle
           withHandle
