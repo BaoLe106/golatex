@@ -212,7 +212,7 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 							fmt.Println("Error saving to DB:", err.Error())
 							return
 						}
-						
+
 						payload := files.BroadcastInfoPayload{
 							Hub:       wsProvider.Handler.Hub,
 							SessionId: sessionId,

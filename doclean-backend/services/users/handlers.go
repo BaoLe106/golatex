@@ -41,7 +41,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	// 	return
 	// }
 
-
 	// Hash the password
 	hashedPassword, err := auth.HashPassword(userReq.Password)
 	if err != nil {

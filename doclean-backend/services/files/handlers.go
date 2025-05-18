@@ -35,18 +35,18 @@ func GetFilesByProjectIdHandler(c *gin.Context, jobManager *JobManager) {
 		go func(f *FileSchema) {
 			if err := <-jobManager.EnqueueCreateFileOnLocalJob(CreateFileOnLocalJobPayload{
 				ProjectID: projectId,
-				FileID: f.FileID,
-				FileName: f.FileName,
-				FileType: f.FileType,
-				FileDir: f.FileDir,
-				Content: f.Content,
+				FileID:    f.FileID,
+				FileName:  f.FileName,
+				FileType:  f.FileType,
+				FileDir:   f.FileDir,
+				Content:   f.Content,
 			}); err != nil {
-        fmt.Println(err)
+				fmt.Println(err)
 			}
 		}(file)
 
 		if file.FileType == "png" || file.FileType == "pdf" {
-			objectKey := fmt.Sprintf("input/%s/%s", projectId, file.FileName + "." + file.FileType)
+			objectKey := fmt.Sprintf("input/%s/%s", projectId, file.FileName+"."+file.FileType)
 			if file.FileType == "png" {
 				presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
 					&s3.GetObjectInput{

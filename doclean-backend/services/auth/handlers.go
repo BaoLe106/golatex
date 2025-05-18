@@ -19,10 +19,10 @@ import (
 
 func getSecretHash(username string) string {
 	mac := hmac.New(sha256.New, []byte(configs.Envs.ClientSecret))
-    mac.Write([]byte(username + configs.Envs.ClientID))
+	mac.Write([]byte(username + configs.Envs.ClientID))
 
-    secretHash := base64.StdEncoding.EncodeToString(mac.Sum(nil))
-		return secretHash
+	secretHash := base64.StdEncoding.EncodeToString(mac.Sum(nil))
+	return secretHash
 }
 
 func (cognitoAuth *CognitoAuth) RefreshToken(c *gin.Context) {
@@ -36,11 +36,11 @@ func (cognitoAuth *CognitoAuth) RefreshToken(c *gin.Context) {
 	}
 
 	output, err := cognitoAuth.cognitoSvc.InitiateAuth(c, &cognitoidentityprovider.InitiateAuthInput{
-		AuthFlow:       "REFRESH_TOKEN_AUTH",
-		ClientId:       aws.String(configs.Envs.ClientID),
+		AuthFlow: "REFRESH_TOKEN_AUTH",
+		ClientId: aws.String(configs.Envs.ClientID),
 		AuthParameters: map[string]string{
-			"REFRESH_TOKEN": requestBody.RefreshToken, 
-			"SECRET_HASH": getSecretHash(requestBody.Email),
+			"REFRESH_TOKEN": requestBody.RefreshToken,
+			"SECRET_HASH":   getSecretHash(requestBody.Email),
 		},
 	})
 	if err != nil {
@@ -76,7 +76,7 @@ func (cognitoAuth *CognitoAuth) AuthCheck(c *gin.Context) {
 }
 
 func (cognitoAuth *CognitoAuth) SignUp(c *gin.Context) {
-	// user *User, 
+	// user *User,
 	// w, r := c.Writer, c.Request
 	var user UserPayload
 	err := json.NewDecoder(c.Request.Body).Decode(&user)
@@ -86,10 +86,10 @@ func (cognitoAuth *CognitoAuth) SignUp(c *gin.Context) {
 	}
 
 	userCognito := &cognitoidentityprovider.SignUpInput{
-		ClientId: aws.String(configs.Envs.ClientID),
+		ClientId:   aws.String(configs.Envs.ClientID),
 		SecretHash: aws.String(getSecretHash(user.Email)),
-		Username: aws.String(user.Email),
-		Password: aws.String(user.Password),
+		Username:   aws.String(user.Email),
+		Password:   aws.String(user.Password),
 		UserAttributes: []types.AttributeType{
 			{Name: aws.String("email"), Value: aws.String(user.Email)},
 		},
@@ -107,12 +107,12 @@ func (cognitoAuth *CognitoAuth) SignUp(c *gin.Context) {
 	}
 
 	err = CreateUserInfo(UserInfoPayload{
-		UserId: uuid.New(),
-		UserTier: "FREE",
+		UserId:              uuid.New(),
+		UserTier:            "FREE",
 		SubscriptionEndTime: nil,
-		Email: user.Email,
-		Password: encryptedPassword,
-		IsConfirmed: false,
+		Email:               user.Email,
+		Password:            encryptedPassword,
+		IsConfirmed:         false,
 	})
 
 	if err != nil {
@@ -122,9 +122,9 @@ func (cognitoAuth *CognitoAuth) SignUp(c *gin.Context) {
 	// cognitoidentityprovider.SignUpOutput
 	// fmt.Println(output.CodeDeliveryDetails.Destination)
 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, gin.H{
-		"userConfirmed": output.UserConfirmed, 
-		"userSub": output.UserSub, 
-		"userEmail": output.CodeDeliveryDetails.Destination,
+		"userConfirmed": output.UserConfirmed,
+		"userSub":       output.UserSub,
+		"userEmail":     output.CodeDeliveryDetails.Destination,
 	})
 	// return output.UserConfirmed, err
 }
@@ -141,22 +141,22 @@ func (cognitoAuth *CognitoAuth) ConfirmSignUp(c *gin.Context) {
 	secretHash := getSecretHash(confirmUser.Email)
 
 	_, err = cognitoAuth.cognitoSvc.ConfirmSignUp(c, &cognitoidentityprovider.ConfirmSignUpInput{
-		ClientId:						aws.String(configs.Envs.ClientID),
-		ConfirmationCode:		aws.String(confirmUser.ConfirmationCode),
-		Username:						aws.String(confirmUser.Email),
-		SecretHash: 				aws.String(secretHash),
+		ClientId:         aws.String(configs.Envs.ClientID),
+		ConfirmationCode: aws.String(confirmUser.ConfirmationCode),
+		Username:         aws.String(confirmUser.Email),
+		SecretHash:       aws.String(secretHash),
 	})
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	updates := map[string]any {
+	updates := map[string]any{
 		"is_confirmed": true,
 	}
 
 	err = UpdateUserInfo(confirmUser.Email, updates)
-	if (err != nil) {
+	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -169,28 +169,28 @@ func (cognitoAuth *CognitoAuth) ConfirmSignUp(c *gin.Context) {
 	// 	Session: 	confirmSignUpRes.Session,
 
 	// 	AuthParameters: map[string]string{
-	// 		"USERNAME": confirmUser.Email, 
+	// 		"USERNAME": confirmUser.Email,
 	// 		"SECRET_HASH": secretHash,
 	// 	},
 	// })
-	
+
 	// if (err != nil) {
 	// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 	// 	return
 	// }
-	
+
 	// fmt.Println(initiateAuthRes.AuthenticationResult)
 	// fmt.Println(initiateAuthRes.ChallengeName)
 
 	// c.SetCookie("AccessToken", *initiateAuthRes.AuthenticationResult.AccessToken, 3600, "/", "localhost", false, true)
 	// c.SetCookie("IdToken", *initiateAuthRes.AuthenticationResult.IdToken, 3600, "/", "localhost", false, true)
 	// c.SetCookie("RefreshToken", *initiateAuthRes.AuthenticationResult.RefreshToken, 86400, "/", "localhost", false, true)
-	
+
 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
 }
 
 func (cognitoAuth *CognitoAuth) SignIn(c *gin.Context) {
-	// user *User, 
+	// user *User,
 	// w, r := c.Writer, c.Request
 	// var authResult *types.AuthenticationResultType
 	var user UserPayload
@@ -200,15 +200,15 @@ func (cognitoAuth *CognitoAuth) SignIn(c *gin.Context) {
 		return
 	}
 	// cognitoAuth.cognitoSvc.ConfirmSignUp() use after sign up and get confirmation code in email
-	
+
 	// cognitoAuth.cognitoSvc.ResendConfirmationCode() to resend confirmation code
 	// use case: when user dont put in their confirmation code right after sign up
 	initiateAuthRes, err := cognitoAuth.cognitoSvc.InitiateAuth(c, &cognitoidentityprovider.InitiateAuthInput{
-		AuthFlow:       "USER_PASSWORD_AUTH",
-		ClientId:       aws.String(configs.Envs.ClientID),
+		AuthFlow: "USER_PASSWORD_AUTH",
+		ClientId: aws.String(configs.Envs.ClientID),
 		AuthParameters: map[string]string{
-			"USERNAME": user.Email, 
-			"PASSWORD": user.Password, 
+			"USERNAME":    user.Email,
+			"PASSWORD":    user.Password,
 			"SECRET_HASH": getSecretHash(user.Email),
 		},
 	})
@@ -217,8 +217,8 @@ func (cognitoAuth *CognitoAuth) SignIn(c *gin.Context) {
 		// if errors.As(err, &resetRequired) {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
-			// log.Println(*resetRequired.Message)
-		
+		// log.Println(*resetRequired.Message)
+
 		// else {
 		// 	// log.Printf("Couldn't sign in user %v. Here's why: %v\n", userName, err)
 		// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
@@ -245,7 +245,7 @@ func (cognitoAuth *CognitoAuth) SignIn(c *gin.Context) {
 func (cognitoAuth *CognitoAuth) GetUserInfoByUserEmailHandler(c *gin.Context) {
 	idToken, err := c.Cookie("IdToken")
 	if err != nil {
-		apiResponse.SendErrorResponse(c, http.StatusUnauthorized,  err.Error())
+		apiResponse.SendErrorResponse(c, http.StatusUnauthorized, err.Error())
 		return
 	}
 	token, err := cognitoAuth.ValidateToken(idToken)
@@ -254,11 +254,11 @@ func (cognitoAuth *CognitoAuth) GetUserInfoByUserEmailHandler(c *gin.Context) {
 		return
 	}
 
-	claims, ok := token.Claims.(jwt.MapClaims); 
+	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "Unable to claim token")
 		return
-	} 
+	}
 
 	userInfo, err := GetUserInfoByUserEmail(claims["email"].(string))
 	if err != nil {
@@ -268,5 +268,4 @@ func (cognitoAuth *CognitoAuth) GetUserInfoByUserEmailHandler(c *gin.Context) {
 
 	apiResponse.SendGetRequestResponse(c, http.StatusOK, userInfo)
 
-	
 }

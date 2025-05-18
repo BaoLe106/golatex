@@ -44,7 +44,7 @@ func broadcastCreateFileInfoToSessionWork(message BroadcastInfoPayload) error {
 			SessionID:      message.SessionId,
 			CreateFileData: result,
 		}
-	case "update_content_with_file": 
+	case "update_content_with_file":
 		newMessage = wsProvider.SignalingMessage{
 			Type:           message.InfoType,
 			SessionID:      message.SessionId,
@@ -85,10 +85,9 @@ func broadcastCreateFileInfoToSessionWork(message BroadcastInfoPayload) error {
 	return nil
 }
 
-
 func CreateFileOnLocalWork(file CreateFileOnLocalJobPayload) error {
 	fmt.Println("debug u here")
-	if err := os.MkdirAll(file.FileDir, 0755); err != nil {	
+	if err := os.MkdirAll(file.FileDir, 0755); err != nil {
 		return err
 	}
 
@@ -113,9 +112,9 @@ func CreateFileOnLocalWork(file CreateFileOnLocalJobPayload) error {
 		_, err = osFile.WriteString(file.Content)
 		if err != nil {
 			return err
-		}	
+		}
 	} else if file.FileType == "png" || file.FileType == "pdf" {
-		objectKey := fmt.Sprintf("input/%s/%s", file.ProjectID, file.FileName + "." + file.FileType)
+		objectKey := fmt.Sprintf("input/%s/%s", file.ProjectID, file.FileName+"."+file.FileType)
 		resp, err := s3Provider.S3Client.Client.GetObject(context.TODO(), &s3.GetObjectInput{
 			Bucket: aws.String(os.Getenv("S3_BUCKET")),
 			Key:    aws.String(objectKey),
@@ -130,7 +129,6 @@ func CreateFileOnLocalWork(file CreateFileOnLocalJobPayload) error {
 		if err != nil {
 			return err
 		}
-
 
 		// presignedUrl, err := s3Provider.S3Client.PresignClient.PresignGetObject(
 		// 	c,

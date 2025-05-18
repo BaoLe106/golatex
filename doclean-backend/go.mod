@@ -32,6 +32,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
 	github.com/lestrrat-go/backoff/v2 v2.0.8 // indirect
@@ -57,6 +58,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.29.8
 	github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider v1.49.4
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.78.0
+	github.com/aws/aws-sdk-go-v2/service/ses v1.30.2
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.2
 	github.com/gabriel-vasile/mimetype v1.4.6 // indirect
 	github.com/gin-gonic/gin v1.10.0

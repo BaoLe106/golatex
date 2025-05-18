@@ -6,31 +6,30 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"
 	"github.com/google/uuid"
 	"github.com/lestrrat-go/jwx/jwk"
-) 
-
+)
 
 type UserTier string
 
 const (
-    TierPlayground UserTier = "PLAYGROUND"
-    TierGuest      UserTier = "GUEST"
-    TierFree       UserTier = "FREE"
-    TierBasic      UserTier = "BASIC"
-    TierStandard   UserTier = "STANDARD"
+	TierPlayground UserTier = "PLAYGROUND"
+	TierGuest      UserTier = "GUEST"
+	TierFree       UserTier = "FREE"
+	TierBasic      UserTier = "BASIC"
+	TierStandard   UserTier = "STANDARD"
 )
 
 type TierLimits struct {
-    MaxCollaborators int
-    MaxProjects      int
-    RequiresAuth     bool
+	MaxCollaborators int
+	MaxProjects      int
+	RequiresAuth     bool
 }
 
 var TierConfigs = map[UserTier]TierLimits{
-    TierPlayground: {MaxCollaborators: 1, MaxProjects: 1, RequiresAuth: false},
-    TierGuest:      {MaxCollaborators: 2, MaxProjects: 1, RequiresAuth: false},
-    TierFree:       {MaxCollaborators: 2, MaxProjects: -1, RequiresAuth: true},  // -1 means unlimited
-    TierBasic:      {MaxCollaborators: 5, MaxProjects: -1, RequiresAuth: true},
-    TierStandard:   {MaxCollaborators: 10, MaxProjects: -1, RequiresAuth: true},
+	TierPlayground: {MaxCollaborators: 1, MaxProjects: 1, RequiresAuth: false},
+	TierGuest:      {MaxCollaborators: 2, MaxProjects: 1, RequiresAuth: false},
+	TierFree:       {MaxCollaborators: 2, MaxProjects: -1, RequiresAuth: true}, // -1 means unlimited
+	TierBasic:      {MaxCollaborators: 5, MaxProjects: -1, RequiresAuth: true},
+	TierStandard:   {MaxCollaborators: 10, MaxProjects: -1, RequiresAuth: true},
 }
 
 type CognitoConfig struct {
@@ -54,22 +53,22 @@ type CognitoAuth struct {
 // 		IsConfirmed: false,
 
 type UserInfoPayload struct {
-	UserId 								uuid.UUID 		`json:"userId"`
-	UserTier 							string				`json:"userTier"`
-	SubscriptionEndTime		*time.Time 		`json:"subscriptionEndTime"`
-	Email									string				`json:"email"`
-	Password							string				`json:"password"`
-	IsConfirmed						bool					`json:"isConfirmed"`
+	UserId              uuid.UUID  `json:"userId"`
+	UserTier            string     `json:"userTier"`
+	SubscriptionEndTime *time.Time `json:"subscriptionEndTime"`
+	Email               string     `json:"email"`
+	Password            string     `json:"password"`
+	IsConfirmed         bool       `json:"isConfirmed"`
 }
 
 type UserInfoSchema struct {
-	UserId 								uuid.UUID 		`json:"userId"`
-	UserTier 							string				`json:"userTier"`
-	SubscriptionEndTime		*time.Time 		`json:"subscriptionEndTime"`
-	Email									string				`json:"email"`
-	IsConfirmed						bool					`json:"isConfirmed"`
-	CreatedAt   					time.Time 		`json:"createdAt"`
-	LastUpdatedAt   			time.Time 		`json:"lastUpdatedAt"`
+	UserId              uuid.UUID  `json:"userId"`
+	UserTier            string     `json:"userTier"`
+	SubscriptionEndTime *time.Time `json:"subscriptionEndTime"`
+	Email               string     `json:"email"`
+	IsConfirmed         bool       `json:"isConfirmed"`
+	CreatedAt           time.Time  `json:"createdAt"`
+	LastUpdatedAt       time.Time  `json:"lastUpdatedAt"`
 }
 
 type UserPayload struct {
@@ -77,11 +76,11 @@ type UserPayload struct {
 	Password string `json:"password" binding:"required"`
 }
 type ConfirmUserPayload struct {
-	Email    					string `json:"email" binding:"required,email"`
-	ConfirmationCode 	string `json:"confirmationCode" binding:"required"`
+	Email            string `json:"email" binding:"required,email"`
+	ConfirmationCode string `json:"confirmationCode" binding:"required"`
 }
 
 type RefreshTokenPayload struct {
-	Email					string `json:"email" binding:"required,email"`
-	RefreshToken 	string `json:"refreshToken" binding:"required"`
+	Email        string `json:"email" binding:"required,email"`
+	RefreshToken string `json:"refreshToken" binding:"required"`
 }

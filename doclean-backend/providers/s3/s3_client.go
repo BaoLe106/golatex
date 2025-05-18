@@ -7,7 +7,7 @@ import (
 )
 
 type S3ClientWrapper struct {
-	Client       	*s3.Client
+	Client        *s3.Client
 	PresignClient *s3.PresignClient
 }
 
@@ -22,12 +22,12 @@ func InitS3ClientWrapper(accessKey, secretKey, region string) {
 			"",
 		),
 	}
-	
+
 	client := s3.NewFromConfig(awsConfig)
 	presignClient := s3.NewPresignClient(client)
-	
+
 	S3Client = &S3ClientWrapper{
-		Client:       	client,
-		PresignClient: 	presignClient,	
+		Client:        client,
+		PresignClient: presignClient,
 	}
 }

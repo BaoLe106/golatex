@@ -5,7 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-
 func AddAuthRoutes(rg *gin.RouterGroup, cognitoAuth *CognitoAuth) {
 	authRoute := rg.Group("/auth")
 	// authHandler := NewHandler()
@@ -19,7 +18,7 @@ func AddAuthRoutes(rg *gin.RouterGroup, cognitoAuth *CognitoAuth) {
 	// )
 	authRoute.GET("/userInfo", cognitoAuth.GetUserInfoByUserEmailHandler)
 	authRoute.GET("/authCheck", cognitoAuth.AuthCheck)
-	
+
 	// CollaborationLimitMiddleware(latexHandler), latexHandler.HandleConnection)
 	// latexRoute.GET("/:sessionId", latexHandler.HandleConnection)
 	// latexRoute.POST("/tex/:sessionId", CreateTexFile)

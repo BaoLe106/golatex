@@ -36,6 +36,7 @@ import {
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { FileTreeRefHandle } from "@/components/latex/FileTreeComponent";
 import FileTreeComponent from "@/components/latex/FileTreeComponent";
+import ShareProjectDropdownComponent from "@/components/latex/ShareProjectDropdownComponent";
 
 import { FileData } from "@/services/latex/models";
 
@@ -439,43 +440,46 @@ const LatexEditorCodeMirror: React.FC = () => {
           withHandle
           className={theme === "dark" ? "bg-black" : ""}
         />
-        <ResizablePanel defaultSize={40} minSize={20} className="mr-4">
+        <ResizablePanel defaultSize={40} minSize={20} className="">
           <div
             className={
-              "flex items-center h-11 " +
+              "flex justify-between items-center h-11 " +
               (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
             }
-          >
-            <TooltipWrapper tooltipContent={"Compile to PDF"}>
-              <Button
-                className="mr-3"
-                onClick={compileTexToPdf}
-                disabled={isCompileButtonLoading}
-              >
-                {isCompileButtonLoading ? (
-                  <>
-                    <Loader2 className="animate-spin mr-1" />
-                    Compiling...
-                  </>
-                ) : (
-                  "Compiles"
-                )}
-              </Button>
-            </TooltipWrapper>
-            <p className="text-sm text-gray-500 italic">
-              to be compiled file:
-              <span className="font-semibold text-gray-600">
-                {" "}
-                {compileFile.compileFileName +
-                  "." +
-                  compileFile.compileFileType}
-              </span>
-            </p>
+          > 
+            <div className="flex items-center">
+              <TooltipWrapper tooltipContent={"Compile to PDF"}>
+                <Button
+                  className="mr-3 ml-2"
+                  onClick={compileTexToPdf}
+                  disabled={isCompileButtonLoading}
+                >
+                  {isCompileButtonLoading ? (
+                    <>
+                      <Loader2 className="animate-spin mr-1" />
+                      Compiling...
+                    </>
+                  ) : (
+                    "Compiles"
+                  )}
+                </Button>
+              </TooltipWrapper>
+              <p className="text-sm text-gray-500 italic">
+                to be compiled file:
+                <span className="font-semibold text-gray-600">
+                  {" "}
+                  {compileFile.compileFileName +
+                    "." +
+                    compileFile.compileFileType}
+                </span>
+              </p>
+            </div>
+            <ShareProjectDropdownComponent/>
           </div>
           {compileError ? (
             <Alert
               variant="destructive"
-              className="w-11/12 border-none justify-self-center"
+              className="w-full border-none justify-self-center"
             >
               <Terminal className="h-6 w-6" />
               <AlertTitle className="text-2xl">Error:</AlertTitle>
@@ -488,7 +492,8 @@ const LatexEditorCodeMirror: React.FC = () => {
             <iframe
               id="preview"
               src={pdfUrl}
-              style={{ height: "89vh", width: "100%" }}
+              className="w-full"
+              style={{ height: "89vh" }}
             ></iframe>
           )}
         </ResizablePanel>

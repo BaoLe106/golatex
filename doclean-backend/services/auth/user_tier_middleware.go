@@ -12,9 +12,9 @@ import (
 )
 
 func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
-    return func(c *gin.Context) {
+	return func(c *gin.Context) {
 
-        idToken, err := c.Cookie("IdToken")
+		idToken, err := c.Cookie("IdToken")
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Authorization header required")
 			return
@@ -27,38 +27,36 @@ func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
 		}
 
 		// Optional: Extract and store user claims
-		claims, ok := validatedIdToken.Claims.(jwt.MapClaims);  
-        if !ok {
+		claims, ok := validatedIdToken.Claims.(jwt.MapClaims)
+		if !ok {
 			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
 			return
 		}
 
+		userInfo, err := GetUserInfoByUserEmail(claims["email"].(string))
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
 
-        userInfo, err := GetUserInfoByUserEmail(claims["email"].(string))
-        if err != nil {
-            apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-            return
-        }
+		limits := TierConfigs[UserTier(userInfo.UserTier)]
 
+		// Store tier information in context
+		c.Set("userTier", UserTier(userInfo.UserTier))
+		c.Set("tierLimits", limits)
 
-        limits := TierConfigs[UserTier(userInfo.UserTier)]
-        
-        // Store tier information in context
-        c.Set("userTier", UserTier(userInfo.UserTier))
-        c.Set("tierLimits", limits)
+		// Check if authentication is required for this tier
+		if limits.RequiresAuth {
+			// Use the Cognito middleware for authenticated tiers
+			// auth.NewCognitoAuth()
+			cognitoAuth.AuthMiddleware()(c)
+			if c.IsAborted() {
+				return
+			}
+		}
 
-        // Check if authentication is required for this tier
-        if limits.RequiresAuth {
-            // Use the Cognito middleware for authenticated tiers
-            // auth.NewCognitoAuth()
-            cognitoAuth.AuthMiddleware()(c)
-            if c.IsAborted() {
-                return
-            }
-        }
-
-        c.Next()
-    }
+		c.Next()
+	}
 }
 
 // type LatexHandler struct {
@@ -68,7 +66,7 @@ func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
 // func (h *LatexHandler) getCollaboratorCount(sessionID string) int {
 //     h.Hub.Mutex.Lock()
 //     defer h.Hub.Mutex.Unlock()
-    
+
 //     if clients, exists := h.Hub.Sessions[sessionID]; exists {
 //         return len(clients)
 //     }
@@ -76,19 +74,19 @@ func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
 // }
 
 func WebSocketAuthMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
-    return func(c *gin.Context) {
-        subprotocols := c.Request.Header.Get("Sec-WebSocket-Protocol")
-        tokens := strings.Split(subprotocols, ", ")
-        if len(tokens) > 1 && tokens[0] == "Authorization" {
-            token := tokens[1]
-            _, err := cognitoAuth.ValidateToken(token)
-            if err != nil {
-                apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
-                return
-            }
-        }
-        c.Next()
-    }
+	return func(c *gin.Context) {
+		subprotocols := c.Request.Header.Get("Sec-WebSocket-Protocol")
+		tokens := strings.Split(subprotocols, ", ")
+		if len(tokens) > 1 && tokens[0] == "Authorization" {
+			token := tokens[1]
+			_, err := cognitoAuth.ValidateToken(token)
+			if err != nil {
+				apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
+				return
+			}
+		}
+		c.Next()
+	}
 }
 
 // func CollaborationLimitMiddleware(handler *latex.Handler) gin.HandlerFunc {
