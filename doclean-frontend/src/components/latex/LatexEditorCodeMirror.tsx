@@ -40,7 +40,13 @@ import ShareProjectDropdownComponent from "@/components/latex/ShareProjectDropdo
 
 import { FileData } from "@/services/latex/models";
 
-const LatexEditorCodeMirror: React.FC = () => {
+interface LatexEditorCodeMirrorProps {
+  projectShareType: number;
+}
+
+const LatexEditorCodeMirror = ({
+  projectShareType,
+}: LatexEditorCodeMirrorProps) => {
   const { theme } = useTheme();
   const { sessionId } = useParams<{ sessionId: string }>();
 
@@ -446,7 +452,7 @@ const LatexEditorCodeMirror: React.FC = () => {
               "flex justify-between items-center h-11 " +
               (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
             }
-          > 
+          >
             <div className="flex items-center">
               <TooltipWrapper tooltipContent={"Compile to PDF"}>
                 <Button
@@ -474,7 +480,10 @@ const LatexEditorCodeMirror: React.FC = () => {
                 </span>
               </p>
             </div>
-            <ShareProjectDropdownComponent/>
+            <ShareProjectDropdownComponent
+              sessionId={sessionId}
+              projectShareType={projectShareType}
+            />
           </div>
           {compileError ? (
             <Alert

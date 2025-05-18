@@ -45,7 +45,7 @@ const ProjectView: React.FC = () => {
 
   useEffect(() => {
     if (!project) return;
-
+    console.log("debug project", project);
     // getUserInfoByUserEmail();
     setCanRenderLatexEditorComponent(true);
     // if (project.projectTier === "GUEST") {

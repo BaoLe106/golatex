@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
+	"github.com/google/uuid"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/gin-gonic/gin"
@@ -50,5 +51,32 @@ func sendInviteMemberMailHanlder(c *gin.Context) {
 		return
 	}
 
+	id := uuid.New()
+	id2 := uuid.New()
+	err = CreateProjectMember(CreateProjectMemberPayload{
+		Id: id,
+		ProjectId: input.ProjectId,
+		UserId: id2,
+		Email: input.To,
+	})
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, gin.H{"messageId": result.MessageId})
+}
+
+func getProjectMemberHandler(c *gin.Context) {
+	projectId := c.Param("projectId")
+	projectIdInUUID, _ := uuid.Parse(projectId)
+	
+	result, err := GetProjectMember(projectIdInUUID)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+
+	apiResponse.SendGetRequestResponse(c, http.StatusCreated, result)
 }

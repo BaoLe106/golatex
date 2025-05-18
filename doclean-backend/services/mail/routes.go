@@ -23,4 +23,6 @@ func AddMailRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	})
 
 	mailRoute.POST("/invite", sendInviteMemberMailHanlder)
+	mailRoute.GET("/member/:projectId", getProjectMemberHandler)
+
 }
