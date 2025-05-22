@@ -1,4 +1,5 @@
 interface SendInviteMemberMailPayload {
+  projectId: string;
   from: string;
   to: string | string[];
   subject: string;

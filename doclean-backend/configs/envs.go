@@ -19,6 +19,7 @@ type Config struct {
 	AccessKey       string
 	SecretAccessKey string
 	Region          string
+	SESRegion       string
 	RedisAddr       string
 	RedisUsername   string
 	RedisPassword   string
@@ -44,6 +45,7 @@ func initConfig() Config {
 		AccessKey:       getEnv("ACCESS_KEY", "default"),
 		SecretAccessKey: getEnv("SECRET_ACCESS_KEY", "default"),
 		Region:          getEnv("REGION", "default"),
+		SESRegion:          getEnv("SES_REGION", "default"),
 
 		RedisAddr:     getEnv("REDIS_ADDR", ""),
 		RedisUsername: getEnv("REDIS_USERNAME", "default"),

@@ -148,6 +148,8 @@ const ShareProjectDropdownComponent = ({
   };
 
   const handleApplyLinkSetting = () => {
+    if (!sessionId) return;
+
     if (radioValue === "specific" && memberList.length === 0) {
       setInputError(true);
       toast.error("Please add at least 1 member");
@@ -159,7 +161,8 @@ const ShareProjectDropdownComponent = ({
     memberList.forEach((member) => {
       promises.push(
         MailService.sendInviteMemberMail({
-          from: "lattex.info@gmail.com",
+          projectId: sessionId,
+          from: import.meta.env.VITE_SENDER_MAIL,
           to: member,
           subject: `Let's join us on Lattex`,
           html: renderToString(

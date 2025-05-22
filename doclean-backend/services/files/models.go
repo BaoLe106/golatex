@@ -166,8 +166,9 @@ func (jm *JobManager) EnqueueSaveFileContentJob(job SaveFileContentPayload) <-ch
 	done := make(chan error, 1)
 	jm.WG.Add(1)
 
-	jm.SaveFileContentJobs <- job
+	// jm.SaveFileContentJobs <- job
 	go func() {
+		jm.SaveFileContentJobs <- job
 		jm.WG.Wait()
 		err := <-jm.Errors
 
@@ -182,8 +183,9 @@ func (jm *JobManager) EnqueueCreateFileOnLocalJob(job CreateFileOnLocalJobPayloa
 	done := make(chan error, 1)
 	jm.WG.Add(1)
 
-	jm.CreateFileOnLocalJobs <- job
+	// jm.CreateFileOnLocalJobs <- job
 	go func() {
+		jm.CreateFileOnLocalJobs <- job
 		jm.WG.Wait()
 		err := <-jm.Errors
 

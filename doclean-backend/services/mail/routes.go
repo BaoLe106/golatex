@@ -14,7 +14,7 @@ var Svc *ses.Client
 func AddMailRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	mailRoute := rg.Group("/mail")
 	Svc = ses.NewFromConfig(aws.Config{
-		Region: configs.Envs.Region,
+		Region: configs.Envs.SESRegion,
 		Credentials: credentials.NewStaticCredentialsProvider(
 			configs.Envs.AccessKey,
 			configs.Envs.SecretAccessKey,
