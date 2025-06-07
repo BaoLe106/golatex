@@ -1,6 +1,10 @@
 package projects
 
 import (
+	"errors"
+	"fmt"
+	"strings"
+
 	"github.com/BaoLe106/doclean/doclean-backend/db"
 	"github.com/google/uuid"
 )
@@ -69,5 +73,108 @@ func CreateProjectInfo(projectId string, projectTier string) error {
 			last_updated_at = NOW();
 	`, projectId, projectId, projectTier, projectId, projectId)
 
+	return err
+}
+
+func CreateProjectMember(input CreateProjectMemberPayload) error {
+	_, err := db.DB.Exec(`
+		INSERT INTO project_member (
+			id,
+			project_id, 
+			email,
+			created_by,
+			created_at, 
+			last_updated_by,
+			last_updated_at
+		) VALUES (
+			$1,	$2,	$3,	$4, NOW(), $5, NOW()
+		) 
+	`, input.Id, input.ProjectId, input.Email, input.UserId, input.UserId)
+
+	return err
+}
+
+func GetProjectMemberByEmail(projectId string, email string) error {
+	var count int
+	err := db.DB.QueryRow(`
+		SELECT COUNT(*)
+		FROM project_member
+		WHERE project_id = $1
+		AND email = $2
+	`, projectId, email).Scan(&count)
+
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return fmt.Errorf("no record found")
+	}
+
+	return nil
+}
+
+func GetProjectMember(projectId string) (*[]ProjectMemberSchema, error) {
+	result, err := db.DB.Query(`
+		SELECT  
+			id,
+			project_id, 
+			email
+		FROM project_member
+		WHERE project_id = $1 
+	`, projectId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer result.Close()
+	projectMembers := []ProjectMemberSchema{}
+	for result.Next() {
+		var member ProjectMemberSchema
+		if err := result.Scan(
+			&member.Id,
+			&member.ProjectId,
+			&member.Email,
+		); err != nil {
+			return nil, err
+		}
+
+		projectMembers = append(projectMembers, member)
+	}
+
+	return &projectMembers, nil
+}
+
+func DeleteProjectMember(projectId string, memberId string) error {
+	_, err := db.DB.Exec(`
+		DELETE FROM project_member 
+		WHERE project_id = $1 AND id = $2
+	`, projectId, memberId)
+
+	return err
+}
+
+func UpdateProjectInfo(projectId string, data map[string]any) error {
+	if len(data) == 0 {
+		return errors.New("no updates provided")
+	}
+
+	setClauses := []string{}
+	args := []any{}
+	argIndex := 1
+
+	for col, val := range data {
+		setClauses = append(setClauses, fmt.Sprintf("%s = $%d", col, argIndex))
+		args = append(args, val)
+		argIndex++
+	}
+
+	// WHERE clause
+	args = append(args, projectId)
+	query := fmt.Sprintf("UPDATE project_info SET %s WHERE project_id = $%d",
+		strings.Join(setClauses, ", "), argIndex)
+
+	_, err := db.DB.Exec(query, args...)
 	return err
 }

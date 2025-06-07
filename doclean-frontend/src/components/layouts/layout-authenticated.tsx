@@ -1,4 +1,5 @@
 import { ReactNode, useState } from "react";
+import { AppName } from "@/const/layout-const";
 import { Settings, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,7 +29,7 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
-              <h1 className="text-3xl">GoLatex</h1>
+              <h1 className="text-3xl">{AppName}</h1>
             </a>
             {/* <a href="/about">
               <Button className="bg-inherit" variant="ghost">
@@ -95,7 +96,7 @@ const LayoutAuthenticated: React.FC<LayoutProps> = ({ children }) => {
       {/* Footer */}
       <footer className="p-3 border-t bg-white dark:bg-black z-50">
         <div className="text-center">
-          <p>©2024 GoLatex. All rights reserved.</p>
+          <p>©2024 {AppName}. All rights reserved.</p>
         </div>
       </footer>
     </div>

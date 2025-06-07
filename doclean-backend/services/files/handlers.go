@@ -87,9 +87,19 @@ func GetFilesByProjectIdHandler(c *gin.Context, jobManager *JobManager) {
 
 func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.Hub) {
 	sessionId := c.Param("sessionId")
-	var input CreateFilePayload
 
-	err := json.NewDecoder(c.Request.Body).Decode(&input)
+	files, err := GetFilesByProjectId(sessionId)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if len(files.Files) >= 30 {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "Cannot add more files (reach limit)")
+		return
+	}
+
+	var input CreateFilePayload
+	err = json.NewDecoder(c.Request.Body).Decode(&input)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
@@ -175,6 +185,16 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 	currentFolder := form.Value["currentFolder"][0]
 	currentPeerId := form.Value["currentPeerId"][0]
 	files := form.File["files"]
+
+	projectFiles, err := GetFilesByProjectId(sessionId)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if len(projectFiles.Files) >= 30 || len(projectFiles.Files)+len(files) > 30 {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "Cannot add more files (reach limit)")
+		return
+	}
 
 	// input: fileName, fileType,
 	fileDir := "/tmp/" + sessionId + currentFolder

@@ -14,18 +14,7 @@ export const MailService = (() => {
     return await apiClient.post(apiUrl, payload, config);
   };
 
-  const getProjectMember = async (projectId: string) => {
-    const apiUrl = `/mail/member/${projectId}`;
-    const config = {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    };
-    return await apiClient.get(apiUrl, config);
-  };
-
   return {
     sendInviteMemberMail,
-    getProjectMember,
   };
 })();

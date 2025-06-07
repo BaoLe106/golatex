@@ -1,9 +1,13 @@
 package files
 
 import (
+	"time"
+
+	rate_limiter "github.com/BaoLe106/doclean/doclean-backend/middleware/rate_limiter"
 	wsProvider "github.com/BaoLe106/doclean/doclean-backend/providers/ws"
 	"github.com/BaoLe106/doclean/doclean-backend/services/auth"
 	"github.com/gin-gonic/gin"
+	"golang.org/x/time/rate"
 )
 
 func AddFileRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
@@ -16,12 +20,12 @@ func AddFileRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 			GetFilesByProjectIdHandler(ctx, jobManager)
 		},
 	)
-	fileRoute.POST("/:sessionId",
+	fileRoute.POST("/:sessionId", rate_limiter.RateLimitMiddleware(rate.Every(1*time.Minute/10), 10),
 		func(ctx *gin.Context) {
 			CreateFileHandler(ctx, jobManager, wsProvider.Handler.Hub)
 		},
 	)
-	fileRoute.POST("/upload/:sessionId",
+	fileRoute.POST("/upload/:sessionId", rate_limiter.RateLimitMiddleware(rate.Every(1*time.Minute/10), 10),
 		func(ctx *gin.Context) {
 			UploadFileHandler(ctx, jobManager, wsProvider.Handler.Hub)
 		},

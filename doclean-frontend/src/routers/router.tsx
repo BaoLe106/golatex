@@ -26,7 +26,7 @@ const router = createBrowserRouter([
       { path: "/playground/:sessionId", element: <PlaygroundView /> },
       { path: "/forbidden", element: <ForbiddenView /> },
       {
-        // element: <ProtectedRoutes />,
+        element: <ProtectedRoutes />,
         children: [
           { path: "/project/:sessionId", element: <ProjectView /> },
           // { path: "/project", element: <ProjectManagementView /> },

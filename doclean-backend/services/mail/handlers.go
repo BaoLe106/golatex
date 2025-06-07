@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/BaoLe106/doclean/doclean-backend/services/projects"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
 	"github.com/google/uuid"
 
@@ -21,6 +22,16 @@ func sendInviteMemberMailHanlder(c *gin.Context) {
 	err := json.NewDecoder(c.Request.Body).Decode(&input)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	projectMembers, err := projects.GetProjectMember(input.ProjectId)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if len(*projectMembers) >= 3 {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "No record found")
 		return
 	}
 
@@ -53,11 +64,11 @@ func sendInviteMemberMailHanlder(c *gin.Context) {
 
 	id := uuid.New()
 	id2 := uuid.New()
-	err = CreateProjectMember(CreateProjectMemberPayload{
-		Id: id,
+	err = projects.CreateProjectMember(projects.CreateProjectMemberPayload{
+		Id:        id,
 		ProjectId: input.ProjectId,
-		UserId: id2,
-		Email: input.To,
+		UserId:    id2,
+		Email:     input.To,
 	})
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
@@ -65,18 +76,4 @@ func sendInviteMemberMailHanlder(c *gin.Context) {
 	}
 
 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, gin.H{"messageId": result.MessageId})
-}
-
-func getProjectMemberHandler(c *gin.Context) {
-	projectId := c.Param("projectId")
-	projectIdInUUID, _ := uuid.Parse(projectId)
-	
-	result, err := GetProjectMember(projectIdInUUID)
-	if err != nil {
-		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-
-	apiResponse.SendGetRequestResponse(c, http.StatusCreated, result)
 }

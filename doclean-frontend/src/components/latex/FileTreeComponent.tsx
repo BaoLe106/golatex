@@ -26,6 +26,12 @@ import {
   Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu"
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -37,6 +43,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { Tree } from "antd";
 import type { GetProps, TreeDataNode } from "antd";
@@ -243,7 +250,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       if (!sessionId) return;
       try {
         const fileNameSplit = fileName.split(".");
-        const res = await TexFileService.createFile({
+        await TexFileService.createFile({
           fileId: uuidv4(),
           projectId: sessionId,
           fileName: fileNameSplit[0],
@@ -253,9 +260,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           createdBy: currentPeerId,
           lastUpdatedBy: currentPeerId,
         } as CreateFilePayload);
-        if (res.status !== 201) {
-          throw new Error(res.data.error);
-        }
+        
         console.log("debug r u here");
         setIsFinishedCreatingFileOrFolder(true);
         // await fetchFiles(sessionId);
@@ -282,7 +287,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       if (!sessionId) return;
 
       try {
-        const res = await TexFileService.createFile({
+        await TexFileService.createFile({
           fileId: uuidv4(),
           projectId: sessionId,
           fileName: folderName,
@@ -292,9 +297,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           createdBy: currentPeerId,
           lastUpdatedBy: currentPeerId,
         });
-        if (res.status !== 201) {
-          throw new Error(res.data.error);
-        }
+        
         setIsFinishedCreatingFileOrFolder(true);
         // await fetchFiles(sessionId);
       } catch (err) {
@@ -314,6 +317,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           isOpen={isUploadingFile}
           currSelectedFolder={currSelectedFolder}
           currentPeerId={currentPeerId}
+          currentFileNumber={filesData.length}
           sessionId={sessionId}
           closeDialog={() => setIsUploadingFile(false)}
         />
@@ -393,7 +397,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                 />
               </div>
             </div>
-            <DialogFooter className="sm:justify-between">
+            <DialogFooter className="justify-between">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">
                   Close
@@ -429,46 +433,56 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
             (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
           }
         >
-          <TooltipWrapper tooltipContent={"New file"}>
-            <Button
-              className={
-                "bg-inherit " +
-                (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
-              }
-              variant="ghost"
-              size="icon"
-              onClick={createNewFile}
-            >
-              <FilePlus className="absolute w-[1.2rem] h-[1.2rem]" />
-            </Button>
+          <TooltipWrapper tooltipContent={filesData.length < 30 ? "New file" : "Cannot add more files (reach limit)"}>
+            <span className="inline-block">
+              <Button
+                className={
+                  "bg-inherit " +
+                  (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+                }
+                variant="ghost"
+                size="icon"
+                disabled={filesData.length >= 30}
+                onClick={createNewFile}
+              >
+                <FilePlus className="absolute w-[1.2rem] h-[1.2rem]" />
+              </Button>
+            </span>
           </TooltipWrapper>
-          <TooltipWrapper tooltipContent={"New folder"}>
-            <Button
-              className={
-                "bg-inherit " +
-                (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
-              }
-              variant="ghost"
-              size="icon"
-              onClick={createNewFolder}
-            >
-              <FolderPlus className="absolute w-[1.2rem] h-[1.2rem]" />
-            </Button>
+          <TooltipWrapper tooltipContent={filesData.length < 30 ? "New folder" : "Cannot add more folders (reach limit)"}>
+            <span className="inline-block">
+              <Button
+                className={
+                  "bg-inherit " +
+                  (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+                }
+                variant="ghost"
+                size="icon"
+                disabled={filesData.length >= 30}
+                onClick={createNewFolder}
+              >
+                <FolderPlus className="absolute w-[1.2rem] h-[1.2rem]" />
+              </Button>
+            </span>
           </TooltipWrapper>
-          <TooltipWrapper tooltipContent={"Upload file"}>
-            <Button
-              className={
-                "bg-inherit " +
-                (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
-              }
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsUploadingFile(!isUploadingFile)}
-            >
-              <Upload className="absolute w-[1.2rem] h-[1.2rem]" />
-            </Button>
+          <TooltipWrapper tooltipContent={filesData.length < 30 ? "Upload file" : "Cannot upload more files (reach limit)"}>
+            <span className="inline-block">
+              <Button
+                className={
+                  "bg-inherit " +
+                  (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+                }
+                variant="ghost"
+                size="icon"
+                disabled={filesData.length >= 30}
+                onClick={() => setIsUploadingFile(!isUploadingFile)}
+              >
+                <Upload className="absolute w-[1.2rem] h-[1.2rem]" />
+              </Button>
+            </span>
           </TooltipWrapper>
         </div>
+        <ScrollArea className="h-[89vh]">
         <DirectoryTree
           className="bg-inherit "
           // multiple
@@ -495,15 +509,36 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           }}
           titleRender={(node: any) => {
             return (
-              <span className="text-black dark:text-white dark:hover:text-white">
-                {node.title}
-              </span>
+              <ContextMenu>
+                <ContextMenuTrigger className="flex h-[24px] items-center w-full">
+                  <span className="flex w-full text-black dark:text-white dark:hover:text-white">
+                    {node.title}
+                  </span>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="w-52">
+                  <ContextMenuItem inset>
+                    Download...
+                    {/* <ContextMenuShortcut>⌘[</ContextMenuShortcut> */}
+                  </ContextMenuItem>
+                  {/* <ContextMenuItem inset>
+                    Rename
+                    <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+                  </ContextMenuItem> */}
+                  <ContextMenuItem 
+                    inset
+                    className="text-red-600 focus:text-red-600 focus:bg-red-100 dark:focus:bg-red-900"
+                  >
+                    Delete
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             );
           }}
           onSelect={onSelect}
           onExpand={onExpand}
           treeData={treeData}
         />
+        </ScrollArea>
       </>
     );
   }

@@ -53,18 +53,24 @@ import {
 
 import InviteMemberEmailTemplate from "@/components/email/InviteMemberEmailTemplate";
 import { MailService } from "@/services/mail/mailService";
+import { ProjectService } from "@/services/projects/projectService";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-interface ShareProjectDropdownComponentProp {
+interface ShareProjectDropdownComponentProps {
   sessionId: string | undefined;
   projectShareType: number;
+}
+
+interface existedMemberProps {
+  id: string;
+  email: string;
 }
 
 const ShareProjectDropdownComponent = ({
   sessionId,
   projectShareType,
-}: ShareProjectDropdownComponentProp) => {
+}: ShareProjectDropdownComponentProps) => {
   const inputComponentRef = useRef<HTMLInputElement>(null);
 
   const [isShareLinkDialogOpen, setIsShareLinkDialogOpen] =
@@ -74,8 +80,9 @@ const ShareProjectDropdownComponent = ({
   const [radioValue, setRadioValue] = useState<string>("all");
   const [isBeingAddedMemberEmail, setIsBeingAddedMemberEmail] =
     useState<string>("");
+  const [isModifyingMember, setIsModifyingMember] = useState<boolean>(false);
   const [memberList, setMemberList] = useState<string[]>([]);
-  const [existedMember, setExistedMember] = useState<string[]>([]);
+  const [existedMember, setExistedMember] = useState<existedMemberProps[]>([]);
   const [showBackArrow, setShowBackArrow] = useState<boolean>(true);
 
   const [inputError, setInputError] = useState<boolean>(false);
@@ -83,6 +90,26 @@ const ShareProjectDropdownComponent = ({
   // Handle click outside input component (to remove on error red border)
   useEffect(() => {
     getProjectMembers();
+    console.log("debug projectShareType", projectShareType)
+    switch(projectShareType) {
+      case 0:
+        // code block
+        break;
+      case 1:
+        setRadioValue("all")
+        // code block
+        break;
+      case 2:
+        console.log("debug r u here")
+        setRadioValue("specific")
+        break;
+      default:
+        // code block
+    }
+
+    // if (projectShareType === 2) {
+    //   setRadioValue("specific")
+    // } else 
     const handleClickOutside = (event: MouseEvent) => {
       if (
         inputComponentRef.current &&
@@ -101,7 +128,6 @@ const ShareProjectDropdownComponent = ({
   useEffect(() => {
     if (!isLinkSettingDialogOpen) {
       setMemberList([]);
-      setRadioValue("all");
       setShowBackArrow(true);
     }
   }, [isLinkSettingDialogOpen]);
@@ -109,11 +135,17 @@ const ShareProjectDropdownComponent = ({
   const getProjectMembers = async () => {
     try {
       if (!sessionId) return;
-      const res = await MailService.getProjectMember(sessionId);
+      const res = await ProjectService.getProjectMember(sessionId);
       console.log("debug res in get mem", res);
       if (res.data) {
         // let tempExistedMember: string[] = []
-        setExistedMember(res.data.map((data: any) => data.email));
+        setExistedMember(res.data.map((data: any) => {
+          return {
+            "id": data.id,
+            "email": data.email
+          }
+          
+        }));
       }
     } catch (err) {
       console.log("debug err in get mem", err);
@@ -122,10 +154,6 @@ const ShareProjectDropdownComponent = ({
 
   const handleRadioChange = (value: string) => {
     setRadioValue(value);
-  };
-
-  const handleEmailInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsBeingAddedMemberEmail(e.target.value);
   };
 
   const handleAddMember = () => {
@@ -147,7 +175,20 @@ const ShareProjectDropdownComponent = ({
     setMemberList((prev) => prev.filter((member) => member !== removeEmail));
   };
 
-  const handleApplyLinkSetting = () => {
+  const removeExistingMember = async (memberId: string) => {
+    try {
+      if (!sessionId) return;
+      setIsModifyingMember(true);
+      await ProjectService.deleteProjectMember(sessionId, memberId);
+      await getProjectMembers();
+    } catch (err) {
+      console.log("debug err in delete mem", err);
+    } finally {
+      setIsModifyingMember(false);
+    }
+  };
+
+  const handleApplyLinkSetting = async () => {
     if (!sessionId) return;
 
     if (radioValue === "specific" && memberList.length === 0) {
@@ -157,6 +198,12 @@ const ShareProjectDropdownComponent = ({
     }
 
     const promises: Promise<any>[] = [];
+
+    promises.push(
+      ProjectService.updateProjectInfo(sessionId, {
+        project_share_type: radioValue === "all" ? 1 : 2,
+      })
+    );
 
     memberList.forEach((member) => {
       promises.push(
@@ -176,11 +223,9 @@ const ShareProjectDropdownComponent = ({
       );
     });
 
-    Promise.all(promises).then((values) => {
-      console.log(values);
-    });
-
+    await Promise.all(promises);
     setIsLinkSettingDialogOpen(false);
+    await getProjectMembers();
   };
 
   return (
@@ -197,7 +242,11 @@ const ShareProjectDropdownComponent = ({
             </DialogTitle>
             <div className="flex items-center justify-between space-x-2">
               <DialogDescription>
-                Anyone with the link can edit this project.
+                {projectShareType !== 1 ? (
+                  <span>People with existing access can edit this project.</span>
+                ) : (
+                  <span>Anyone with the link can edit this project.</span>
+                )}
               </DialogDescription>
               <Button
                 className="bg-inherit"
@@ -212,29 +261,6 @@ const ShareProjectDropdownComponent = ({
               </Button>
             </div>
           </DialogHeader>
-          {/* <div className="flex items-center space-x-2">
-            <div className="grid flex-1 gap-2">
-              <Label htmlFor="link" className="sr-only">
-                Link
-              </Label>
-              <Input
-                id="link"
-                defaultValue={window.location.href}
-                readOnly
-              />
-            </div>
-            <Button type="submit" size="sm" className="px-3">
-              <span className="sr-only">Copy</span>
-              <Copy />
-            </Button>
-          </div> */}
-          {/* <DialogFooter className="sm:justify-start">
-            <DialogClose asChild>
-              <Button type="button" variant="secondary" >
-                Close
-              </Button>
-            </DialogClose>
-          </DialogFooter> */}
         </DialogContent>
       </Dialog>
 
@@ -262,167 +288,129 @@ const ShareProjectDropdownComponent = ({
                 <span>Invite Members</span>
               )}
             </DialogTitle>
-            {/* <DialogDescription>Invite more member</DialogDescription> */}
           </DialogHeader>
           <div className="flex-col items-center space-x-2 space-y-4">
-            {showBackArrow ? (
-              <div>The link is for</div>
-            ) : (
-              <div>
-                <div className="flex items-center space-x-2">
-                  <Input
-                    ref={inputComponentRef}
-                    type="email"
-                    placeholder="Enter your members' email"
-                    value={isBeingAddedMemberEmail}
-                    onChange={(e) => {
-                      handleEmailInputChange(e);
-                      setInputError(false);
-                    }}
-                    error={inputError}
-                  />
+            <RadioGroup onValueChange={handleRadioChange} value={radioValue}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem
+                  className="bg-inherit p-0"
+                  value="all"
+                  id="all"
+                />
+                <Label htmlFor="all">Anyone on the internet</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem
+                  className="bg-inherit p-0"
+                  value="specific"
+                  id="specific"
+                />
+                <Label htmlFor="specific" className="flex flex-col space-y-1">
+                  <span>People you choose</span>
+                  {radioValue === "specific" && (
+                    <span className="font-light">
+                      Share with specific people you choose using their email.
+                    </span>
+                  )}
+                </Label>
+              </div>
+              {radioValue === "specific" &&
+                memberList.length > 0 &&
+                memberList.map((member, idx) => {
+                  return (
+                    <Badge key={idx} className="w-fit items-center space-x-2">
+                      <span className="pb-1">{member}</span>
+                      <TooltipWrapper tooltipContent={"Remove"} side="right">
+                        <X
+                          className="w-4 h-4 cursor-pointer"
+                          onClick={() => removeMember(member)}
+                        />
+                      </TooltipWrapper>
+                    </Badge>
+                  );
+                })}
+              {radioValue === "specific" && (
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      ref={inputComponentRef}
+                      type="email"
+                      placeholder="Enter your members' email"
+                      value={isBeingAddedMemberEmail}
+                      onChange={(e) => {
+                        setIsBeingAddedMemberEmail(e.target.value);
+                        setInputError(false);
+                      }}
+                      error={inputError}
+                    />
 
-                  <TooltipWrapper tooltipContent={"Add member"}>
-                    <Button
-                      size="sm"
-                      className="px-3"
-                      variant="secondary"
-                      // disabled={!isBeingAddedMemberEmail.length}
-                      onClick={handleAddMember}
-                    >
-                      <Plus />
-                    </Button>
-                  </TooltipWrapper>
-                </div>
-                {inputError && (
-                  <p className="text-red-700 text-sm">
-                    Please input member's email
-                  </p>
+                    <TooltipWrapper tooltipContent={"Add member"}>
+                      <Button
+                        size="sm"
+                        className="px-3"
+                        variant="secondary"
+                        // disabled={!isBeingAddedMemberEmail.length}
+                        onClick={handleAddMember}
+                      >
+                        <Plus />
+                      </Button>
+                    </TooltipWrapper>
+                  </div>
+                  {inputError && (
+                    <p className="text-red-700 text-sm">
+                      Please input member's email
+                    </p>
+                  )}
+                  <div className="!m-0">
+              <Separator className="my-4" />
+              <div className="flex text-sm font-medium space-x-2">
+                <span>
+                  People with access (can edit) {projectShareType === 2 ? `(${existedMember.length}/3)` : ''} 
+                </span>
+                {isModifyingMember && (
+                  <Loader2 className="animate-spin"/>
                 )}
               </div>
-            )}
-            {showBackArrow ? (
-              <RadioGroup defaultValue="all" onValueChange={handleRadioChange}>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    className="bg-inherit p-0"
-                    value="all"
-                    id="all"
-                  />
-                  <Label htmlFor="all">Anyone on the internet</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    className="bg-inherit p-0"
-                    value="specific"
-                    id="specific"
-                  />
-                  <Label htmlFor="specific" className="flex flex-col space-y-1">
-                    <span>People you choose</span>
-                    {radioValue === "specific" && (
-                      <span className="font-light">
-                        Share with specific people you choose using their email.
-                      </span>
-                    )}
-                  </Label>
-                </div>
-                {radioValue === "specific" &&
-                  memberList.length > 0 &&
-                  memberList.map((member, idx) => {
+              <div className="grid gap-2 mt-4">
+                {isModifyingMember && (
+                  <div className="absolute inset-0 z-10 cursor-not-allowed" />
+                )}
+                {existedMember.length > 0 &&
+                  existedMember.map((member, idx) => {
                     return (
-                      <Badge key={idx} className="w-fit items-center space-x-2">
-                        <span className="pb-1">{member}</span>
-                        <TooltipWrapper tooltipContent={"Remove"} side="right">
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between space-x-4"
+                      >
+                        
+                        <div className="flex items-center space-x-4">
+                          <Avatar>
+                            <AvatarFallback>
+                              {member.email.slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm text-muted-foreground">
+                              {member.email}
+                            </p>
+                          </div>
+                        </div>
+                        <TooltipWrapper tooltipContent={"Remove member"}>
                           <X
-                            className="w-4 h-4 cursor-pointer"
-                            onClick={() => removeMember(member)}
+                            className="w-4 h-4 cursor-pointer text-red-500"
+                            onClick={() => removeExistingMember(member.id)}
                           />
                         </TooltipWrapper>
-                      </Badge>
+                      </div>
                     );
                   })}
-                {radioValue === "specific" && (
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <Input
-                        ref={inputComponentRef}
-                        type="email"
-                        placeholder="Enter your members' email"
-                        value={isBeingAddedMemberEmail}
-                        onChange={(e) => {
-                          handleEmailInputChange(e);
-                          setInputError(false);
-                        }}
-                        error={inputError}
-                      />
-
-                      <TooltipWrapper tooltipContent={"Add member"}>
-                        <Button
-                          size="sm"
-                          className="px-3"
-                          variant="secondary"
-                          // disabled={!isBeingAddedMemberEmail.length}
-                          onClick={handleAddMember}
-                        >
-                          <Plus />
-                        </Button>
-                      </TooltipWrapper>
-                    </div>
-                    {inputError && (
-                      <p className="text-red-700 text-sm">
-                        Please input member's email
-                      </p>
-                    )}
-                  </div>
-                )}
-              </RadioGroup>
-            ) : (
-              <div className="!m-0">
-                <Separator className="my-4" />
-                <div className="text-sm font-medium">
-                  People with access (can edit)
-                </div>
-                <div className="grid gap-2 mt-4">
-                  {existedMember.length > 0 &&
-                    existedMember.map((member, idx) => {
-                      return (
-                        <div
-                          key={idx}
-                          className="flex items-center justify-between space-x-4"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <Avatar>
-                              {/* <AvatarImage src="/avatars/03.png" alt="Image" /> */}
-                              <AvatarFallback>
-                                {member.slice(0, 2)}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="text-sm text-muted-foreground">
-                                {member}
-                              </p>
-                            </div>
-                          </div>
-                          <TooltipWrapper tooltipContent={"Remove member"}>
-                            <X
-                              className="w-4 h-4 cursor-pointer text-red-500"
-                              // onClick={() => removeMember(member)}
-                            />
-                          </TooltipWrapper>
-                          {/* <Badge
-                            key={idx}
-                            className="w-fit items-center space-x-2 mr-1"
-                          >
-                            <span>{member}</span>
-                          </Badge> */}
-                        </div>
-                      );
-                    })}
-                </div>
               </div>
-            )}
+                  </div>
+                </div>
+              )}
+            </RadioGroup>
           </div>
-          <DialogFooter className="sm:justify-end">
+          <DialogFooter className="justify-end">
             {/* <DialogClose asChild> */}
             <Button type="button" onClick={handleApplyLinkSetting}>
               Apply
@@ -456,7 +444,10 @@ const ShareProjectDropdownComponent = ({
             <DropdownMenuItem
               onClick={() => {
                 setShowBackArrow(false);
-                setTimeout(() => setIsLinkSettingDialogOpen(true), 100);
+                setTimeout(() => {
+                  setRadioValue("specific");
+                  setIsLinkSettingDialogOpen(true);
+                }, 100);
               }}
             >
               <UserPlus />

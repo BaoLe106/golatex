@@ -335,9 +335,6 @@ const LatexEditorCodeMirror = ({
           ...compileFile,
         },
       });
-      if (res.status !== 201) {
-        throw new Error(res.data.error);
-      }
 
       console.log(res.data.pdfUrl);
       setPdfUrl(res.data.pdfUrl);

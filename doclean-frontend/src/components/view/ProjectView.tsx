@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AuthService } from "@/services/auth/authService";
-import { ProjectService } from "@/services/projects/projectService";
 import ContainerLayout from "@/components/ContainerLayout";
 import LatexEditorCodeMirror from "@/components/latex/LatexEditorCodeMirror";
 import Forbidden from "@/components/common/Forbidden";
@@ -28,7 +27,7 @@ interface ProjectSchema {
 }
 
 const ProjectView: React.FC = () => {
-  // const { isAuthenticated } = useAuth();
+  const { projectShareType } = useAuth();
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const [project, setProject] = useState<ProjectSchema | any>(null);
@@ -40,7 +39,7 @@ const ProjectView: React.FC = () => {
   //   useState<boolean>(false);
 
   useEffect(() => {
-    if (sessionId) getProjectByProjectId(sessionId);
+    // if (sessionId) getProjectByProjectId(sessionId);
   }, []);
 
   useEffect(() => {
@@ -84,15 +83,11 @@ const ProjectView: React.FC = () => {
   //   }
   // };
 
-  const getProjectByProjectId = async (projectId: string) => {
-    try {
-      const res = await ProjectService.getProjectByProjectId(projectId);
-      setProject(res);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  
 
+  // !IMPORTANT, OVERLAY MODAL IS HERE
+  // !IMPORTANT, OVERLAY MODAL IS HERE
+  // !IMPORTANT, OVERLAY MODAL IS HERE
   // if (isShowingSelectLoginMethodModal) {
   //   return (
   //     <Dialog
@@ -143,7 +138,10 @@ const ProjectView: React.FC = () => {
     <ContainerLayout className="w-full">
       <div className="w-full flex flex-col">
         {/* <LatexEditor /> */}
-        <LatexEditorCodeMirror />
+        {projectShareType ? (
+          <LatexEditorCodeMirror projectShareType={projectShareType}/>
+        ) : null}
+        
       </div>
     </ContainerLayout>
   );

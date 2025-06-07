@@ -157,6 +157,27 @@ button:focus-visible {
 span.ant-tree-switcher.ant-tree-switcher_close {
   margin-left: 16px !important;
 } */
+/* .ant-tree-title {
+  display: flex;
+  width: 99% !important;
+} */
+
+.ant-tree-title {
+  display: flex;
+  width: 100%;
+}
+
+.ant-tree-treenode:hover {
+  background-color: #e7e7e7 !important;
+}
+
+.dark .ant-tree-treenode:hover {
+  background-color: #7a7a7a !important;
+}
+
+.ant-tree-node-content-wrapper {
+  display: flex;
+}
 
 .ant-tree-node-content-wrapper.ant-tree-node-selected {
   background-color: transparent !important;

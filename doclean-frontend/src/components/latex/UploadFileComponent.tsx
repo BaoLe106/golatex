@@ -38,6 +38,7 @@ interface UploadFileComponentProps {
   sessionId: string | undefined;
   currentPeerId: string;
   currSelectedFolder: string;
+  currentFileNumber: number;
   closeDialog: () => void;
 }
 
@@ -46,24 +47,28 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
   sessionId,
   currentPeerId,
   currSelectedFolder,
+  currentFileNumber,
   closeDialog,
 }) => {
   const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
   const [toBeUploadedFiles, setToBeUploadedFiles] = useState<File[]>([]);
   const [errorMessageBySize, setErrorMessageBySize] = useState<string>("");
   const [errorMessageByType, setErrorMessageByType] = useState<string>("");
+  const [errorMessageByExceedingLimit, setErrorMessageByExceedingLimit] = useState<string>("");
 
   useEffect(() => {
     if (isOpen) return;
     setToBeUploadedFiles([]);
     setErrorMessageBySize("");
     setErrorMessageByType("");
+    setErrorMessageByExceedingLimit("");
   }, [isOpen]);
 
   const onUploadingFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files) return;
     setErrorMessageBySize("");
     setErrorMessageByType("");
+    setErrorMessageByExceedingLimit("");
 
     const acceptingFileTypes = [
       ".tex", ".bib", ".aux", ".bbl", ".blg",
@@ -76,7 +81,14 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
     const dataTransfer = new DataTransfer();
     const rejectedFilesBySize: string[] = [];
     const rejectedFilesByType: string[] = [];
-    const allowToUploadFiles: File[] = Array.from(event.target.files).filter(
+
+    let eventFilesInArray = Array.from(event.target.files)
+    if (eventFilesInArray.length + currentFileNumber >= 30) {
+      eventFilesInArray = eventFilesInArray.slice(0, 30 - currentFileNumber)
+      setErrorMessageByExceedingLimit("Some files were removed for exceeding the file limit")
+    }
+
+    const allowToUploadFiles: File[] = eventFilesInArray.filter(
       (file) => {
         console.log("debug file type", file);
         const fileExtension = file.name.split(".").pop();
@@ -139,20 +151,18 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
     const formData = new FormData();
     formData.append("currentFolder", currSelectedFolder);
     formData.append("currentPeerId", currentPeerId);
+    // 30 - currentFileNumber
+    // currentFileNumber + toBeUploadedFiles.length - 30
     for (const file of toBeUploadedFiles) {
       formData.append("files", file); // "files" must match backend key
     }
     try {
-      const res = await TexFileService.uploadFiles({
+      await TexFileService.uploadFiles({
         projectId: sessionId,
         formData: formData,
       } as UploadFilePayload);
-      
-      if (res.status !== 201) {
-        throw new Error("Error uploading file");
-      }
-    } catch (err) {
-      toast.error('Error uploading file')
+    } catch (err: any) {
+      toast.error(`Error uploading file: ${err.response.data.error}`)
     } finally {
       setIsUploadingFile(false)
       closeDialog()
@@ -192,6 +202,9 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
         )}
         {errorMessageByType && (
           <div className="text-red-600">{errorMessageByType}</div>
+        )}
+        {errorMessageByExceedingLimit && (
+          <div className="text-red-600">{errorMessageByExceedingLimit}</div>
         )}
         <ScrollArea className="h-[360px] rounded-md border p-4">
           {toBeUploadedFiles &&
