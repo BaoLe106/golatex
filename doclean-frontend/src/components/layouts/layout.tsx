@@ -3,7 +3,7 @@ import { ProjectService } from "@/services/projects/projectService";
 import { AppName } from "@/const/layout-const";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/sonner"
+import { Toaster } from "@/components/ui/sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { v4 as uuidv4 } from "uuid";
 import { useTheme } from "@/context/ThemeProvider";
@@ -32,7 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
-              <h1 className="text-3xl">{AppName}</h1>
+              <h1 className="text-3xl pb-1">{AppName}</h1>
             </a>
 
             <a href="/about">
@@ -98,7 +98,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="flex flex-1">
         <main className="flex-1 justify-items-center w-full">
           <div className="w-full">{children}</div>
-          <Toaster theme={theme} richColors closeButton position="bottom-right" toastOptions={{}}/>
+          <Toaster
+            theme={theme}
+            richColors
+            closeButton
+            position="bottom-right"
+            toastOptions={{}}
+          />
         </main>
       </div>
 

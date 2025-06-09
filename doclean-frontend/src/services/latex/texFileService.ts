@@ -45,14 +45,14 @@ export const TexFileService = (() => {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-    }
+    };
     return await apiClient.post(apiUrl, data.formData, config);
-  }
+  };
 
   return {
     compileToPdf,
     getFilesByProjectId,
     createFile,
-    uploadFiles
+    uploadFiles,
   };
 })();

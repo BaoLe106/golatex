@@ -79,8 +79,10 @@ const LatexEditorCodeMirror = ({
   const [mediaFile, setMediaFile] = useState({
     fileId: "",
     fileType: "",
+    contentType: "",
     url: "",
   });
+  const [isFirstTimeCompile, setIsFirstTimeCompile] = useState<boolean>(true);
   const [compileError, setCompileError] = useState<string>("");
   const [hasContentFromFile, setHasContentFromFile] = useState<boolean>(false);
   const [isThereABibFile, setIsThereABibFile] = useState<boolean>(false);
@@ -213,6 +215,12 @@ const LatexEditorCodeMirror = ({
 
     (CodeMirrorComponent[0] as HTMLElement).style.height = "0vh";
 
+    const previewComponent = document.getElementById("preview");
+    if (previewComponent) {
+      previewComponent.style.height = "0";
+      // previewComponent.style.height = "89vh";
+    }
+
     const getTEXFromS3 = async () => {
       const s3Client = new S3Client({
         region: import.meta.env.VITE_AWS_REGION,
@@ -343,6 +351,13 @@ const LatexEditorCodeMirror = ({
       setCompileError(err.response.data.error);
     } finally {
       setIsCompileButtonLoading(false);
+      if (isFirstTimeCompile) {
+        const previewComponent = document.getElementById("preview");
+        if (previewComponent) {
+          previewComponent.style.height = "89vh";
+        }
+        setIsFirstTimeCompile(false);
+      }
     }
   };
 
@@ -361,7 +376,7 @@ const LatexEditorCodeMirror = ({
     }
 
     editorInstance.setValue(data.content);
-    setMediaFile({ fileId: "", fileType: "", url: "" });
+    setMediaFile({ fileId: "", fileType: "", contentType: "", url: "" });
   };
 
   const setMedia = (data: any) => {
@@ -427,7 +442,7 @@ const LatexEditorCodeMirror = ({
                 No file is selected. Please select a file from the left panel.
               </AlertDescription>
             </Alert>
-          ) : !hasContentFromFile && mediaFile.fileType === "png" ? (
+          ) : !hasContentFromFile && mediaFile.contentType.includes("image") ? (
             <div className="justify-self-center flex-col justify-items-center">
               <Button className="mb-2">Download</Button>
               <img src={mediaFile.url}></img>

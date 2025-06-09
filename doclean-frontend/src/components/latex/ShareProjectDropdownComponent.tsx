@@ -90,26 +90,26 @@ const ShareProjectDropdownComponent = ({
   // Handle click outside input component (to remove on error red border)
   useEffect(() => {
     getProjectMembers();
-    console.log("debug projectShareType", projectShareType)
-    switch(projectShareType) {
+    console.log("debug projectShareType", projectShareType);
+    switch (projectShareType) {
       case 0:
         // code block
         break;
       case 1:
-        setRadioValue("all")
+        setRadioValue("all");
         // code block
         break;
       case 2:
-        console.log("debug r u here")
-        setRadioValue("specific")
+        console.log("debug r u here");
+        setRadioValue("specific");
         break;
       default:
-        // code block
+      // code block
     }
 
     // if (projectShareType === 2) {
     //   setRadioValue("specific")
-    // } else 
+    // } else
     const handleClickOutside = (event: MouseEvent) => {
       if (
         inputComponentRef.current &&
@@ -139,13 +139,14 @@ const ShareProjectDropdownComponent = ({
       console.log("debug res in get mem", res);
       if (res.data) {
         // let tempExistedMember: string[] = []
-        setExistedMember(res.data.map((data: any) => {
-          return {
-            "id": data.id,
-            "email": data.email
-          }
-          
-        }));
+        setExistedMember(
+          res.data.map((data: any) => {
+            return {
+              id: data.id,
+              email: data.email,
+            };
+          })
+        );
       }
     } catch (err) {
       console.log("debug err in get mem", err);
@@ -243,7 +244,9 @@ const ShareProjectDropdownComponent = ({
             <div className="flex items-center justify-between space-x-2">
               <DialogDescription>
                 {projectShareType !== 1 ? (
-                  <span>People with existing access can edit this project.</span>
+                  <span>
+                    People with existing access can edit this project.
+                  </span>
                 ) : (
                   <span>Anyone with the link can edit this project.</span>
                 )}
@@ -362,49 +365,53 @@ const ShareProjectDropdownComponent = ({
                     </p>
                   )}
                   <div className="!m-0">
-              <Separator className="my-4" />
-              <div className="flex text-sm font-medium space-x-2">
-                <span>
-                  People with access (can edit) {projectShareType === 2 ? `(${existedMember.length}/3)` : ''} 
-                </span>
-                {isModifyingMember && (
-                  <Loader2 className="animate-spin"/>
-                )}
-              </div>
-              <div className="grid gap-2 mt-4">
-                {isModifyingMember && (
-                  <div className="absolute inset-0 z-10 cursor-not-allowed" />
-                )}
-                {existedMember.length > 0 &&
-                  existedMember.map((member, idx) => {
-                    return (
-                      <div
-                        key={idx}
-                        className="flex items-center justify-between space-x-4"
-                      >
-                        
-                        <div className="flex items-center space-x-4">
-                          <Avatar>
-                            <AvatarFallback>
-                              {member.email.slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="text-sm text-muted-foreground">
-                              {member.email}
-                            </p>
-                          </div>
-                        </div>
-                        <TooltipWrapper tooltipContent={"Remove member"}>
-                          <X
-                            className="w-4 h-4 cursor-pointer text-red-500"
-                            onClick={() => removeExistingMember(member.id)}
-                          />
-                        </TooltipWrapper>
-                      </div>
-                    );
-                  })}
-              </div>
+                    <Separator className="my-4" />
+                    <div className="flex text-sm font-medium space-x-2">
+                      <span>
+                        People with access (can edit){" "}
+                        {projectShareType === 2
+                          ? `(${existedMember.length}/3)`
+                          : ""}
+                      </span>
+                      {isModifyingMember && (
+                        <Loader2 className="animate-spin" />
+                      )}
+                    </div>
+                    <div className="grid gap-2 mt-4">
+                      {isModifyingMember && (
+                        <div className="absolute inset-0 z-10 cursor-not-allowed" />
+                      )}
+                      {existedMember.length > 0 &&
+                        existedMember.map((member, idx) => {
+                          return (
+                            <div
+                              key={idx}
+                              className="flex items-center justify-between space-x-4"
+                            >
+                              <div className="flex items-center space-x-4">
+                                <Avatar>
+                                  <AvatarFallback>
+                                    {member.email.slice(0, 2)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {member.email}
+                                  </p>
+                                </div>
+                              </div>
+                              <TooltipWrapper tooltipContent={"Remove member"}>
+                                <X
+                                  className="w-4 h-4 cursor-pointer text-red-500"
+                                  onClick={() =>
+                                    removeExistingMember(member.id)
+                                  }
+                                />
+                              </TooltipWrapper>
+                            </div>
+                          );
+                        })}
+                    </div>
                   </div>
                 </div>
               )}

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 
 	s3Provider "github.com/BaoLe106/doclean/doclean-backend/providers/s3"
 	wsProvider "github.com/BaoLe106/doclean/doclean-backend/providers/ws"
@@ -91,6 +92,10 @@ func CreateFileOnLocalWork(file CreateFileOnLocalJobPayload) error {
 		return err
 	}
 
+	if file.FileType == "folder" {
+		return nil // No need to create a file for folders
+	}
+
 	// Create new file into session directory
 	fileName := file.FileDir + "/" + file.FileName + "." + file.FileType
 	osFile, err := os.Create(fileName)
@@ -98,7 +103,6 @@ func CreateFileOnLocalWork(file CreateFileOnLocalJobPayload) error {
 		return err
 	}
 	defer osFile.Close()
-
 	// osFile.Seek(0, io.SeekStart) // Reset reader position
 	// mtype, err := mimetype.DetectReader(osFile)
 	// if err != nil {
@@ -113,7 +117,7 @@ func CreateFileOnLocalWork(file CreateFileOnLocalJobPayload) error {
 		if err != nil {
 			return err
 		}
-	} else if file.FileType == "png" || file.FileType == "pdf" {
+	} else if strings.Contains(file.ContentType, "image") || file.FileType == "pdf" {
 		objectKey := fmt.Sprintf("input/%s/%s", file.ProjectID, file.FileName+"."+file.FileType)
 		resp, err := s3Provider.S3Client.Client.GetObject(context.TODO(), &s3.GetObjectInput{
 			Bucket: aws.String(os.Getenv("S3_BUCKET")),

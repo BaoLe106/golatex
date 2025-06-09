@@ -16,7 +16,7 @@ const LayoutAuth: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
-              <h1 className="text-3xl">{AppName}</h1>
+              <h1 className="text-3xl pb-1">{AppName}</h1>
             </a>
             <a href="/about">
               <Button className="bg-inherit" variant="ghost">

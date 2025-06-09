@@ -52,13 +52,13 @@ export const ProjectService = (() => {
       },
     };
     return await apiClient.delete(apiUrl, config);
-  }
-  
+  };
+
   return {
     getProjectByProjectId,
     getProjectMember,
     createProject,
     updateProjectInfo,
-    deleteProjectMember
+    deleteProjectMember,
   };
 })();

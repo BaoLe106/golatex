@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const getProjectByProjectId = async (projectId: string) => {
     try {
       const res = await ProjectService.getProjectByProjectId(projectId);
-      console.log("debug project res", res)
+      console.log("debug project res", res);
       setProjectShareType(res.projectShareType);
       if (res.projectShareType === 1) setIsAuthenticated(true);
       else setIsAuthenticated(false);
@@ -82,18 +82,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await AuthService.tempSignIn(sessionId, email);
       setIsAuthenticated(true);
     } catch (err) {
-      console.log("debug err", err )
+      console.log("debug err", err);
     }
-  }
+  };
 
   const value = {
     user,
     setUser,
-    projectShareType, 
+    projectShareType,
     setProjectShareType,
     isAuthenticated,
     setIsAuthenticated,
-    tempSignIn
+    tempSignIn,
     // login,
     // logout
   };

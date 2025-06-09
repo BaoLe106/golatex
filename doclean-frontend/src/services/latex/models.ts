@@ -25,6 +25,7 @@ interface FileData {
   fileType: string;
   fileDir: string;
   content: string;
+  contentType: string;
 }
 
 // interface ContentData {
@@ -34,4 +35,9 @@ interface FileData {
 //   content: string;
 // }
 
-export type { CompileToPdfPayload, CreateFilePayload, UploadFilePayload, FileData };
+export type {
+  CompileToPdfPayload,
+  CreateFilePayload,
+  UploadFilePayload,
+  FileData,
+};

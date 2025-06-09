@@ -32,15 +32,15 @@ export const AuthService = (() => {
   const apiClient = useApiClient();
 
   const tempSignIn = async (sessionId: string, email: string) => {
-    const apiUrl = `/project/eSignin/${sessionId}`
+    const apiUrl = `/project/eSignin/${sessionId}`;
     const config = {
       headers: {
         "Content-Type": "application/json",
       },
     };
-    const data = {'email': email};
+    const data = { email: email };
     return await apiClient.post(apiUrl, data, config);
-  }
+  };
 
   const getNewAccessToken = async (data: RefreshTokenSchema) => {
     const apiUrl = `/auth/refresh`;

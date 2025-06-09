@@ -31,7 +31,7 @@ import {
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuTrigger,
-} from "@/components/ui/context-menu"
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -43,7 +43,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area"
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { Tree } from "antd";
 import type { GetProps, TreeDataNode } from "antd";
@@ -140,9 +140,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
 
     const fetchFiles = async (sessionId: string) => {
       try {
-        const { files, fileTree } = await TexFileService.getFilesByProjectId(
-          sessionId
-        );
+        const { files, fileTree } =
+          await TexFileService.getFilesByProjectId(sessionId);
         console.log("debug files", files);
         console.log("debug fileTree", fileTree);
 
@@ -202,11 +201,15 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
         );
         console.log("debug currFileData", currFile);
         const nodeTitleSplit = info.node.title.split(".");
-        if (currFile?.fileType === "png" || currFile?.fileType === "pdf") {
+        if (
+          currFile?.contentType.includes("image") ||
+          currFile?.fileType === "pdf"
+        ) {
           console.log("debug set media", currFile?.fileType);
           setMedia({
             fileId: info.node.fileId,
             fileType: currFile?.fileType,
+            contentType: currFile?.contentType,
             url: currFile?.content,
           });
         } else {
@@ -260,7 +263,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           createdBy: currentPeerId,
           lastUpdatedBy: currentPeerId,
         } as CreateFilePayload);
-        
+
         console.log("debug r u here");
         setIsFinishedCreatingFileOrFolder(true);
         // await fetchFiles(sessionId);
@@ -297,7 +300,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           createdBy: currentPeerId,
           lastUpdatedBy: currentPeerId,
         });
-        
+
         setIsFinishedCreatingFileOrFolder(true);
         // await fetchFiles(sessionId);
       } catch (err) {
@@ -333,8 +336,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                 {isAddingFile
                   ? "Add File"
                   : isAddingFolder
-                  ? "Add New Folder"
-                  : null}
+                    ? "Add New Folder"
+                    : null}
               </DialogTitle>
               <DialogDescription>
                 In the directory:{" "}
@@ -347,8 +350,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                   {isAddingFile
                     ? "File Name"
                     : isAddingFolder
-                    ? "Folder Name"
-                    : null}
+                      ? "Folder Name"
+                      : null}
                 </Label>
                 <Input
                   autoFocus
@@ -356,15 +359,15 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                     isAddingFile
                       ? "file"
                       : isAddingFolder
-                      ? "folder"
-                      : "default"
+                        ? "folder"
+                        : "default"
                   }
                   placeholder={
                     isAddingFile
                       ? "Enter file name"
                       : isAddingFolder
-                      ? "Enter folder name"
-                      : ""
+                        ? "Enter folder name"
+                        : ""
                   }
                   value={
                     isAddingFile ? fileName : isAddingFolder ? folderName : ""
@@ -385,14 +388,14 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                       ? isAddingFile
                         ? handleAddFile()
                         : isAddingFolder
-                        ? handleAddFolder()
-                        : undefined
+                          ? handleAddFolder()
+                          : undefined
                       : e.key === "Escape" &&
                         (isAddingFile
                           ? setIsAddingFile(false)
                           : isAddingFolder
-                          ? setIsAddingFolder(false)
-                          : undefined)
+                            ? setIsAddingFolder(false)
+                            : undefined)
                   }
                 />
               </div>
@@ -409,8 +412,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                   isAddingFile
                     ? !Boolean(fileName.length)
                     : isAddingFolder
-                    ? !Boolean(folderName.length)
-                    : true
+                      ? !Boolean(folderName.length)
+                      : true
                 }
                 className="px-3"
                 onClick={() => {
@@ -433,7 +436,13 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
             (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
           }
         >
-          <TooltipWrapper tooltipContent={filesData.length < 30 ? "New file" : "Cannot add more files (reach limit)"}>
+          <TooltipWrapper
+            tooltipContent={
+              filesData.length < 30
+                ? "New file"
+                : "Cannot add more files (reach limit)"
+            }
+          >
             <span className="inline-block">
               <Button
                 className={
@@ -449,7 +458,13 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
               </Button>
             </span>
           </TooltipWrapper>
-          <TooltipWrapper tooltipContent={filesData.length < 30 ? "New folder" : "Cannot add more folders (reach limit)"}>
+          <TooltipWrapper
+            tooltipContent={
+              filesData.length < 30
+                ? "New folder"
+                : "Cannot add more folders (reach limit)"
+            }
+          >
             <span className="inline-block">
               <Button
                 className={
@@ -465,7 +480,13 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
               </Button>
             </span>
           </TooltipWrapper>
-          <TooltipWrapper tooltipContent={filesData.length < 30 ? "Upload file" : "Cannot upload more files (reach limit)"}>
+          <TooltipWrapper
+            tooltipContent={
+              filesData.length < 30
+                ? "Upload file"
+                : "Cannot upload more files (reach limit)"
+            }
+          >
             <span className="inline-block">
               <Button
                 className={
@@ -483,61 +504,61 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           </TooltipWrapper>
         </div>
         <ScrollArea className="h-[89vh]">
-        <DirectoryTree
-          className="bg-inherit "
-          // multiple
-          // draggable
-          defaultExpandAll
-          // rootClassName="text-black dark:text-white"
-          // showIcon
-          switcherIcon={(node: any) => {
-            // console.log(node.expanded);
-            return node.expanded ? (
-              <ChevronDown className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
-            ) : (
-              <ChevronRight className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
-            );
-          }}
-          icon={(node: any) => {
-            // console.log("debug node", node);
-            // if (node.isLeaf)
-            return node.data.isLeaf ? (
-              <File className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
-            ) : (
-              <Folder className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
-            );
-          }}
-          titleRender={(node: any) => {
-            return (
-              <ContextMenu>
-                <ContextMenuTrigger className="flex h-[24px] items-center w-full">
-                  <span className="flex w-full text-black dark:text-white dark:hover:text-white">
-                    {node.title}
-                  </span>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="w-52">
-                  <ContextMenuItem inset>
-                    Download...
-                    {/* <ContextMenuShortcut>⌘[</ContextMenuShortcut> */}
-                  </ContextMenuItem>
-                  {/* <ContextMenuItem inset>
+          <DirectoryTree
+            className="bg-inherit "
+            // multiple
+            // draggable
+            defaultExpandAll
+            // rootClassName="text-black dark:text-white"
+            // showIcon
+            switcherIcon={(node: any) => {
+              // console.log(node.expanded);
+              return node.expanded ? (
+                <ChevronDown className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+              ) : (
+                <ChevronRight className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+              );
+            }}
+            icon={(node: any) => {
+              // console.log("debug node", node);
+              // if (node.isLeaf)
+              return node.data.isLeaf ? (
+                <File className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+              ) : (
+                <Folder className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+              );
+            }}
+            titleRender={(node: any) => {
+              return (
+                <ContextMenu>
+                  <ContextMenuTrigger className="flex h-[24px] items-center w-full">
+                    <span className="flex w-full text-black dark:text-white dark:hover:text-white">
+                      {node.title}
+                    </span>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-52">
+                    <ContextMenuItem inset>
+                      Download...
+                      {/* <ContextMenuShortcut>⌘[</ContextMenuShortcut> */}
+                    </ContextMenuItem>
+                    {/* <ContextMenuItem inset>
                     Rename
                     <ContextMenuShortcut>⌘[</ContextMenuShortcut>
                   </ContextMenuItem> */}
-                  <ContextMenuItem 
-                    inset
-                    className="text-red-600 focus:text-red-600 focus:bg-red-100 dark:focus:bg-red-900"
-                  >
-                    Delete
-                  </ContextMenuItem>
-                </ContextMenuContent>
-              </ContextMenu>
-            );
-          }}
-          onSelect={onSelect}
-          onExpand={onExpand}
-          treeData={treeData}
-        />
+                    <ContextMenuItem
+                      inset
+                      className="text-red-600 focus:text-red-600 focus:bg-red-100 dark:focus:bg-red-900"
+                    >
+                      Delete
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            }}
+            onSelect={onSelect}
+            onExpand={onExpand}
+            treeData={treeData}
+          />
         </ScrollArea>
       </>
     );

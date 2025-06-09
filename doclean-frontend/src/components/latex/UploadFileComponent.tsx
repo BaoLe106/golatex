@@ -54,7 +54,8 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
   const [toBeUploadedFiles, setToBeUploadedFiles] = useState<File[]>([]);
   const [errorMessageBySize, setErrorMessageBySize] = useState<string>("");
   const [errorMessageByType, setErrorMessageByType] = useState<string>("");
-  const [errorMessageByExceedingLimit, setErrorMessageByExceedingLimit] = useState<string>("");
+  const [errorMessageByExceedingLimit, setErrorMessageByExceedingLimit] =
+    useState<string>("");
 
   useEffect(() => {
     if (isOpen) return;
@@ -71,41 +72,60 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
     setErrorMessageByExceedingLimit("");
 
     const acceptingFileTypes = [
-      ".tex", ".bib", ".aux", ".bbl", ".blg",
-      ".log", ".out", ".inp", ".bst", ".sty",
-      ".cls", ".dbx", ".cbx", ".bbx", ".lbx",
-      ".def", ".pdf", ".png", ".jpg", ".jpeg",
-      ".eps", ".csv", ".tsv", ".txt",
+      ".tex",
+      ".bib",
+      ".aux",
+      ".bbl",
+      ".blg",
+      ".log",
+      ".out",
+      ".inp",
+      ".bst",
+      ".sty",
+      ".cls",
+      ".dbx",
+      ".cbx",
+      ".bbx",
+      ".lbx",
+      ".def",
+      ".pdf",
+      ".png",
+      ".jpg",
+      ".jpeg",
+      ".eps",
+      ".csv",
+      ".tsv",
+      ".txt",
     ];
 
     const dataTransfer = new DataTransfer();
     const rejectedFilesBySize: string[] = [];
     const rejectedFilesByType: string[] = [];
 
-    let eventFilesInArray = Array.from(event.target.files)
+    let eventFilesInArray = Array.from(event.target.files);
     if (eventFilesInArray.length + currentFileNumber >= 30) {
-      eventFilesInArray = eventFilesInArray.slice(0, 30 - currentFileNumber)
-      setErrorMessageByExceedingLimit("Some files were removed for exceeding the file limit")
+      eventFilesInArray = eventFilesInArray.slice(0, 30 - currentFileNumber);
+      setErrorMessageByExceedingLimit(
+        "Some files were removed for exceeding the file limit"
+      );
     }
 
-    const allowToUploadFiles: File[] = eventFilesInArray.filter(
-      (file) => {
-        console.log("debug file type", file);
-        const fileExtension = file.name.split(".").pop();
-        if (!acceptingFileTypes.includes(`.${fileExtension}`)) {
-          rejectedFilesByType.push(file.name);
-          return false;
-        }
-        if (file.size > 52428800) {
-          //50MB
-          rejectedFilesBySize.push(file.name);
-          return false;
-        }
-
-        dataTransfer.items.add(file);
-        return true;
+    const allowToUploadFiles: File[] = eventFilesInArray.filter((file) => {
+      console.log("debug file type", file);
+      const fileExtension = file.name.split(".").pop();
+      if (!acceptingFileTypes.includes(`.${fileExtension}`)) {
+        rejectedFilesByType.push(file.name);
+        return false;
       }
-    );
+      if (file.size > 52428800) {
+        //50MB
+        rejectedFilesBySize.push(file.name);
+        return false;
+      }
+
+      dataTransfer.items.add(file);
+      return true;
+    });
 
     event.target.files = dataTransfer.files;
     setToBeUploadedFiles(allowToUploadFiles);
@@ -162,10 +182,10 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
         formData: formData,
       } as UploadFilePayload);
     } catch (err: any) {
-      toast.error(`Error uploading file: ${err.response.data.error}`)
+      toast.error(`Error uploading file: ${err.response.data.error}`);
     } finally {
-      setIsUploadingFile(false)
-      closeDialog()
+      setIsUploadingFile(false);
+      closeDialog();
     }
   };
 
@@ -217,12 +237,12 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
                 {!isUploadingFile ? (
                   <TooltipWrapper tooltipContent={"Remove file"}>
                     <X
-                      className='mt-1 w-4 h-4 cursor-pointer'
+                      className="mt-1 w-4 h-4 cursor-pointer"
                       onClick={() => removeOnUploadFile(file.name)}
                     />
                   </TooltipWrapper>
                 ) : (
-                  <X className='mt-1 w-4 h-4'/>
+                  <X className="mt-1 w-4 h-4" />
                 )}
               </ul>
             ))}

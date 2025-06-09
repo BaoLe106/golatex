@@ -14,7 +14,7 @@ import {
   Section,
   Tailwind,
   Text,
-} from '@react-email/components';
+} from "@react-email/components";
 
 interface InviteMemberEmailTemplateProps {
   username?: string;
@@ -65,22 +65,22 @@ export const InviteMemberEmailTemplate = ({
               />
             </Section>
             <Heading className="mx-0 my-[30px] p-0 text-center font-normal text-[24px] text-black">
-              Join with <strong>{invitedByEmail}</strong> on <strong>Lattex</strong>
+              Join with <strong>{invitedByEmail}</strong> on{" "}
+              <strong>Lattex</strong>
             </Heading>
             <Text className="text-[14px] text-black leading-[24px]">
               Hello {userEmail},
             </Text>
             <Text className="text-[14px] text-black leading-[24px]">
-              <strong> 
+              <strong>
                 <Link
                   href={`mailto:${invitedByEmail}`}
                   className="text-blue-600 no-underline"
                 >
-                {invitedByEmail}{' '}
+                  {invitedByEmail}{" "}
                 </Link>
               </strong>
-              has invited you to join them on{' '}
-              <strong>Lattex</strong>.
+              has invited you to join them on <strong>Lattex</strong>.
             </Text>
             <Section className="mt-[32px] mb-[32px] text-center">
               <Button
@@ -91,14 +91,14 @@ export const InviteMemberEmailTemplate = ({
               </Button>
             </Section>
             <Text className="text-[14px] text-black leading-[24px]">
-              or copy and paste this URL into your browser:{' '}
+              or copy and paste this URL into your browser:{" "}
               <Link href={projectLink} className="text-blue-600 no-underline">
                 {projectLink}
               </Link>
             </Text>
             <Hr className="mx-0 my-[26px] w-full border border-[#eaeaea] border-solid" />
             <Text className="text-[#666666] text-[12px] leading-[24px]">
-              This invitation was intended for{' '}
+              This invitation was intended for{" "}
               <span className="text-black">{userEmail}</span>. This invite was
               sent from <span className="text-black">{inviteFromIp}</span>
               <span className="text-black">{inviteFromLocation}</span>. If you

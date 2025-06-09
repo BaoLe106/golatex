@@ -216,6 +216,7 @@ func GetFilesByProjectId(projectId string) (*GetFilesByProjectIdSchema, error) {
 			file_type, 
 			file_dir,
 			content,
+			content_type,
 			origin,
 			last_updated_by, 
 			last_updated_at
@@ -243,6 +244,7 @@ func GetFilesByProjectId(projectId string) (*GetFilesByProjectIdSchema, error) {
 			&file.FileType,
 			&file.FileDir,
 			&file.Content,
+			&file.ContentType,
 			&file.Origin,
 			&file.LastUpdatedBy,
 			&file.LastUpdatedAt,
@@ -317,8 +319,9 @@ func CreateFile(input CreateFilePayload) error {
 			created_at,
 			last_updated_by,
 			last_updated_at,
-			origin
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, NOW(), $9)
+			origin,
+			content_type
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8, NOW(), $9, $10)
 	`,
 		input.FileID,
 		input.ProjectID,
@@ -329,6 +332,7 @@ func CreateFile(input CreateFilePayload) error {
 		input.CreatedBy,
 		input.LastUpdatedBy,
 		input.Origin,
+		input.ContentType,
 	)
 
 	return err

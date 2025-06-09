@@ -45,14 +45,14 @@ func GetFilesByProjectIdHandler(c *gin.Context, jobManager *JobManager) {
 			}
 		}(file)
 
-		if file.FileType == "png" || file.FileType == "pdf" {
+		if file.Origin == 1 {
 			objectKey := fmt.Sprintf("input/%s/%s", projectId, file.FileName+"."+file.FileType)
-			if file.FileType == "png" {
+			if strings.Contains(*file.ContentType, "image") {
 				presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
 					&s3.GetObjectInput{
 						Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
 						Key:                        aws.String(objectKey),
-						ResponseContentType:        aws.String("image/png"),
+						ResponseContentType:        aws.String(*file.ContentType),
 						ResponseContentDisposition: aws.String("inline"),
 					},
 					s3.WithPresignExpires(time.Minute*60),
@@ -104,6 +104,7 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	fmt.Println("#DEBUG::input in create file", input)
 	// fileDir := "/tmp/" + sessionId
 
 	// Create session directory
@@ -112,24 +113,45 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		return
 	}
 
-	// Create new file into session directory
-	fileName := input.FileDir + "/" + input.FileName + "." + input.FileType
-	file, err := os.Create(fileName)
-	if err != nil {
-		fmt.Println("Error here 1")
-		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	defer file.Close()
+	var fileContentType string
 
-	// Write the content to the file
-	_, err = file.WriteString(input.Content)
-	if err != nil {
-		fmt.Println("Error here 2")
-		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
+	if input.FileType != "folder" {
+		// Create new file into session directory
+		fileName := input.FileDir + "/" + input.FileName + "." + input.FileType
+		file, err := os.Create(fileName)
+		if err != nil {
+			fmt.Println("Error here 1")
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		defer file.Close()
 
+		// Write the content to the file
+		_, err = file.WriteString(input.Content)
+		if err != nil {
+			fmt.Println("Error here 2")
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		f, err := os.Open(fileName)
+		if err != nil {
+			fmt.Println("Error here 2.5")
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		defer f.Close()
+
+		buffer := make([]byte, 512)
+		_, err = f.Read(buffer)
+		if err != nil {
+			fmt.Println("Error here 2.8")
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		fileContentType = http.DetectContentType(buffer)
+	}
+	fmt.Println("#DEBUG::fileContentType", fileContentType)
 	// fileFromDb, err := GetFileByFileId(input.FileID)
 	// if err != nil {
 	// 	if err != sql.ErrNoRows {
@@ -144,7 +166,18 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 	// 	return
 	// }
 
-	err = CreateFile(input)
+	err = CreateFile(CreateFilePayload{
+		FileID:        input.FileID,
+		ProjectID:     input.ProjectID,
+		FileName:      input.FileName,
+		FileType:      input.FileType,
+		FileDir:       input.FileDir,
+		Content:       input.Content,
+		CreatedBy:     input.CreatedBy,
+		LastUpdatedBy: input.LastUpdatedBy,
+		Origin:        input.Origin,
+		ContentType:   fileContentType,
+	})
 	if err != nil {
 		fmt.Println("Error here 3")
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
@@ -294,6 +327,7 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 			LastUpdatedBy: currentPeerUUID,
 			Content:       content,
 			Origin:        1,
+			ContentType:   contentType,
 		})
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
