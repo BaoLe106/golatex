@@ -47,30 +47,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { sessionId } = useParams<{ sessionId: string }>();
   useEffect(() => {
-    let isMounted: boolean = true;
-    const sessionId = window.location.pathname.split("/project/")[1];
-    getProjectByProjectId(sessionId);
-    // const authCheck = async () => {
-    //   try {
-    //     const res = await AuthService.authCheck();
-    //     if (isMounted)
-    //       if (res.status === 200) setIsAuthenticated(true);
-    //       else setIsAuthenticated(false);
-    //   } catch (err) {
-    //     if (isMounted) setIsAuthenticated(false);
-    //   }
-    // };
+    const currentPath = window.location.pathname;
+    const sessionId = currentPath.split("/project/")[1];
+    if (isAuthenticated !== null) getProjectByProjectId(sessionId);
+  }, [isAuthenticated]);
 
-    // if (!bypassAuthCheckRoutes[currPath]) authCheck();
+  useEffect(() => {
+    let isMounted: boolean = true;
+    const currentPath = window.location.pathname;
+    const authCheck = async () => {
+      try {
+        const res = await AuthService.tempAuthCheck();
+        if (isMounted)
+          if (res.status === 200) setIsAuthenticated(true);
+          else setIsAuthenticated(false);
+      } catch (err) {
+        if (isMounted) setIsAuthenticated(false);
+      }
+    };
+
+    if (!bypassAuthCheckRoutes[currentPath]) authCheck();
   }, []);
 
   const getProjectByProjectId = async (projectId: string) => {
     try {
       const res = await ProjectService.getProjectByProjectId(projectId);
-      console.log("debug project res", res);
       setProjectShareType(res.projectShareType);
-      if (res.projectShareType === 1) setIsAuthenticated(true);
-      else setIsAuthenticated(false);
+      if (isAuthenticated === false && res.projectShareType === 1)
+        setIsAuthenticated(true);
     } catch (err) {
       console.error(err);
     }

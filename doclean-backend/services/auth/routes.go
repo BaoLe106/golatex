@@ -9,6 +9,7 @@ func AddAuthRoutes(rg *gin.RouterGroup, cognitoAuth *CognitoAuth) {
 	authRoute := rg.Group("/auth")
 	// authHandler := NewHandler()
 	// projectRoute.POST("eSignin/:projectId", rate_limiter.RateLimitMiddleware(rate.Every(4*time.Minute/10), 10), ESignInHandler)
+	authRoute.GET("/eAuthCheck", AuthCheckForESignin)
 	authRoute.POST("/eSignin/:projectId", CreateTokenForESignin)
 	authRoute.POST("/refresh", cognitoAuth.RefreshToken)
 	authRoute.POST("/signup", cognitoAuth.SignUp)

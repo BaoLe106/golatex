@@ -42,6 +42,12 @@ export const AuthService = (() => {
     return await apiClient.post(apiUrl, data, config);
   };
 
+  const tempAuthCheck = async () => {
+    const apiUrl = `/auth/eAuthCheck`;
+    const res = await apiClient.get(apiUrl);
+    return res;
+  };
+
   const getNewAccessToken = async (data: RefreshTokenSchema) => {
     const apiUrl = `/auth/refresh`;
     const config = {
@@ -100,6 +106,7 @@ export const AuthService = (() => {
   };
 
   return {
+    tempAuthCheck,
     tempSignIn,
     getUserInfoByUserEmail,
     getNewAccessToken,

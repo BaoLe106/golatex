@@ -19,21 +19,21 @@ import { Input } from "@/components/ui/input";
 
 const ProtectedRoutes = () => {
   const { isAuthenticated, tempSignIn } = useAuth();
-  const [email, setEmail] = useState<string>('');
+  const [email, setEmail] = useState<string>("");
   useEffect(() => {
-    console.log("debug is authenticated", isAuthenticated)
-  //   const checkAuth = async () => {
-  //     try {
-  //       const res = await AuthService.authCheck();
-  //       if (res.status === 200) {
-  //         setIsAuthenticated(true);
-  //       }
-  //     } catch (error) {
-  //       setIsAuthenticated(false);
-  //     }
-  //   };
+    console.log("debug is authenticated", isAuthenticated);
+    //   const checkAuth = async () => {
+    //     try {
+    //       const res = await AuthService.authCheck();
+    //       if (res.status === 200) {
+    //         setIsAuthenticated(true);
+    //       }
+    //     } catch (error) {
+    //       setIsAuthenticated(false);
+    //     }
+    //   };
 
-  //   checkAuth();
+    //   checkAuth();
   }, []);
 
   if (isAuthenticated === null) {
@@ -41,58 +41,51 @@ const ProtectedRoutes = () => {
   } else {
     return (
       <>
-        {isAuthenticated === true && (
+        {isAuthenticated === true ? (
           <Outlet />
-        )}
-        {isAuthenticated === false && (
+        ) : isAuthenticated === false ? (
           <Dialog
-          open={true}
-          onOpenChange={() => {
-            // setIsShowingSelectLoginMethodModal(false);
-            // navigate("/");
-          }}
-        >
-          <DialogContent className="w-96" overlay={true}>
-            <DialogHeader>
-              <DialogTitle className="text-xl text-center">
-                <br/>
-                Please enter your email to join the project
-              </DialogTitle>
-            </DialogHeader>
-  
+            open={true}
+            onOpenChange={() => {
+              // setIsShowingSelectLoginMethodModal(false);
+              // navigate("/");
+            }}
+          >
+            <DialogContent className="w-96" overlay={true}>
+              <DialogHeader>
+                <DialogTitle className="text-xl text-center">
+                  <br />
+                  Please enter your email to join the project
+                </DialogTitle>
+              </DialogHeader>
+
               <div className="flex justify-center items-center space-x-4">
-                <Input 
+                <Input
                   autoFocus
                   type="email"
                   placeholder="Enter your email"
                   value={email}
-                        onChange={(e) => 
-                          setEmail(e.target.value)}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
-  
-  <DialogFooter className="justify-end">
-              {/* <DialogClose asChild> */}
-              <Button 
-                type="button" 
-                disabled={!email}
-                onClick={() => tempSignIn(email)}
-              >
-                Join
-              </Button>
-            </DialogFooter>
-  
-          </DialogContent>
-        </Dialog>
-        )}
-           
-      </> 
-    )
+
+              <DialogFooter className="justify-end">
+                {/* <DialogClose asChild> */}
+                <Button
+                  type="button"
+                  disabled={!email}
+                  onClick={() => tempSignIn(email)}
+                >
+                  Join
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        ) : null}
+      </>
+    );
     // <Navigate to="/login" />;
   }
-
-
-  
 };
 
 export default ProtectedRoutes;

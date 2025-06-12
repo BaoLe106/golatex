@@ -27,7 +27,66 @@ func getSecretHash(username string) string {
 	return secretHash
 }
 
+func RemoveTokens(c *gin.Context) {
+	c.SetCookie(
+		"AccessToken", // name
+		"",            // value
+		-1,            // maxAge (in seconds)
+		"/",           // path
+		"localhost",   // domain
+		false,         // secure, later on set to true in prod
+		true,          // httpOnly
+	)
+	c.SetCookie(
+		"RefreshToken", // name
+		"",             // value
+		-1,             // maxAge (in seconds)
+		"/",            // path
+		"localhost",    // domain
+		false,          // secure, later on set to true in prod
+		true,           // httpOnly
+	)
+}
+
 // var secretKey = []byte("secret-key")
+func AuthCheckForESignin(c *gin.Context) {
+	accessToken, err := c.Cookie("AccessToken")
+	if err != nil {
+		refreshToken, err := c.Cookie("RefreshToken")
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
+			return
+		}	
+
+		newAccessToken, err := RefreshTokenForESignin(refreshToken)
+		if err != nil {
+			// remove tokens
+			RemoveTokens(c)	
+			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
+			return
+		}
+		
+		c.SetCookie(
+			"AccessToken",   // name
+			*newAccessToken, // value
+			7200,            // maxAge (in seconds)
+			"/",             // path
+			"localhost",     // domain
+			false,           // secure, later on set to true in prod
+			true,            // httpOnly
+		)
+		apiResponse.SendGetRequestResponse(c, http.StatusOK, nil)
+		return
+	}
+
+	_, tokenCode := VerifyTokenForESignin(accessToken, []byte(configs.Envs.SecretAccessTokenESignin))
+	if tokenCode != EnumTokenExisting {
+		apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
+		return
+	}
+
+	apiResponse.SendGetRequestResponse(c, http.StatusOK, nil)
+}
 
 func CreateTokenForESignin(c *gin.Context) {
 	projectId := c.Param("projectId")
@@ -97,7 +156,7 @@ func CreateTokenForESignin(c *gin.Context) {
 		true,               // httpOnly
 	)
 
-	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
+	apiResponse.SendPostRequestResponse(c, http.StatusOK, nil)
 }
 
 func VerifyTokenForESignin(tokenString string, secretKey []byte) (*jwt.Token, int) {
