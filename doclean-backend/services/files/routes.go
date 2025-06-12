@@ -30,4 +30,5 @@ func AddFileRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 			UploadFileHandler(ctx, jobManager, wsProvider.Handler.Hub)
 		},
 	)
+	fileRoute.POST("download", DownloadFileHandler)
 }

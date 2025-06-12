@@ -5,7 +5,9 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/BaoLe106/doclean/doclean-backend/configs"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
@@ -23,6 +25,151 @@ func getSecretHash(username string) string {
 
 	secretHash := base64.StdEncoding.EncodeToString(mac.Sum(nil))
 	return secretHash
+}
+
+// var secretKey = []byte("secret-key")
+
+func CreateTokenForESignin(c *gin.Context) {
+	projectId := c.Param("projectId")
+
+	var input map[string]any
+	err := json.NewDecoder(c.Request.Body).Decode(&input)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	email, _ := input["email"].(string)
+	err = GetProjectMemberByEmail(projectId, email)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var accessTokenSecret = []byte(configs.Envs.SecretAccessTokenESignin)
+	var refreshTokenSecret = []byte(configs.Envs.SecretRefreshTokenESignin)
+
+	accessToken := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"email": email,
+			"exp":   time.Now().Add(time.Hour * 2).Unix(),
+		},
+	)
+
+	refreshToken := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"email": email,
+			"exp":   time.Now().Add(time.Hour * 48).Unix(),
+		},
+	)
+
+	accessTokenString, err := accessToken.SignedString(accessTokenSecret)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	refreshTokenString, err := refreshToken.SignedString(refreshTokenSecret)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	fmt.Println("debug accessTokenString", accessTokenString)
+	c.SetCookie(
+		"AccessToken",     // name
+		accessTokenString, // value
+		7200,              // maxAge (in seconds)
+		"/",               // path
+		"localhost",       // domain
+		false,             // secure, later on set to true in prod
+		true,              // httpOnly
+	)
+
+	c.SetCookie(
+		"RefreshToken",     // name
+		refreshTokenString, // value
+		172800,             // maxAge (in seconds)
+		"/",                // path
+		"localhost",        // domain
+		false,              // secure, later on set to true in prod
+		true,               // httpOnly
+	)
+
+	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
+}
+
+func VerifyTokenForESignin(tokenString string, secretKey []byte) (*jwt.Token, int) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		return secretKey, nil
+	})
+
+	if err != nil {
+		// Check if the error is due to expiration
+		if ve, ok := err.(*jwt.ValidationError); ok {
+			if ve.Errors&jwt.ValidationErrorExpired != 0 {
+				return nil, EnumTokenExpired
+			}
+		}
+		return nil, EnumTokenError
+	}
+
+	if !token.Valid {
+		return nil, EnumTokenError
+	}
+
+	return token, EnumTokenExisting
+}
+
+// func VerifyTokenForESignin(c *gin.Context) {
+// 	accessToken, err := c.Cookie("AccessToken")
+// 	if err != nil {
+// 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+// 		return
+// 	}
+
+// 	tokenCode := verifyTokenForESignin(accessToken, []byte(configs.Envs.SecretAccessTokenESignin))
+// 	if tokenCode == EnumTokenExpired {
+// 		//refresh token
+// 		return
+// 	}
+// 	if tokenCode != EnumTokenExisting {
+// 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "AccessToken is not valid")
+// 		return
+// 	}
+
+// 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
+// }
+
+func RefreshTokenForESignin(refreshToken string) (*string, error) {
+	token, tokenCode := VerifyTokenForESignin(refreshToken, []byte(configs.Envs.SecretRefreshTokenESignin))
+	if tokenCode != EnumTokenExisting {
+		return nil, fmt.Errorf("token expired, login again")
+	}
+
+	// claims token
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+	email := claims["email"].(string)
+
+	accessToken := jwt.NewWithClaims(
+		jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"email": email,
+			"exp":   time.Now().Add(time.Hour * 2).Unix(),
+		},
+	)
+
+	var accessTokenSecret = []byte(configs.Envs.SecretAccessTokenESignin)
+	accessTokenString, err := accessToken.SignedString(accessTokenSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &accessTokenString, nil
 }
 
 func (cognitoAuth *CognitoAuth) RefreshToken(c *gin.Context) {

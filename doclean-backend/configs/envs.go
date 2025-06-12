@@ -11,6 +11,10 @@ type Config struct {
 	Port       string
 	DBUser     string
 	DBPassword string
+
+	SecretAccessTokenESignin  string
+	SecretRefreshTokenESignin string
+
 	// DBAddress		string
 	DBName          string
 	UserPoolID      string
@@ -36,8 +40,11 @@ func initConfig() Config {
 		Port:       getEnv("PORT", "5000"),
 		DBUser:     getEnv("DB_USER", "admin"),
 		DBPassword: getEnv("DB_PASSWORD", "mypassword"),
+		DBName:     getEnv("DB_NAME", "golatex"),
 
-		DBName:       getEnv("DB_NAME", "golatex"),
+		SecretAccessTokenESignin:  getEnv("SECRET_ACCESS_TOKEN_E_SIGNIN", "default"),
+		SecretRefreshTokenESignin: getEnv("SECRET_REFRESH_TOKEN_E_SIGNIN", "default"),
+
 		UserPoolID:   getEnv("USER_POOL_ID", "default"),
 		ClientID:     getEnv("CLIENT_ID", "default"),
 		ClientSecret: getEnv("CLIENT_SECRET", "default"),
@@ -45,7 +52,7 @@ func initConfig() Config {
 		AccessKey:       getEnv("ACCESS_KEY", "default"),
 		SecretAccessKey: getEnv("SECRET_ACCESS_KEY", "default"),
 		Region:          getEnv("REGION", "default"),
-		SESRegion:          getEnv("SES_REGION", "default"),
+		SESRegion:       getEnv("SES_REGION", "default"),
 
 		RedisAddr:     getEnv("REDIS_ADDR", ""),
 		RedisUsername: getEnv("REDIS_USERNAME", "default"),

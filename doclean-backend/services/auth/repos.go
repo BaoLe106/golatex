@@ -27,7 +27,7 @@ func CreateUserInfo(userInfo UserInfoPayload) error {
 			created_at,
 			last_updated_at
 		) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-	`, 
+	`,
 		userInfo.UserId,
 		userInfo.UserTier,
 		userInfo.SubscriptionEndTime,
@@ -38,14 +38,16 @@ func CreateUserInfo(userInfo UserInfoPayload) error {
 
 	return err
 }
+
 // UserId 								uuid.UUID 		`json:"userId"`
-// 	UserTier 							string				`json:"userTier"`
-// 	SubcriptionEndTime		*time.Time 		`json:"subcriptionEndTime"`
-// 	Email									string				`json:"email"`
-// 	Password							string				`json:"password"`
-// 	IsConfirmed						bool					`json:"isConfirmed"`
-// 	CreatedAt   					time.Time 		`json:"createdAt"`
-// 	LastUpdatedAt   			time.Time 		`json:"lastUpdatedAt"`
+//
+//	UserTier 							string				`json:"userTier"`
+//	SubcriptionEndTime		*time.Time 		`json:"subcriptionEndTime"`
+//	Email									string				`json:"email"`
+//	Password							string				`json:"password"`
+//	IsConfirmed						bool					`json:"isConfirmed"`
+//	CreatedAt   					time.Time 		`json:"createdAt"`
+//	LastUpdatedAt   			time.Time 		`json:"lastUpdatedAt"`
 func GetUserInfoByUserEmail(email string) (*UserInfoSchema, error) {
 	result := db.DB.QueryRow(`
 		SELECT 
@@ -63,7 +65,7 @@ func GetUserInfoByUserEmail(email string) (*UserInfoSchema, error) {
 	userInfo := UserInfoSchema{}
 
 	err := result.Scan(
-		&userInfo.UserId, 
+		&userInfo.UserId,
 		&userInfo.UserTier,
 		&userInfo.SubscriptionEndTime,
 		&userInfo.Email,
@@ -83,7 +85,7 @@ func UpdateUserInfo(email string, updates map[string]any) error {
 	if len(updates) == 0 {
 		return fmt.Errorf("no updates provided")
 	}
-	
+
 	// Build the SQL query dynamically
 	setClauses := []string{}
 	values := []interface{}{}
@@ -99,7 +101,26 @@ func UpdateUserInfo(email string, updates map[string]any) error {
 	values = append(values, email)
 
 	_, err := db.DB.Exec(query, values...)
-	
 
 	return err
+}
+
+func GetProjectMemberByEmail(projectId string, email string) error {
+	var count int
+	err := db.DB.QueryRow(`
+		SELECT COUNT(*)
+		FROM project_member
+		WHERE project_id = $1
+		AND email = $2
+	`, projectId, email).Scan(&count)
+
+	if err != nil {
+		return err
+	}
+
+	if count == 0 {
+		return fmt.Errorf("no record found")
+	}
+
+	return nil
 }

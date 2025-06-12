@@ -17,8 +17,8 @@ type CreateFilePayload struct {
 	Content       string    `json:"content"`
 	CreatedBy     uuid.UUID `json:"createdBy"`
 	LastUpdatedBy uuid.UUID `json:"lastUpdatedBy"`
-	Origin        int       `json:"origin"` //0 -> create from app; 1 -> import from local then upload to s3
-	ContentType  	string    `json:"contentType"` // e.g. "text/plain", "application/json", etc.
+	Origin        int       `json:"origin"`      //0 -> create from app; 1 -> import from local then upload to s3
+	ContentType   string    `json:"contentType"` // e.g. "text/plain", "application/json", etc.
 }
 
 type SaveFileContentPayload struct {
@@ -29,13 +29,13 @@ type SaveFileContentPayload struct {
 }
 
 type CreateFileOnLocalJobPayload struct {
-	ProjectID string    `json:"projectId"`
-	FileID    uuid.UUID `json:"fileId"`
-	FileName  string    `json:"fileName"`
-	FileType  string    `json:"fileType"`
-	FileDir   string    `json:"fileDir"`
-	Content   string    `json:"content"`
-	ContentType  	string    `json:"contentType"` // e.g. "text/plain", "application/json", etc.
+	ProjectID   string    `json:"projectId"`
+	FileID      uuid.UUID `json:"fileId"`
+	FileName    string    `json:"fileName"`
+	FileType    string    `json:"fileType"`
+	FileDir     string    `json:"fileDir"`
+	Content     string    `json:"content"`
+	ContentType string    `json:"contentType"` // e.g. "text/plain", "application/json", etc.
 }
 
 type FileSchema struct {
@@ -47,7 +47,7 @@ type FileSchema struct {
 	Origin        int       `json:"origin"`
 	LastUpdatedBy uuid.UUID `json:"lastUpdatedBy"`
 	LastUpdatedAt time.Time `json:"lastUpdatedAt"`
-	ContentType  	*string    `json:"contentType"` // e.g. "text/plain", "application/json", etc.
+	ContentType   *string   `json:"contentType"` // e.g. "text/plain", "application/json", etc.
 }
 
 // Node represents a node in the file tree

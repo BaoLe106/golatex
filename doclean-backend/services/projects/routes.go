@@ -1,21 +1,28 @@
 package projects
 
 import (
-	"time"
+	// "time"
 
-	rate_limiter "github.com/BaoLe106/doclean/doclean-backend/middleware/rate_limiter"
+	// rate_limiter "github.com/BaoLe106/doclean/doclean-backend/middleware/rate_limiter"
+	token "github.com/BaoLe106/doclean/doclean-backend/middleware/token"
 	"github.com/BaoLe106/doclean/doclean-backend/services/auth"
 	"github.com/gin-gonic/gin"
-	"golang.org/x/time/rate"
+	// "golang.org/x/time/rate"
 )
 
 func AddProjectRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	projectRoute := rg.Group("/project")
 
 	projectRoute.GET("/:projectId", GetProjectInfoByProjectIdHandler)
-	projectRoute.GET("/member/:projectId", GetProjectMemberHandler)
-	projectRoute.POST("eSignin/:projectId", rate_limiter.RateLimitMiddleware(rate.Every(4*time.Minute/10), 10), ESignInHandler)
 	projectRoute.POST("/:projectId", CreateProjectInfoHandler)
+
+	projectRoute.Use(
+		token.VerifyTokenMiddleware(),
+	)
+
+	projectRoute.GET("/member/:projectId", GetProjectMemberHandler)
+	// projectRoute.POST("eSignin/:projectId", rate_limiter.RateLimitMiddleware(rate.Every(4*time.Minute/10), 10), ESignInHandler)
+
 	projectRoute.PUT("/:projectId", UpdateProjectInfoHandler)
 	projectRoute.DELETE("/member/:projectId/:memberId", DeleteProjectMemberHandler)
 	projectRoute.DELETE("/:projectId", UpdateProjectInfoHandler)

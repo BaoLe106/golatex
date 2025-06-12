@@ -273,11 +273,9 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		// Example: uploadToS3(fileHeader, filename, contentType)
 		file.Seek(0, io.SeekStart) // Reset reader position
 		contentType := fileHeader.Header.Get("Content-Type")
-		fmt.Println("#DEBUG::contentType", contentType)
-		s3Client := s3Provider.S3Client
-
 		objectKey := fmt.Sprintf("input/%s%s/%s", sessionId, currentFolder, fileName)
-		fmt.Println("#DEBUG::objectKey", objectKey)
+
+		s3Client := s3Provider.S3Client
 		_, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
 			// _, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 			Bucket:      aws.String(os.Getenv("S3_BUCKET")),
@@ -285,11 +283,11 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 			Body:        file, //*os.File
 			ContentType: aws.String(contentType),
 		})
-
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 			return
 		}
+
 		file.Seek(0, io.SeekStart) // Reset reader position
 		mtype, err := mimetype.DetectReader(file)
 		if err != nil {
@@ -346,4 +344,49 @@ func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 	}
 
 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
+}
+
+func DownloadFileHandler(c *gin.Context) {
+	var input CreateFileOnLocalJobPayload
+	err := json.NewDecoder(c.Request.Body).Decode(&input)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	file, err := os.Open(input.FileDir + "/" + input.FileName + "." + input.FileType)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	defer file.Close()
+
+	objectKey := fmt.Sprintf("input/%s%s/%s", input.ProjectID, input.FileDir, input.FileName+"."+input.FileType)
+
+	s3Client := s3Provider.S3Client
+	_, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
+		Bucket:      aws.String(os.Getenv("S3_BUCKET")),
+		Key:         aws.String(objectKey),
+		Body:        file, //*os.File
+		ContentType: aws.String(input.ContentType),
+	})
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
+		&s3.GetObjectInput{
+			Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
+			Key:                        aws.String(objectKey),
+			ResponseContentType:        aws.String(input.ContentType),
+			ResponseContentDisposition: aws.String("inline"),
+		},
+		s3.WithPresignExpires(time.Minute*60),
+	)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	apiResponse.SendPostRequestResponse(c, http.StatusOK, presignedUrl)
 }
