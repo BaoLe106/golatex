@@ -121,22 +121,31 @@ const LatexEditorCodeMirror = ({
           console.log("debug err at editor", err);
         }
         break;
-      case "file_created":
-        if (fileTreeRef.current) {
-          fileTreeRef.current.updateTreeData(data.fileTree);
-        }
-        break;
-      case "file_uploaded":
-        if (fileTreeRef.current) {
-          fileTreeRef.current.updateTreeData(data.fileTree);
-        }
-        break;
-      case "update_content_with_file":
-        if (fileTreeRef.current) {
-          fileTreeRef.current.updateTreeData(data.fileTree);
-        }
-        break;
+      // case "file_created":
+      //   if (fileTreeRef.current) {
+      //     fileTreeRef.current.updateTreeData(data.fileTree);
+      //   }
+      //   break;
+      // case "file_uploaded":
+      //   if (fileTreeRef.current) {
+      //     fileTreeRef.current.updateTreeData(data.fileTree);
+      //   }
+      //   break;
+      // case "update_content_with_file":
+      //   if (fileTreeRef.current) {
+      //     fileTreeRef.current.updateTreeData(data.fileTree);
+      //   }
+      //   break;
+      // case "file_deleted":
+      //   if (fileTreeRef.current) {
+      //     fileTreeRef.current.updateTreeData(data.fileTree);
+      //   }
+      //   break;
       default:
+        if (fileTreeRef.current) {
+          fileTreeRef.current.updateTreeData(data.fileTree);
+        }
+        break;
       //any
     }
   }, []); // Only include dependencies that are used in the callback

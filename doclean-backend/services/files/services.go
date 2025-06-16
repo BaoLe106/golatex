@@ -45,6 +45,12 @@ func broadcastCreateFileInfoToSessionWork(message BroadcastInfoPayload) error {
 			SessionID:      message.SessionId,
 			CreateFileData: result,
 		}
+	case "file_deleted":
+		newMessage = wsProvider.SignalingMessage{
+			Type:           message.InfoType,
+			SessionID:      message.SessionId,
+			CreateFileData: result,
+		}
 	case "update_content_with_file":
 		newMessage = wsProvider.SignalingMessage{
 			Type:           message.InfoType,

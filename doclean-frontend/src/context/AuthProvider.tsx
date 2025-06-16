@@ -70,17 +70,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
     if (!bypassAuthCheckRoutes[currentPath] && sessionId) authCheck(sessionId);
+    getProjectByProjectId(sessionId);
   }, []);
 
   const getProjectByProjectId = async (projectId: string) => {
     try {
       const res = await ProjectService.getProjectByProjectId(projectId);
       setProjectShareType(res.projectShareType);
-      if (isAuthenticated !== true && res.projectShareType !== 2) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-      }
+      // if (isAuthenticated !== true && res.projectShareType !== 2) {
+      //   setIsAuthenticated(true);
+      // } else {
+      //   setIsAuthenticated(false);
+      // }
     } catch (err) { 
       console.error(err);
     }

@@ -127,29 +127,30 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		defer file.Close()
 
 		// Write the content to the file
-		_, err = file.WriteString(input.Content)
-		if err != nil {
-			fmt.Println("Error here 2")
-			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-			return
-		}
+		// _, err = file.WriteString(input.Content)
+		// if err != nil {
+		// 	fmt.Println("Error here 2")
+		// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		// 	return
+		// }
 
-		f, err := os.Open(fileName)
-		if err != nil {
-			fmt.Println("Error here 2.5")
-			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-			return
-		}
-		defer f.Close()
+		// f, err := os.Open(fileName)
+		// if err != nil {
+		// 	fmt.Println("Error here 2.5")
+		// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		// 	return
+		// }
+		// defer f.Close()
 
-		buffer := make([]byte, 512)
-		_, err = f.Read(buffer)
-		if err != nil {
-			fmt.Println("Error here 2.8")
-			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-			return
-		}
-		fileContentType = http.DetectContentType(buffer)
+		// buffer := make([]byte, 512)
+		// _, err = f.Read(buffer)
+		// if err != nil {
+		// 	fmt.Println("Error here 2.8")
+		// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		// 	return
+		// }
+		fileContentType = "application/octet-stream"
+		// http.DetectContentType(buffer)
 	}
 	fmt.Println("#DEBUG::fileContentType", fileContentType)
 	// fileFromDb, err := GetFileByFileId(input.FileID)
@@ -392,7 +393,7 @@ func DownloadFileHandler(c *gin.Context) {
 }
 
 func DeleteFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.Hub) {
-	// sessionId := c.Param("sessionId")
+	sessionId := c.Param("sessionId")
 	fileId := c.Param("fileId")
 
 	err := DeleteFile(fileId)
@@ -401,17 +402,16 @@ func DeleteFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		return
 	}
 
-	// payload := BroadcastInfoPayload{
-	// 	Hub:       hub,
-	// 	SessionId: sessionId,
-	// 	InfoType:  "file_deleted",
-	// 	FileID:    input.FileID,
-	// }
+	payload := BroadcastInfoPayload{
+		Hub:       hub,
+		SessionId: sessionId,
+		InfoType:  "file_deleted",
+	}
 
-	// done := jobManager.EnqueueBroadcastDeleteFileInfoToSessionJob(payload)
-	// if err := <-done; err != nil {
-	// 	fmt.Println("##LOG##: Error boardcasting delete file info to session:", err.Error())
-	// }
+	done := jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)
+	if err := <-done; err != nil {
+		fmt.Println("##LOG##: Error boardcasting delete file info to session:", err.Error())
+	}
 
 	apiResponse.SendPostRequestResponse(c, http.StatusOK, nil)
 }

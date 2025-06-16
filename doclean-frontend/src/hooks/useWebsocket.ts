@@ -88,6 +88,14 @@ const useWebsocket = ({
           data: message.createFileData,
         });
         break;
+      case "file_deleted":
+        handleNotifyFileDeleted();
+        onDataReceived({
+          type: type,
+          sessionId: incomingSessionId,
+          data: message.createFileData,
+        });
+        break;
       case "update_content":
         onDataReceived({
           type: type,
@@ -129,6 +137,10 @@ const useWebsocket = ({
 
   const handleNotifyFileUploaded = useCallback(() => {
     toast.info(`Some files has been uploaded`);
+  }, []);
+
+  const handleNotifyFileDeleted = useCallback(() => {
+    toast.info(`A file has been deleted`);
   }, []);
 
   // Return an object with connection state and methods

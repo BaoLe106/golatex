@@ -150,11 +150,8 @@ func (jm *JobManager) EnqueueBroadcastCreateFileInfoToSessionJob(job BroadcastIn
 	done := make(chan error, 1)
 	jm.WG.Add(1)
 
-	jm.AfterCreateFileJobs <- job
 	go func() {
-		//possibly optional
-		// jm.WG.Wait()
-		// possibly optional
+		jm.AfterCreateFileJobs <- job
 		err := <-jm.Errors
 
 		done <- err

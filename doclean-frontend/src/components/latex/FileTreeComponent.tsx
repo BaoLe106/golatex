@@ -350,6 +350,23 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
         avoidTriggerSelectTreeNodeOnDownloadFile.current = false;
       }
     }
+
+    const deleteFile = async (fileId: string) => {
+      if (!sessionId) return;
+      // const currFile = filesData.find((file: any) => file.fileId === fileId);
+      // if (!currFile) return;
+
+      avoidTriggerSelectTreeNodeOnDownloadFile.current = true;
+      try {
+        await TexFileService.deleteFile(sessionId, fileId);
+        // setIsFinishedCreatingFileOrFolder(true);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        avoidTriggerSelectTreeNodeOnDownloadFile.current = false;
+      }
+    }
+
     return (
       <>
         {/* For Download File */}
@@ -592,6 +609,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                     <ContextMenuItem
                       inset
                       className="text-red-600 focus:text-red-600 focus:bg-red-100 dark:focus:bg-red-900"
+                      onClick={() => deleteFile(node.fileId)}
                     >
                       Delete
                     </ContextMenuItem>

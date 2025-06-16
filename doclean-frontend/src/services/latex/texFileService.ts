@@ -60,8 +60,8 @@ export const TexFileService = (() => {
     return await apiClient.post(apiUrl, data, config);
   };
 
-  const deleteFile = async (fileId: string) => {
-    const apiUrl = `/file/${fileId}`;
+  const deleteFile = async (sessionId:string, fileId: string) => {
+    const apiUrl = `/file/${sessionId}/${fileId}`;
     const config = {
       headers: {
         "Content-Type": "application/json",
