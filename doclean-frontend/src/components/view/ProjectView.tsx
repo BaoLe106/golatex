@@ -138,7 +138,7 @@ const ProjectView: React.FC = () => {
     <ContainerLayout className="w-full">
       <div className="w-full flex flex-col">
         {/* <LatexEditor /> */}
-        {projectShareType ? (
+        {projectShareType !== null ? (
           <LatexEditorCodeMirror projectShareType={projectShareType}/>
         ) : null}
         

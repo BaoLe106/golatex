@@ -47,35 +47,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const { sessionId } = useParams<{ sessionId: string }>();
   useEffect(() => {
-    const currentPath = window.location.pathname;
-    const sessionId = currentPath.split("/project/")[1];
-    if (isAuthenticated !== null) getProjectByProjectId(sessionId);
-  }, [isAuthenticated]);
+    // const currentPath = window.location.pathname;
+    // const sessionId = currentPath.split("/project/")[1];
+    // getProjectByProjectId(sessionId);
+    // console.log("debug sessionId", sessionId);
+  }, []);
 
   useEffect(() => {
+
+    console.log("debug isAuthenticated", isAuthenticated);
     let isMounted: boolean = true;
     const currentPath = window.location.pathname;
-    const authCheck = async () => {
+    const sessionId = currentPath.split("/project/")[1];
+    const authCheck = async (sessionId: string) => {
       try {
-        const res = await AuthService.tempAuthCheck();
-        if (isMounted)
-          if (res.status === 200) setIsAuthenticated(true);
-          else setIsAuthenticated(false);
-      } catch (err) {
-        if (isMounted) setIsAuthenticated(false);
+        const res = await AuthService.tempAuthCheck(sessionId);
+        if (isMounted && res.status === 200)
+          setIsAuthenticated(true);
+      } catch (err: any) {
+        // if (err?.status !== 401 && isMounted)
+        setIsAuthenticated(false);
       }
     };
-
-    if (!bypassAuthCheckRoutes[currentPath]) authCheck();
+    if (!bypassAuthCheckRoutes[currentPath] && sessionId) authCheck(sessionId);
   }, []);
 
   const getProjectByProjectId = async (projectId: string) => {
     try {
       const res = await ProjectService.getProjectByProjectId(projectId);
       setProjectShareType(res.projectShareType);
-      if (isAuthenticated === false && res.projectShareType === 1)
+      if (isAuthenticated !== true && res.projectShareType !== 2) {
         setIsAuthenticated(true);
-    } catch (err) {
+      } else {
+        setIsAuthenticated(false);
+      }
+    } catch (err) { 
       console.error(err);
     }
   };

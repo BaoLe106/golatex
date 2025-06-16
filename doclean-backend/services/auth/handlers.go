@@ -27,64 +27,9 @@ func getSecretHash(username string) string {
 	return secretHash
 }
 
-func RemoveTokens(c *gin.Context) {
-	c.SetCookie(
-		"AccessToken", // name
-		"",            // value
-		-1,            // maxAge (in seconds)
-		"/",           // path
-		"localhost",   // domain
-		false,         // secure, later on set to true in prod
-		true,          // httpOnly
-	)
-	c.SetCookie(
-		"RefreshToken", // name
-		"",             // value
-		-1,             // maxAge (in seconds)
-		"/",            // path
-		"localhost",    // domain
-		false,          // secure, later on set to true in prod
-		true,           // httpOnly
-	)
-}
-
 // var secretKey = []byte("secret-key")
 func AuthCheckForESignin(c *gin.Context) {
-	accessToken, err := c.Cookie("AccessToken")
-	if err != nil {
-		refreshToken, err := c.Cookie("RefreshToken")
-		if err != nil {
-			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
-			return
-		}	
-
-		newAccessToken, err := RefreshTokenForESignin(refreshToken)
-		if err != nil {
-			// remove tokens
-			RemoveTokens(c)	
-			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
-			return
-		}
-		
-		c.SetCookie(
-			"AccessToken",   // name
-			*newAccessToken, // value
-			7200,            // maxAge (in seconds)
-			"/",             // path
-			"localhost",     // domain
-			false,           // secure, later on set to true in prod
-			true,            // httpOnly
-		)
-		apiResponse.SendGetRequestResponse(c, http.StatusOK, nil)
-		return
-	}
-
-	_, tokenCode := VerifyTokenForESignin(accessToken, []byte(configs.Envs.SecretAccessTokenESignin))
-	if tokenCode != EnumTokenExisting {
-		apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Unauthorized")
-		return
-	}
-
+	// Have a middleware beforehand to verify the token
 	apiResponse.SendGetRequestResponse(c, http.StatusOK, nil)
 }
 
@@ -157,78 +102,6 @@ func CreateTokenForESignin(c *gin.Context) {
 	)
 
 	apiResponse.SendPostRequestResponse(c, http.StatusOK, nil)
-}
-
-func VerifyTokenForESignin(tokenString string, secretKey []byte) (*jwt.Token, int) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		return secretKey, nil
-	})
-
-	if err != nil {
-		// Check if the error is due to expiration
-		if ve, ok := err.(*jwt.ValidationError); ok {
-			if ve.Errors&jwt.ValidationErrorExpired != 0 {
-				return nil, EnumTokenExpired
-			}
-		}
-		return nil, EnumTokenError
-	}
-
-	if !token.Valid {
-		return nil, EnumTokenError
-	}
-
-	return token, EnumTokenExisting
-}
-
-// func VerifyTokenForESignin(c *gin.Context) {
-// 	accessToken, err := c.Cookie("AccessToken")
-// 	if err != nil {
-// 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-// 		return
-// 	}
-
-// 	tokenCode := verifyTokenForESignin(accessToken, []byte(configs.Envs.SecretAccessTokenESignin))
-// 	if tokenCode == EnumTokenExpired {
-// 		//refresh token
-// 		return
-// 	}
-// 	if tokenCode != EnumTokenExisting {
-// 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "AccessToken is not valid")
-// 		return
-// 	}
-
-// 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
-// }
-
-func RefreshTokenForESignin(refreshToken string) (*string, error) {
-	token, tokenCode := VerifyTokenForESignin(refreshToken, []byte(configs.Envs.SecretRefreshTokenESignin))
-	if tokenCode != EnumTokenExisting {
-		return nil, fmt.Errorf("token expired, login again")
-	}
-
-	// claims token
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, fmt.Errorf("invalid token claims")
-	}
-	email := claims["email"].(string)
-
-	accessToken := jwt.NewWithClaims(
-		jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"email": email,
-			"exp":   time.Now().Add(time.Hour * 2).Unix(),
-		},
-	)
-
-	var accessTokenSecret = []byte(configs.Envs.SecretAccessTokenESignin)
-	accessTokenString, err := accessToken.SignedString(accessTokenSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	return &accessTokenString, nil
 }
 
 func (cognitoAuth *CognitoAuth) RefreshToken(c *gin.Context) {

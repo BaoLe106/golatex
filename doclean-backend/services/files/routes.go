@@ -31,4 +31,9 @@ func AddFileRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 		},
 	)
 	fileRoute.POST("download", DownloadFileHandler)
+	fileRoute.DELETE("/:sessionId/:fileId",
+		func(ctx *gin.Context) {
+			DeleteFileHandler(ctx, jobManager, wsProvider.Handler.Hub)
+		},
+	)
 }

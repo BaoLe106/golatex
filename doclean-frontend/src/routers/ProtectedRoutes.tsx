@@ -20,21 +20,6 @@ import { Input } from "@/components/ui/input";
 const ProtectedRoutes = () => {
   const { isAuthenticated, tempSignIn } = useAuth();
   const [email, setEmail] = useState<string>("");
-  useEffect(() => {
-    console.log("debug is authenticated", isAuthenticated);
-    //   const checkAuth = async () => {
-    //     try {
-    //       const res = await AuthService.authCheck();
-    //       if (res.status === 200) {
-    //         setIsAuthenticated(true);
-    //       }
-    //     } catch (error) {
-    //       setIsAuthenticated(false);
-    //     }
-    //   };
-
-    //   checkAuth();
-  }, []);
 
   if (isAuthenticated === null) {
     return <div>Loading...</div>; // Optional loading state
@@ -42,6 +27,7 @@ const ProtectedRoutes = () => {
     return (
       <>
         {isAuthenticated === true ? (
+          // <div>hello</div>
           <Outlet />
         ) : isAuthenticated === false ? (
           <Dialog

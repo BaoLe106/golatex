@@ -353,3 +353,23 @@ func SaveFileContent(input SaveFileContentPayload) error {
 
 	return err
 }
+
+func DeleteFile(fileId string) error {
+	// Delete the file from the database
+	_, err := db.DB.Exec(`
+		DELETE FROM file_info 
+		WHERE file_id = $1
+	`, fileId)
+
+	if err != nil {
+		return err
+	}
+
+	// Delete the file from S3
+	// err = redis.DeleteFileFromS3(fileId)
+	// if err != nil {
+	// 	return err
+	// }
+
+	return nil
+}

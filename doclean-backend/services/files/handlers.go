@@ -354,39 +354,64 @@ func DownloadFileHandler(c *gin.Context) {
 		return
 	}
 
-	file, err := os.Open(input.FileDir + "/" + input.FileName + "." + input.FileType)
-	if err != nil {
-		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	defer file.Close()
-
+	// file, err := os.Open(input.FileDir + "/" + input.FileName + "." + input.FileType)
+	// if err != nil {
+	// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+	// 	return
+	// }
+	// defer file.Close()
+	// fmt.Println("#DEBUG::file_dir", input)
 	objectKey := fmt.Sprintf("input/%s%s/%s", input.ProjectID, input.FileDir, input.FileName+"."+input.FileType)
-
+	fmt.Println("#DEBUG::objectKey", objectKey)
 	s3Client := s3Provider.S3Client
-	_, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
-		Bucket:      aws.String(os.Getenv("S3_BUCKET")),
-		Key:         aws.String(objectKey),
-		Body:        file, //*os.File
-		ContentType: aws.String(input.ContentType),
-	})
-	if err != nil {
-		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
+	// _, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
+	// 	Bucket:      aws.String(os.Getenv("S3_BUCKET")),
+	// 	Key:         aws.String(objectKey),
+	// 	Body:        file, //*os.File
+	// 	ContentType: aws.String(input.ContentType),
+	// })
+	// if err != nil {
+	// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+	// 	return
+	// }
 
 	presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
 		&s3.GetObjectInput{
 			Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
 			Key:                        aws.String(objectKey),
 			ResponseContentType:        aws.String(input.ContentType),
-			ResponseContentDisposition: aws.String("inline"),
+			ResponseContentDisposition: aws.String("attachment; filename=\"" + input.FileName + "." + input.FileType + "\""),
 		},
-		s3.WithPresignExpires(time.Minute*60),
+		s3.WithPresignExpires(time.Minute*1),
 	)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 	apiResponse.SendPostRequestResponse(c, http.StatusOK, presignedUrl)
+}
+
+func DeleteFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.Hub) {
+	// sessionId := c.Param("sessionId")
+	fileId := c.Param("fileId")
+
+	err := DeleteFile(fileId)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// payload := BroadcastInfoPayload{
+	// 	Hub:       hub,
+	// 	SessionId: sessionId,
+	// 	InfoType:  "file_deleted",
+	// 	FileID:    input.FileID,
+	// }
+
+	// done := jobManager.EnqueueBroadcastDeleteFileInfoToSessionJob(payload)
+	// if err := <-done; err != nil {
+	// 	fmt.Println("##LOG##: Error boardcasting delete file info to session:", err.Error())
+	// }
+
+	apiResponse.SendPostRequestResponse(c, http.StatusOK, nil)
 }

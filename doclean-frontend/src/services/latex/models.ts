@@ -1,15 +1,18 @@
+interface FileBase {
+  fileId: string;
+  fileName: string;
+  fileType: string;
+  fileDir: string;
+  content: string;
+}
+
 interface CompileToPdfPayload {
   sessionId: string;
   data: any;
 }
 
-interface CreateFilePayload {
-  fileId: string;
+interface CreateFilePayload extends FileBase{
   projectId: string;
-  fileName: string;
-  fileType: string;
-  fileDir: string;
-  content: string;
   createdBy: string;
   lastUpdatedBy: string;
 }
@@ -19,13 +22,12 @@ interface UploadFilePayload {
   formData: FormData;
 }
 
-interface FileData {
-  fileId: string;
-  fileName: string;
-  fileType: string;
-  fileDir: string;
-  content: string;
+interface FileData extends FileBase {
   contentType: string;
+}
+
+interface DownloadFilePayload extends FileData {
+  projectId: string;
 }
 
 // interface ContentData {
@@ -40,4 +42,5 @@ export type {
   CreateFilePayload,
   UploadFilePayload,
   FileData,
+  DownloadFilePayload
 };

@@ -3,6 +3,7 @@ import {
   CreateFilePayload,
   UploadFilePayload,
   CompileToPdfPayload,
+  DownloadFilePayload
 } from "@/services/latex/models";
 
 export const TexFileService = (() => {
@@ -49,10 +50,32 @@ export const TexFileService = (() => {
     return await apiClient.post(apiUrl, data.formData, config);
   };
 
+  const downloadFile = async (data: DownloadFilePayload) => {
+    const apiUrl = `/file/download`;
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    return await apiClient.post(apiUrl, data, config);
+  };
+
+  const deleteFile = async (fileId: string) => {
+    const apiUrl = `/file/${fileId}`;
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    return await apiClient.delete(apiUrl, config);
+  }
+
   return {
     compileToPdf,
     getFilesByProjectId,
     createFile,
     uploadFiles,
+    downloadFile,
+    deleteFile
   };
 })();

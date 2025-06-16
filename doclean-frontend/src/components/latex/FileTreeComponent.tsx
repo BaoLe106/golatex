@@ -1,10 +1,11 @@
-import { useEffect, useState, useImperativeHandle, forwardRef } from "react";
+import { useRef, useEffect, useState, useImperativeHandle, forwardRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { TexFileService } from "@/services/latex/texFileService";
 import {
   CreateFilePayload,
   // CompileToPdfPayload,
   FileData,
+  DownloadFilePayload
 } from "@/services/latex/models";
 import {
   getCurrentEditorData,
@@ -75,6 +76,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
     },
     ref
   ) => {
+    const avoidTriggerSelectTreeNodeOnDownloadFile = useRef<boolean>(false);
+
     const [isAddingFile, setIsAddingFile] = useState<boolean>(false);
     const [isAddingFolder, setIsAddingFolder] = useState<boolean>(false);
     const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
@@ -85,6 +88,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
     const [filesData, setFilesData] = useState<FileData[]>([]);
     const [isFinishedCreatingFileOrFolder, setIsFinishedCreatingFileOrFolder] =
       useState<boolean>(false);
+    const [downloadUrl, setDownloadUrl] = useState<string>("");
 
     useImperativeHandle(ref, () => ({
       updateTreeData: (newTreeData: TreeDataNode[]) => {
@@ -176,6 +180,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
     };
 
     const onSelect = (keys: any, info: any) => {
+      if (avoidTriggerSelectTreeNodeOnDownloadFile.current) return;
       console.log("Trigger Select", keys, info);
       // console.log("debug info key", info.node.key);
       if (info.node.key.length !== 3 || !info.node.isLeaf) {
@@ -312,10 +317,44 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       }
     };
 
-    // const onClick
-
+    const downloadFile = async (fileId: string) => {
+      avoidTriggerSelectTreeNodeOnDownloadFile.current = true;
+      if (!sessionId) return;
+      const currFile = filesData.find(
+        (file: any) => file.fileId === fileId
+      );
+      if (!currFile) return;
+      try {
+        const fileDirSplit = currFile.fileDir.split(currFile?.fileDir);
+        const fileDir = fileDirSplit.length > 1 ? `${fileDirSplit[1]}` : '';
+        console.log("debug fileDir", fileDir);
+        const res = await TexFileService.downloadFile({
+          fileId: currFile.fileId,
+          projectId: sessionId,
+          fileName: currFile.fileName,
+          fileType: currFile.fileType,
+          fileDir: fileDir,
+          content: currFile.content,
+          contentType: currFile.contentType,
+        } as DownloadFilePayload);
+        setDownloadUrl(res.data.URL);
+        setTimeout(() => {
+          const downloadLink = document.getElementById("download-component");
+          if (downloadLink) {
+            downloadLink.click();
+          }
+        }, 200)
+      } catch (err: any) {
+        console.log("debug err", err);
+      } finally {
+        avoidTriggerSelectTreeNodeOnDownloadFile.current = false;
+      }
+    }
     return (
       <>
+        {/* For Download File */}
+        <a id="download-component" className="hidden" href={downloadUrl} download></a>
+        {/* For Download File */}
         <UploadFileComponent
           isOpen={isUploadingFile}
           currSelectedFolder={currSelectedFolder}
@@ -506,11 +545,11 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
         <ScrollArea className="h-[89vh]">
           <DirectoryTree
             className="bg-inherit "
-            // multiple
-            // draggable
             defaultExpandAll
-            // rootClassName="text-black dark:text-white"
-            // showIcon
+            onRightClick={(info: any) => {
+              console.log("debug info", info);
+              return false;
+            }}
             switcherIcon={(node: any) => {
               // console.log(node.expanded);
               return node.expanded ? (
@@ -531,13 +570,18 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
             titleRender={(node: any) => {
               return (
                 <ContextMenu>
-                  <ContextMenuTrigger className="flex h-[24px] items-center w-full">
+                  <ContextMenuTrigger
+                   className="flex h-[24px] items-center w-full"
+                  >
                     <span className="flex w-full text-black dark:text-white dark:hover:text-white">
                       {node.title}
                     </span>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="w-52">
-                    <ContextMenuItem inset>
+                    <ContextMenuItem 
+                      inset
+                      onClick={() => downloadFile(node.fileId)}
+                    >
                       Download...
                       {/* <ContextMenuShortcut>⌘[</ContextMenuShortcut> */}
                     </ContextMenuItem>

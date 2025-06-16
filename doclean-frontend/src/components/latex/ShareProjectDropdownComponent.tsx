@@ -93,23 +93,17 @@ const ShareProjectDropdownComponent = ({
     console.log("debug projectShareType", projectShareType);
     switch (projectShareType) {
       case 0:
-        // code block
+        setRadioValue("none");
         break;
       case 1:
         setRadioValue("all");
-        // code block
         break;
       case 2:
-        console.log("debug r u here");
         setRadioValue("specific");
         break;
       default:
       // code block
     }
-
-    // if (projectShareType === 2) {
-    //   setRadioValue("specific")
-    // } else
     const handleClickOutside = (event: MouseEvent) => {
       if (
         inputComponentRef.current &&
@@ -136,7 +130,6 @@ const ShareProjectDropdownComponent = ({
     try {
       if (!sessionId) return;
       const res = await ProjectService.getProjectMember(sessionId);
-      console.log("debug res in get mem", res);
       if (res.data) {
         // let tempExistedMember: string[] = []
         setExistedMember(
@@ -291,9 +284,20 @@ const ShareProjectDropdownComponent = ({
                 <span>Invite Members</span>
               )}
             </DialogTitle>
+            <DialogDescription>
+              Share this project to
+            </DialogDescription>
           </DialogHeader>
           <div className="flex-col items-center space-x-2 space-y-4">
             <RadioGroup onValueChange={handleRadioChange} value={radioValue}>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem
+                  className="bg-inherit p-0"
+                  value="none"
+                  id="none"
+                />
+                <Label htmlFor="none">None</Label>
+              </div>
               <div className="flex items-center space-x-2">
                 <RadioGroupItem
                   className="bg-inherit p-0"
@@ -452,7 +456,7 @@ const ShareProjectDropdownComponent = ({
               onClick={() => {
                 setShowBackArrow(false);
                 setTimeout(() => {
-                  setRadioValue("specific");
+                  // setRadioValue("specific");
                   setIsLinkSettingDialogOpen(true);
                 }, 100);
               }}

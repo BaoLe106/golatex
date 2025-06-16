@@ -2,6 +2,7 @@ package auth
 
 import (
 	// user_tier_middleware "github.com/BaoLe106/doclean/doclean-backend/middleware/user_tier"
+	token "github.com/BaoLe106/doclean/doclean-backend/middleware/token"
 	"github.com/gin-gonic/gin"
 )
 
@@ -9,7 +10,7 @@ func AddAuthRoutes(rg *gin.RouterGroup, cognitoAuth *CognitoAuth) {
 	authRoute := rg.Group("/auth")
 	// authHandler := NewHandler()
 	// projectRoute.POST("eSignin/:projectId", rate_limiter.RateLimitMiddleware(rate.Every(4*time.Minute/10), 10), ESignInHandler)
-	authRoute.GET("/eAuthCheck", AuthCheckForESignin)
+	authRoute.GET("/eAuthCheck/:projectId", token.VerifyTokenMiddleware(), AuthCheckForESignin)
 	authRoute.POST("/eSignin/:projectId", CreateTokenForESignin)
 	authRoute.POST("/refresh", cognitoAuth.RefreshToken)
 	authRoute.POST("/signup", cognitoAuth.SignUp)

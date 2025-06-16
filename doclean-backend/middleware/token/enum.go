@@ -1,4 +1,4 @@
-package auth
+package token
 
 const (
 	EnumTokenExisting int = iota // EnumTokenExisting = 0
