@@ -1,15 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TexFileService } from "@/services/latex/texFileService";
 import {
-  Folder,
-  File,
-  FilePlus,
-  FolderPlus,
-  Check,
   X,
-  ChevronRight,
-  ChevronDown,
   FileUp,
   Upload,
   Loader2,
@@ -17,10 +10,8 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
   DialogClose,
   DialogDescription,

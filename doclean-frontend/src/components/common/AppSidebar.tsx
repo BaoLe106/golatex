@@ -4,7 +4,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -15,8 +14,6 @@ import {
   BookUser,
   Folders,
   Link2,
-  Search,
-  Settings,
   Plus,
 } from "lucide-react";
 

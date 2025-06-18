@@ -3,10 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
-  useCallback,
-  useMemo,
 } from "react";
-import { useParams } from "react-router-dom";
 import { AuthService } from "@/services/auth/authService";
 import { ProjectService } from "@/services/projects/projectService";
 
@@ -45,13 +42,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any | null>(null);
   const [projectShareType, setProjectShareType] = useState<number>(0);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const { sessionId } = useParams<{ sessionId: string }>();
-  useEffect(() => {
-    // const currentPath = window.location.pathname;
-    // const sessionId = currentPath.split("/project/")[1];
-    // getProjectByProjectId(sessionId);
-    // console.log("debug sessionId", sessionId);
-  }, []);
 
   useEffect(() => {
 

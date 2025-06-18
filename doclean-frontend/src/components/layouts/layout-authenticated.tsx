@@ -1,6 +1,6 @@
 import { ReactNode, useState } from "react";
 import { AppName } from "@/const/layout-const";
-import { Settings, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

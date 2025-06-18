@@ -7,10 +7,6 @@ import {
   FileData,
   DownloadFilePayload
 } from "@/services/latex/models";
-import {
-  getCurrentEditorData,
-  setCurrFileIdForCurrUserIdInSessionId,
-} from "@/stores/editorSlice";
 
 import UploadFileComponent from "@/components/latex/UploadFileComponent";
 
@@ -19,8 +15,6 @@ import {
   File,
   FilePlus,
   FolderPlus,
-  Check,
-  X,
   Save,
   ChevronRight,
   ChevronDown,
@@ -47,8 +41,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { Tree } from "antd";
-import type { GetProps, TreeDataNode } from "antd";
-type DirectoryTreeProps = GetProps<typeof Tree.DirectoryTree>;
+import type { TreeDataNode } from "antd";
 const { DirectoryTree } = Tree;
 
 export interface FileTreeRefHandle {
@@ -72,7 +65,6 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       currentPeerId,
       setContent,
       setMedia,
-      setIsThereABibFile,
     },
     ref
   ) => {

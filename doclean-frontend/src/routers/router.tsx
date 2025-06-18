@@ -7,11 +7,11 @@ import AppLayoutForAuthenticationPages from "@/components/layouts/AppLayoutForAu
 import AboutView from "@/components/view/AboutView";
 import PlaygroundView from "@/components/view/PlaygroundView";
 import ProjectView from "@/components/view/ProjectView";
-import LatexView from "@/components/view/LatexView";
+// import LatexView from "@/components/view/LatexView";
 import LoginView from "@/components/view/LoginView";
 import RegisterView from "@/components/view/RegisterView";
 import UserConfirmationView from "@/components/view/UserConfirmationView";
-import ProjectManagementView from "@/components/view/ProjectManagementView";
+// import ProjectManagementView from "@/components/view/ProjectManagementView";
 
 import NotFoundView from "@/components/view/NotFoundView";
 import ForbiddenView from "@/components/view/ForbiddenView";

@@ -1,7 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useTypedSelector } from "@/stores/main";
-import { selectCurrentUserEmail } from "@/stores/authSlice";
+import { useNavigate } from "react-router-dom";
 import {
   InputOTP,
   InputOTPGroup,
@@ -18,7 +16,6 @@ function initCurrentUserEmail() {
 }
 
 const UserConfirmationView: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const [confirmationCode, setConfirmationCode] = useState<string>("");
   // const currentUserEmail = location.state?.currentUserEmail || "";

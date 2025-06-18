@@ -2,14 +2,11 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthService } from "@/services/auth/authService";
 
-import { useAppDispatch } from "@/stores/main";
-import { setCurrentUserEmail } from "@/stores/authSlice";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -25,9 +22,7 @@ const RegisterView: React.FC = () => {
     passwordAgain: "",
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
 
-  const dispatch = useAppDispatch();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -56,7 +51,7 @@ const RegisterView: React.FC = () => {
       navigate("/confirm");
     } catch (err: any) {
       console.error(err);
-      setError(err.message || "Register failed");
+      // setError(err.message || "Register failed");
     }
   };
 

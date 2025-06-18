@@ -1,6 +1,5 @@
 import React, { useEffect } from "react";
 import ContainerLayout from "@/components/ContainerLayout";
-import { Separator } from "@/components/ui/separator";
 import LatexEditorCodeMirror from "@/components/latex/LatexEditorCodeMirror";
 const LatexView: React.FC = () => {
   useEffect(() => {
@@ -16,7 +15,7 @@ const LatexView: React.FC = () => {
         </div> */}
       <div className="w-full flex flex-col">
         {/* <p>abc</p> */}
-        <LatexEditorCodeMirror />
+        <LatexEditorCodeMirror projectShareType={0}/>
       </div>
     </ContainerLayout>
   );

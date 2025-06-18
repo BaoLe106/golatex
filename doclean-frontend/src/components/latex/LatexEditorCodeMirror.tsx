@@ -1,13 +1,5 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { cloneDeep, has, set } from "lodash";
-
-import {
-  getCurrentEditorData,
-  setCurrFileIdForCurrUserIdInSessionId,
-} from "@/stores/editorSlice";
 
 import "@/components/latex/styles.css";
 import "codemirror/lib/codemirror.css";
@@ -69,7 +61,7 @@ const LatexEditorCodeMirror = ({
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [codeMirrorComponent, setCodeMirrorComponent] = useState<HTMLElement>();
   const [editorInstance, setEditorInstance] = useState<any>(null);
-  const [editorContent, setEditorContent] = useState<string>("");
+  // const [editorContent, setEditorContent] = useState<string>("");
   const [compileFile, setCompileFile] = useState({
     compileFileId: "",
     compileFileName: "",
@@ -230,47 +222,46 @@ const LatexEditorCodeMirror = ({
       // previewComponent.style.height = "89vh";
     }
 
-    const getTEXFromS3 = async () => {
-      const s3Client = new S3Client({
-        region: import.meta.env.VITE_AWS_REGION,
-        credentials: {
-          accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY,
-          secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-        },
-      });
+    // const getTEXFromS3 = async () => {
+    //   const s3Client = new S3Client({
+    //     region: import.meta.env.VITE_AWS_REGION,
+    //     credentials: {
+    //       accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY,
+    //       secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
+    //     },
+    //   });
 
-      try {
-        const getTexCommand = new GetObjectCommand({
-          Bucket: "golatex--tex-and-pdf-files",
-          Key: `tex/${sessionId}/sample.tex`,
-        });
+    //   try {
+    //     const getTexCommand = new GetObjectCommand({
+    //       Bucket: "golatex--tex-and-pdf-files",
+    //       Key: `tex/${sessionId}/sample.tex`,
+    //     });
 
-        const response = await s3Client.send(getTexCommand);
+    //     const response = await s3Client.send(getTexCommand);
 
-        if (response.Body) {
-          const stream = response.Body as ReadableStream;
+    //     if (response.Body) {
+    //       const stream = response.Body as ReadableStream;
 
-          // Read stream data and convert to string
-          const reader = stream.getReader();
-          const decoder = new TextDecoder("utf-8");
-          let fileContent = "";
-          let done = false;
+    //       // Read stream data and convert to string
+    //       const reader = stream.getReader();
+    //       const decoder = new TextDecoder("utf-8");
+    //       let fileContent = "";
+    //       let done = false;
 
-          while (!done) {
-            const { value, done: streamDone } = await reader.read();
-            if (value) {
-              fileContent += decoder.decode(value, { stream: true });
-            }
-            done = streamDone;
-          }
+    //       while (!done) {
+    //         const { value, done: streamDone } = await reader.read();
+    //         if (value) {
+    //           fileContent += decoder.decode(value, { stream: true });
+    //         }
+    //         done = streamDone;
+    //       }
 
-          editor.setValue(fileContent);
-        }
-      } catch (err) {
-        console.log("debug catch err", err);
-      }
-    };
-    const accessToken = localStorage.getItem("accessToken");
+    //       editor.setValue(fileContent);
+    //     }
+    //   } catch (err) {
+    //     console.log("debug catch err", err);
+    //   }
+    // };
     const currPath = window.location.pathname;
     if (currPath.includes("/playground")) {
       connect(`ws://localhost:8080/api/v1/latex/playground/${sessionId}`);
@@ -280,9 +271,9 @@ const LatexEditorCodeMirror = ({
       // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
     }
 
-    if (!editorContent) {
-      // getTEXFromS3();
-    }
+    // if (!editorContent) {
+    //   // getTEXFromS3();
+    // }
   }, []);
 
   useEffect(() => {

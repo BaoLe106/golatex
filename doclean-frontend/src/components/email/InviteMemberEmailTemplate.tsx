@@ -1,7 +1,7 @@
 import {
   Body,
   Button,
-  Column,
+  // Column,
   Container,
   Head,
   Heading,
@@ -10,7 +10,7 @@ import {
   Img,
   Link,
   Preview,
-  Row,
+  // Row,
   Section,
   Tailwind,
   Text,
@@ -34,13 +34,13 @@ interface InviteMemberEmailTemplateProps {
 //   : '';
 
 export const InviteMemberEmailTemplate = ({
-  username,
+  // username,
   userEmail,
-  userImage,
-  invitedByUsername,
+  // userImage,
+  // invitedByUsername,
   invitedByEmail,
-  teamName,
-  teamImage,
+  // teamName,
+  // teamImage,
   projectLink,
   inviteFromIp,
   inviteFromLocation,

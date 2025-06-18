@@ -2,19 +2,15 @@ import {
   useEffect,
   useState,
   useRef,
-  useImperativeHandle,
-  forwardRef,
 } from "react";
 import { renderToString } from "react-dom/server";
 import { toast } from "sonner";
 import {
   ArrowLeft,
   CircleCheckBig,
-  Copy,
   Share2,
   Link2,
   Loader2,
-  Terminal,
   UserPlus,
   Plus,
   Settings,
@@ -28,9 +24,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import {
   Dialog,
-  DialogTrigger,
   DialogContent,
-  DialogClose,
   DialogDescription,
   DialogHeader,
   DialogTitle,
@@ -41,13 +35,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuPortal,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 

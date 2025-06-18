@@ -1,5 +1,4 @@
 import ContainerLayout from "@/components/ContainerLayout";
-import { Separator } from "@/components/ui/separator";
 
 const AboutView: React.FC = () => {
   return (

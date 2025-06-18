@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -18,14 +17,14 @@ import { useAuth } from "@/context/AuthProvider";
 import { AuthService } from "@/services/auth/authService";
 
 const LoginView: React.FC = () => {
-  const { user, setUser, setIsAuthenticated } = useAuth();
+  const { setUser, setIsAuthenticated } = useAuth();
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  // const [error, setError] = useState<string>("");
   const navigate = useNavigate();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -11,15 +11,15 @@ import { store } from "@/stores/main";
 import "@/index.css";
 
 createRoot(document.getElementById("root")!).render(
-  // <StrictMode>
-  <Provider store={store}>
-    {/* <QueryClientProvider client={queryClient}> */}
-    <AuthProvider>
-      <ThemeProvider defaultTheme="light">
-        <RouterProvider router={router} />
-      </ThemeProvider>
-    </AuthProvider>
-    {/* </QueryClientProvider> */}
-  </Provider>
-  // </StrictMode>
+  <StrictMode>
+    <Provider store={store}>
+      {/* <QueryClientProvider client={queryClient}> */}
+      <AuthProvider>
+        <ThemeProvider defaultTheme="light">
+          <RouterProvider router={router} />
+        </ThemeProvider>
+      </AuthProvider>
+      {/* </QueryClientProvider> */}
+    </Provider>
+  </StrictMode>
 );

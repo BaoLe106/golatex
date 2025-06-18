@@ -1,16 +1,10 @@
-import { Navigate, Outlet } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { AuthService } from "@/services/auth/authService";
+import { Outlet } from "react-router-dom";
+import { useState } from "react";
 import { useAuth } from "@/context/AuthProvider";
-
-import Forbidden from "@/components/common/Forbidden";
-import { Bot, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogClose,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
