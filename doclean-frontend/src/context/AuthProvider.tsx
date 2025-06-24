@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { AuthService } from "@/services/auth/authService";
 import { ProjectService } from "@/services/projects/projectService";
 
@@ -44,16 +39,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   useEffect(() => {
-
-    console.log("debug isAuthenticated", isAuthenticated);
     let isMounted: boolean = true;
     const currentPath = window.location.pathname;
     const sessionId = currentPath.split("/project/")[1];
     const authCheck = async (sessionId: string) => {
       try {
         const res = await AuthService.tempAuthCheck(sessionId);
-        if (isMounted && res.status === 200)
-          setIsAuthenticated(true);
+        if (isMounted && res.status === 200) setIsAuthenticated(true);
       } catch (err: any) {
         // if (err?.status !== 401 && isMounted)
         setIsAuthenticated(false);
@@ -72,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // } else {
       //   setIsAuthenticated(false);
       // }
-    } catch (err) { 
+    } catch (err) {
       console.error(err);
     }
   };
@@ -82,9 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const sessionId = window.location.pathname.split("/project/")[1];
       await AuthService.tempSignIn(sessionId, email);
       setIsAuthenticated(true);
-    } catch (err) {
-      console.log("debug err", err);
-    }
+    } catch (err) {}
   };
 
   const value = {

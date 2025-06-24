@@ -20,9 +20,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     try {
       await ProjectService.createProject(sessionId, "GUEST");
       navigate(`/project/${sessionId}`);
-    } catch (err: any) {
-      console.log("debug catch err", err);
-    }
+    } catch (err: any) {}
   };
 
   return (

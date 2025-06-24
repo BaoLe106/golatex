@@ -17,7 +17,6 @@ const authSlice = createSlice({
     logout: () => initialState,
     setCurrentUserEmail: (state, action: PayloadAction<string>) => {
       state.currentUserEmail = action.payload;
-      console.log("debug set email!");
     },
     // increment: (state) => {
     //   state.count += 1;

@@ -109,9 +109,7 @@ const LatexEditorCodeMirror = ({
             to, //to
             "setValue" //origin
           );
-        } catch (err) {
-          console.log("debug err at editor", err);
-        }
+        } catch (err) {}
         break;
       // case "file_created":
       //   if (fileTreeRef.current) {
@@ -196,7 +194,6 @@ const LatexEditorCodeMirror = ({
     const codeMirrorDialog =
       document.getElementsByClassName("CodeMirror-dialog");
     if (codeMirrorDialog && codeMirrorDialog.length) {
-      console.log("debug dialog", codeMirrorDialog);
       (codeMirrorDialog[0] as HTMLElement).style.position = "absolute";
       (codeMirrorDialog[0] as HTMLElement).style.top = "0";
     }
@@ -221,59 +218,6 @@ const LatexEditorCodeMirror = ({
       previewComponent.style.height = "0";
       // previewComponent.style.height = "89vh";
     }
-
-    // const getTEXFromS3 = async () => {
-    //   const s3Client = new S3Client({
-    //     region: import.meta.env.VITE_AWS_REGION,
-    //     credentials: {
-    //       accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY,
-    //       secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-    //     },
-    //   });
-
-    //   try {
-    //     const getTexCommand = new GetObjectCommand({
-    //       Bucket: "golatex--tex-and-pdf-files",
-    //       Key: `tex/${sessionId}/sample.tex`,
-    //     });
-
-    //     const response = await s3Client.send(getTexCommand);
-
-    //     if (response.Body) {
-    //       const stream = response.Body as ReadableStream;
-
-    //       // Read stream data and convert to string
-    //       const reader = stream.getReader();
-    //       const decoder = new TextDecoder("utf-8");
-    //       let fileContent = "";
-    //       let done = false;
-
-    //       while (!done) {
-    //         const { value, done: streamDone } = await reader.read();
-    //         if (value) {
-    //           fileContent += decoder.decode(value, { stream: true });
-    //         }
-    //         done = streamDone;
-    //       }
-
-    //       editor.setValue(fileContent);
-    //     }
-    //   } catch (err) {
-    //     console.log("debug catch err", err);
-    //   }
-    // };
-    const currPath = window.location.pathname;
-    if (currPath.includes("/playground")) {
-      connect(`ws://localhost:8080/api/v1/latex/playground/${sessionId}`);
-      // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
-    } else {
-      connect(`ws://localhost:8080/api/v1/latex/${sessionId}`);
-      // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
-    }
-
-    // if (!editorContent) {
-    //   // getTEXFromS3();
-    // }
   }, []);
 
   useEffect(() => {
@@ -344,10 +288,8 @@ const LatexEditorCodeMirror = ({
         },
       });
 
-      console.log(res.data.pdfUrl);
       setPdfUrl(res.data.pdfUrl);
     } catch (err: any) {
-      console.log("debug catch err", err);
       setCompileError(err.response.data.error);
     } finally {
       setIsCompileButtonLoading(false);
@@ -362,7 +304,6 @@ const LatexEditorCodeMirror = ({
   };
 
   const setContent = (data: FileData) => {
-    console.log("debug on set content", data);
     setCompileFile({
       compileFileId: data.fileId,
       compileFileName: data.fileName,
@@ -384,7 +325,6 @@ const LatexEditorCodeMirror = ({
       setHasContentFromFile(false);
       codeMirrorComponent.style.height = "0vh";
     }
-    console.log("debug data", data);
     setMediaFile(data);
   };
 

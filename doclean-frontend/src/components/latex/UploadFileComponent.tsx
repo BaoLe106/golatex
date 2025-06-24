@@ -1,12 +1,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TexFileService } from "@/services/latex/texFileService";
-import {
-  X,
-  FileUp,
-  Upload,
-  Loader2,
-} from "lucide-react";
+import { X, FileUp, Upload, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -102,7 +97,6 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
     }
 
     const allowToUploadFiles: File[] = eventFilesInArray.filter((file) => {
-      console.log("debug file type", file);
       const fileExtension = file.name.split(".").pop();
       if (!acceptingFileTypes.includes(`.${fileExtension}`)) {
         rejectedFilesByType.push(file.name);
@@ -140,7 +134,6 @@ const UploadFileComponent: React.FC<UploadFileComponentProps> = ({
       "uploadFileElement"
     ) as HTMLInputElement;
     if (!uploadFileElement || !uploadFileElement.files) return;
-    // console.log("debug file type 2", fileName, )
 
     const newToBeUploadedFiles = Array.from(uploadFileElement.files).filter(
       (file) => {

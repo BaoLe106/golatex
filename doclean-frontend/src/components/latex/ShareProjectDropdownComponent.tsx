@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useState,
-  useRef,
-} from "react";
+import { useEffect, useState, useRef } from "react";
 import { renderToString } from "react-dom/server";
 import { toast } from "sonner";
 import {
@@ -77,7 +73,6 @@ const ShareProjectDropdownComponent = ({
   // Handle click outside input component (to remove on error red border)
   useEffect(() => {
     getProjectMembers();
-    console.log("debug projectShareType", projectShareType);
     switch (projectShareType) {
       case 0:
         setRadioValue("none");
@@ -128,9 +123,7 @@ const ShareProjectDropdownComponent = ({
           })
         );
       }
-    } catch (err) {
-      console.log("debug err in get mem", err);
-    }
+    } catch (err) {}
   };
 
   const handleRadioChange = (value: string) => {
@@ -163,7 +156,6 @@ const ShareProjectDropdownComponent = ({
       await ProjectService.deleteProjectMember(sessionId, memberId);
       await getProjectMembers();
     } catch (err) {
-      console.log("debug err in delete mem", err);
     } finally {
       setIsModifyingMember(false);
     }
@@ -271,9 +263,7 @@ const ShareProjectDropdownComponent = ({
                 <span>Invite Members</span>
               )}
             </DialogTitle>
-            <DialogDescription>
-              Share this project to
-            </DialogDescription>
+            <DialogDescription>Share this project to</DialogDescription>
           </DialogHeader>
           <div className="flex-col items-center space-x-2 space-y-4">
             <RadioGroup onValueChange={handleRadioChange} value={radioValue}>

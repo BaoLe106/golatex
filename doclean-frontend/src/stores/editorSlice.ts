@@ -27,7 +27,6 @@ const editorSlice = createSlice({
       action: PayloadAction<EditorData>
     ) => {
       state.data = action.payload;
-      console.log("debug set editor data");
     },
     // increment: (state) => {
     //   state.count += 1;

@@ -37,7 +37,6 @@ const LoginView: React.FC = () => {
         email: formData.email,
         password: formData.password,
       });
-      // console.log("debug res", res);
 
       // localStorage.setItem("accessToken", res?.authData.AccessToken);
       // localStorage.setItem("refreshToken", res?.authData.RefreshToken);
@@ -47,8 +46,6 @@ const LoginView: React.FC = () => {
       // dispatch(setToken(res?.data?.user.AccessToken));
       navigate("/project");
     } catch (err: any) {
-      console.log("debug err", err);
-      // console.log("debug err", err.response.data.error);
       if (err.response.data.error.includes("UserNotConfirmedException")) {
         // router.navigate("/confirm");
         navigate("/confirm");

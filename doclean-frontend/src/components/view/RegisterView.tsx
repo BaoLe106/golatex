@@ -23,7 +23,6 @@ const RegisterView: React.FC = () => {
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
 
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -38,9 +37,6 @@ const RegisterView: React.FC = () => {
         email: formData.email,
         password: formData.password,
       });
-      console.log("debug res", res);
-      // dispatch(setCurrentUserEmail(formData.email));
-      //use sessionStorage instead
       sessionStorage.setItem("currentUserEmail", formData.email);
 
       // navigate("/confirm", {

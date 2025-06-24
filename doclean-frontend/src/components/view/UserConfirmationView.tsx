@@ -20,13 +20,7 @@ const UserConfirmationView: React.FC = () => {
   const [confirmationCode, setConfirmationCode] = useState<string>("");
   // const currentUserEmail = location.state?.currentUserEmail || "";
   const [currentUserEmail, _] = useState<string>(initCurrentUserEmail);
-  useEffect(() => {
-    console.log("debug init confirm", currentUserEmail);
-  }, []);
 
-  useEffect(() => {
-    console.log("debug currentUserEmail change at confirm", currentUserEmail);
-  }, [currentUserEmail]);
   const submitConfirmationCode = async () => {
     try {
       // if (!currentUserEmail) return;
@@ -35,15 +29,7 @@ const UserConfirmationView: React.FC = () => {
         confirmationCode: confirmationCode,
       });
       navigate("/project");
-      // console.log("debug res in confirm", res);
-      // navigate("../confirm", {
-      //   state: {
-      //     currentUserEmail: formData.email,
-      //   },
-      // });
-    } catch (err: any) {
-      console.log("debug err", err);
-    }
+    } catch (err: any) {}
   };
 
   return (
