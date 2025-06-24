@@ -218,6 +218,15 @@ const LatexEditorCodeMirror = ({
       previewComponent.style.height = "0";
       // previewComponent.style.height = "89vh";
     }
+
+    const currPath = window.location.pathname;
+    if (currPath.includes("/playground")) {
+      connect(
+        `wss://${import.meta.env.VITE_API_ENDPOINT}/latex/playground/${sessionId}`
+      );
+    } else {
+      connect(`wss://${import.meta.env.VITE_API_ENDPOINT}/latex/${sessionId}`);
+    }
   }, []);
 
   useEffect(() => {
