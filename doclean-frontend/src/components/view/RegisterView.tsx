@@ -33,10 +33,10 @@ const RegisterView: React.FC = () => {
         throw new Error("Your password is not synchronize");
       }
       // const token =
-      const res = await AuthService.signUp({
-        email: formData.email,
-        password: formData.password,
-      });
+      // const res = await AuthService.signUp({
+      //   email: formData.email,
+      //   password: formData.password,
+      // });
       sessionStorage.setItem("currentUserEmail", formData.email);
 
       // navigate("/confirm", {

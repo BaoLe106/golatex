@@ -141,7 +141,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       }
     };
 
-    const onSelect = (keys: any, info: any) => {
+    const onSelect = (_keys: any, info: any) => {
       if (avoidTriggerSelectTreeNodeOnDownloadFile.current) return;
       if (info.node.key.length !== 3 || !info.node.isLeaf) {
         let res = getParentFolders(info.node.key);
@@ -518,7 +518,7 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           <DirectoryTree
             className="bg-inherit "
             defaultExpandAll
-            onRightClick={(info: any) => {
+            onRightClick={() => {
               return false;
             }}
             switcherIcon={(node: any) => {
