@@ -17,8 +17,8 @@ func removeTokens(c *gin.Context) {
 		"",            // value
 		-1,            // maxAge (in seconds)
 		"/",           // path
-		"localhost",   // domain
-		false,         // secure, later on set to true in prod
+		"lattex.org",   // domain
+		true,         // secure, later on set to true in prod
 		true,          // httpOnly
 	)
 	c.SetCookie(
@@ -26,8 +26,8 @@ func removeTokens(c *gin.Context) {
 		"",             // value
 		-1,             // maxAge (in seconds)
 		"/",            // path
-		"localhost",    // domain
-		false,          // secure, later on set to true in prod
+		"lattex.org",    // domain
+		true,          // secure, later on set to true in prod
 		true,           // httpOnly
 	)
 }
@@ -132,8 +132,8 @@ func VerifyTokenMiddleware() gin.HandlerFunc {
 				*newAccessToken, // value
 				7200,            // maxAge (in seconds)
 				"/",             // path
-				"localhost",     // domain
-				false,           // secure, later on set to true in prod
+				"lattex.org",     // domain
+				true,           // secure, later on set to true in prod
 				true,            // httpOnly
 			)
 			c.Next()

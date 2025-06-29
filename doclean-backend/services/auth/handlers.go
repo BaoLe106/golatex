@@ -86,8 +86,8 @@ func CreateTokenForESignin(c *gin.Context) {
 		accessTokenString, // value
 		7200,              // maxAge (in seconds)
 		"/",               // path
-		"localhost",       // domain
-		false,             // secure, later on set to true in prod
+		"lattex.org",       // domain
+		true,             // secure, later on set to true in prod
 		true,              // httpOnly
 	)
 
@@ -96,8 +96,8 @@ func CreateTokenForESignin(c *gin.Context) {
 		refreshTokenString, // value
 		172800,             // maxAge (in seconds)
 		"/",                // path
-		"localhost",        // domain
-		false,              // secure, later on set to true in prod
+		"lattex.org",        // domain
+		true,              // secure, later on set to true in prod
 		true,               // httpOnly
 	)
 

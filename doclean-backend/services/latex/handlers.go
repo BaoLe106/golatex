@@ -32,9 +32,10 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins (be careful with this in production)
+		allowedOrigin := "https://lattex.org" // Change to your allowed origin
+		return r.Header.Get("Origin") == allowedOrigin
 	},
-	Subprotocols:    []string{"Authorization"},
+	// Subprotocols:    []string{"Authorization"},
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
