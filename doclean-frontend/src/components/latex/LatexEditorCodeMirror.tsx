@@ -337,6 +337,11 @@ const LatexEditorCodeMirror = ({
     setMediaFile(data);
   };
 
+  const downloadFile = () => {
+    if (!mediaFile.fileId) return;
+    fileTreeRef.current?.downloadFile(mediaFile.fileId);
+  };
+
   return (
     <div>
       <ResizablePanelGroup direction="horizontal">
@@ -393,7 +398,9 @@ const LatexEditorCodeMirror = ({
             </Alert>
           ) : !hasContentFromFile && mediaFile.contentType.includes("image") ? (
             <div className="justify-self-center flex-col justify-items-center">
-              <Button className="mb-2">Download</Button>
+              <Button className="mb-2" onClick={downloadFile}>
+                Download
+              </Button>
               <img src={mediaFile.url}></img>
             </div>
           ) : !hasContentFromFile && mediaFile.fileType === "pdf" ? (

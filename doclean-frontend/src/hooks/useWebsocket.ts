@@ -1,5 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { TexFileService } from "@/services/latex/texFileService";
 interface WebSocketConnectionProps {
   // peerId: string;
   sessionId: string | undefined;
@@ -11,9 +13,13 @@ const useWebsocket = ({
   sessionId,
   onDataReceived,
 }: WebSocketConnectionProps) => {
+  const navigate = useNavigate();
   const peerConnectionsRef = useRef<Record<string, boolean>>({});
   const wsConnectionRef = useRef<WebSocket | null>(null);
   const localPeerId = useRef<string>(crypto.randomUUID());
+  const messageQueue = useRef<{
+    [sessionId: string]: string[];
+  }>({});
 
   // Cleanup on unmount
   useEffect(() => {
@@ -22,10 +28,39 @@ const useWebsocket = ({
     };
   }, []);
 
-  const connect = useCallback((wsUrl: string) => {
-    wsConnectionRef.current = new WebSocket(wsUrl);
+  const connect = useCallback(async (wsUrl: string, isPlayground: boolean) => {
+    if (!sessionId) {
+      return;
+    }
+    try {
+      if (isPlayground)
+        await TexFileService.checkPlaygroundConnection(sessionId);
+      else await TexFileService.checkConnection(sessionId);
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        toast.error("WebSocket connection failed. Please try again later.");
+      } else {
+        toast.error("Something wrong. Please try again later.");
+      }
 
+      navigate("/");
+      return;
+    }
+    wsConnectionRef.current = new WebSocket(wsUrl);
+    wsConnectionRef.current.onerror = (event) => {
+      console.log("debug WebSocket error:", event);
+
+      // Custom error handling
+      toast.error("WebSocket connection failed. Please try again later.");
+    };
     wsConnectionRef.current.onopen = () => {
+      const currentMessageQueue = messageQueue.current[sessionId] || [];
+      while (currentMessageQueue.length > 0) {
+        const msg = currentMessageQueue.shift();
+        if (msg) {
+          wsConnectionRef.current?.send(msg);
+        }
+      }
       handleSendingMessage(
         JSON.stringify({
           type: "join",
@@ -42,7 +77,12 @@ const useWebsocket = ({
   }, []);
 
   const handleSendingMessage = useCallback((data: string) => {
-    wsConnectionRef.current?.send(data);
+    console.log("debug state connection", wsConnectionRef.current?.readyState);
+    if (wsConnectionRef.current?.readyState === WebSocket.OPEN) {
+      wsConnectionRef.current.send(data);
+    } else if (sessionId) {
+      messageQueue.current[sessionId]?.push(data);
+    }
   }, []);
 
   const handleReceivedMessage = useCallback(async (message: any) => {

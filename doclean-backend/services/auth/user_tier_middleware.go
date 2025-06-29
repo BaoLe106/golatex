@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	wsProvider "github.com/BaoLe106/doclean/doclean-backend/providers/ws"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
 	"github.com/golang-jwt/jwt/v4"
 
@@ -89,27 +90,26 @@ func WebSocketAuthMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
 	}
 }
 
-// func CollaborationLimitMiddleware(handler *latex.Handler) gin.HandlerFunc {
-//     return func(c *gin.Context) {
-//         // tier := c.MustGet("userTier").(UserTier)
-//         limits := c.MustGet("tierLimits").(TierLimits)
-//         currentCollaborators := 0
-//         // Get current number of collaborators for this session
-//         sessionID := c.Param("sessionId")
+func CollaborationLimitMiddleware(concurrentLimit int) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        // tier := c.MustGet("userTier").(UserTier)
+        // limits := c.MustGet("tierLimits").(TierLimits)
+        currentCollaborators := 0
+        // Get current number of collaborators for this session
+        sessionId := c.Param("sessionId")
 
-//         if clients, exists := handler.Hub.Sessions[sessionID]; exists {
-// 					currentCollaborators = len(clients) + 1
-//         }
-//         fmt.Println("#DEBUG::collab num", currentCollaborators)
+        if clients, exists := wsProvider.Handler.Hub.Sessions[sessionId]; exists {
+					currentCollaborators = len(clients) + 1
+        }
 
-//         if currentCollaborators > limits.MaxCollaborators {
-//             apiResponse.SendErrorResponse(c, http.StatusForbidden, "Maximum collaborator limit reached for your tier")
-//             return
-//         }
+        if currentCollaborators > concurrentLimit {
+						c.AbortWithStatusJSON(403, gin.H{"error": "Forbidden", "message": "Maximum collaborator limit reached for your tier"})
+            return
+        }
 
-//         c.Next()
-//     }
-// }
+        c.Next()
+    }
+}
 
 // func ProjectLimitMiddleware() gin.HandlerFunc {
 //     return func(c *gin.Context) {

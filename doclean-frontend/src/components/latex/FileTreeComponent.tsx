@@ -52,6 +52,7 @@ const { DirectoryTree } = Tree;
 
 export interface FileTreeRefHandle {
   updateTreeData: (treeData: TreeDataNode[]) => void;
+  downloadFile: (fileId: string) => void;
 }
 
 interface FileTreeComponentProps {
@@ -82,6 +83,9 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
     useImperativeHandle(ref, () => ({
       updateTreeData: (newTreeData: TreeDataNode[]) => {
         setTreeData(newTreeData);
+      },
+      downloadFile: (fileId: string) => {
+        downloadFile(fileId);
       },
     }));
 

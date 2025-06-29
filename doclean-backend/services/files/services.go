@@ -21,7 +21,6 @@ func broadcastCreateFileInfoToSessionWork(message BroadcastInfoPayload) error {
 	message.Hub.Mutex.RLock()
 	defer message.Hub.Mutex.RUnlock()
 
-	fmt.Println("##LOG##: Boardcasting: ", message.InfoType)
 	result, err := GetFilesByProjectId(message.SessionId)
 	if err != nil {
 		return err
@@ -93,7 +92,6 @@ func broadcastCreateFileInfoToSessionWork(message BroadcastInfoPayload) error {
 }
 
 func CreateFileOnLocalWork(file CreateFileOnLocalJobPayload) error {
-	fmt.Println("debug u here")
 	if err := os.MkdirAll(file.FileDir, 0755); err != nil {
 		return err
 	}
