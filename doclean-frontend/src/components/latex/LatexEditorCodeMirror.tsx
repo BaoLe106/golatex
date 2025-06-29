@@ -222,10 +222,14 @@ const LatexEditorCodeMirror = ({
     const currPath = window.location.pathname;
     if (currPath.includes("/playground")) {
       connect(
-        `wss://${import.meta.env.VITE_API_ENDPOINT}/latex/playground/${sessionId}`
+        `wss://${import.meta.env.VITE_API_ENDPOINT}/latex/playground/${sessionId}`,
+        true
       );
     } else {
-      connect(`wss://${import.meta.env.VITE_API_ENDPOINT}/latex/${sessionId}`);
+      connect(
+        `wss://${import.meta.env.VITE_API_ENDPOINT}/latex/${sessionId}`,
+        false
+      );
     }
   }, []);
 
