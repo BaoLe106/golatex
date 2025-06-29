@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
 RUN pdflatex --version
 
 # Stage 2: Build Go application
-FROM golang:1.24.2-alpine
+FROM golang:1.24.2-bookworm
 # Copy TeX Live from the first stage
 COPY --from=texlive-stage /usr/local/texlive/ /usr/local/texlive
 # Make TeX Live tools available on path.
