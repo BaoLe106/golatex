@@ -34,7 +34,7 @@ type Config struct {
 var Envs = initConfig()
 
 func initConfig() Config {
-	godotenv.Load(".env.dev")
+	godotenv.Load(".env")
 	return Config{
 		Host:       getEnv("HOST", "http://localhost"),
 		Port:       getEnv("PORT", "5000"),
