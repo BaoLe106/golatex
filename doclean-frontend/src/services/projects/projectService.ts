@@ -14,6 +14,16 @@ export const ProjectService = (() => {
     return res.data;
   };
 
+  const getProjectMember = async (projectId: string) => {
+    const apiUrl = `/project/member/${projectId}`;
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    return await apiClient.get(apiUrl, config);
+  };
+
   const createProject = async (sessionId: string, projectTier: string) => {
     const apiUrl = `/project/${sessionId}`;
     const config = {
@@ -23,8 +33,32 @@ export const ProjectService = (() => {
     };
     return await apiClient.post(apiUrl, { projectTier: projectTier }, config);
   };
+
+  const updateProjectInfo = async (sessionId: string, data: any) => {
+    const apiUrl = `/project/${sessionId}`;
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    return await apiClient.put(apiUrl, data, config);
+  };
+
+  const deleteProjectMember = async (sessionId: string, memberId: string) => {
+    const apiUrl = `/project/member/${sessionId}/${memberId}`;
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    return await apiClient.delete(apiUrl, config);
+  };
+
   return {
     getProjectByProjectId,
+    getProjectMember,
     createProject,
+    updateProjectInfo,
+    deleteProjectMember,
   };
 })();

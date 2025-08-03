@@ -1,33 +1,23 @@
-import React, { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { S3Client, GetObjectCommand } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { cloneDeep, has, set } from "lodash";
-import {
-  getCurrentEditorData,
-  setCurrFileIdForCurrUserIdInSessionId,
-} from "@/stores/editorSlice";
 
 import "@/components/latex/styles.css";
-
 import "codemirror/lib/codemirror.css";
 import "codemirror/theme/material-ocean.css";
 import "codemirror/mode/javascript/javascript";
 import "codemirror/mode/stex/stex";
 import "codemirror/keymap/sublime";
-
 import "codemirror/addon/search/search.js";
 import "codemirror/addon/search/searchcursor.js";
 import "codemirror/addon/search/jump-to-line.js";
 import "codemirror/addon/dialog/dialog.js";
-
 import CodeMirror from "codemirror";
 
 import { useTheme } from "@/context/ThemeProvider";
+import useWebsocket from "@/hooks/useWebsocket";
 import { TexFileService } from "@/services/latex/texFileService";
 
 import { Search, Loader2, Terminal } from "lucide-react";
-
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,44 +26,126 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
-
 import { FileTreeRefHandle } from "@/components/latex/FileTreeComponent";
 import FileTreeComponent from "@/components/latex/FileTreeComponent";
+import ShareProjectDropdownComponent from "@/components/latex/ShareProjectDropdownComponent";
 
-import {
-  // CreateFilePayload,
-  // CompileToPdfPayload,
-  FileData,
-} from "@/services/latex/models";
+import { FileData } from "@/services/latex/models";
 
-const LatexEditorCodeMirror: React.FC = () => {
+interface LatexEditorCodeMirrorProps {
+  projectShareType: number;
+}
+
+const LatexEditorCodeMirror = ({
+  projectShareType,
+}: LatexEditorCodeMirrorProps) => {
   const { theme } = useTheme();
   const { sessionId } = useParams<{ sessionId: string }>();
 
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const editorInstanceRef = useRef<any>(null);
+  const compileFileRef = useRef<{
+    compileFileId: string;
+    compileFileName: string;
+    compileFileType: string;
+    compileFileDir: string;
+  }>({
+    compileFileId: "",
+    compileFileName: "",
+    compileFileType: "",
+    compileFileDir: "",
+  });
   const fileTreeRef = useRef<FileTreeRefHandle>(null);
 
-  const [ws, setWs] = useState<WebSocket | null>(null);
   const [isCompileButtonLoading, setIsCompileButtonLoading] =
     useState<boolean>(false);
   const [pdfUrl, setPdfUrl] = useState<string>("");
   const [codeMirrorComponent, setCodeMirrorComponent] = useState<HTMLElement>();
   const [editorInstance, setEditorInstance] = useState<any>(null);
-  const [editorContent, setEditorContent] = useState<string>("");
+  // const [editorContent, setEditorContent] = useState<string>("");
   const [compileFile, setCompileFile] = useState({
     compileFileId: "",
     compileFileName: "",
     compileFileType: "",
     compileFileDir: "",
   });
-  // const [formData, setFormData] = useState({
-  //     email: "",
-  //     password: "",
-  //     passwordAgain: "",
-  //   });
+  const [mediaFile, setMediaFile] = useState({
+    fileId: "",
+    fileType: "",
+    contentType: "",
+    url: "",
+  });
+  const [isFirstTimeCompile, setIsFirstTimeCompile] = useState<boolean>(true);
   const [compileError, setCompileError] = useState<string>("");
   const [hasContentFromFile, setHasContentFromFile] = useState<boolean>(false);
   const [isThereABibFile, setIsThereABibFile] = useState<boolean>(false);
+
+  // Update the ref whenever states changes
+  useEffect(() => {
+    editorInstanceRef.current = editorInstance;
+  }, [editorInstance]);
+
+  useEffect(() => {
+    compileFileRef.current = compileFile;
+  }, [compileFile]);
+
+  const onDataReceived = useCallback((receivedData: any) => {
+    const { type, data } = receivedData;
+
+    switch (type) {
+      case "update_content":
+        try {
+          if (!editorInstanceRef.current) return;
+
+          const currentCompileFile = compileFileRef.current;
+          if (
+            !currentCompileFile.compileFileId ||
+            currentCompileFile.compileFileId !== data.fileId
+          )
+            return;
+          const { replacement, from, to } = data.replaceRange;
+          editorInstanceRef.current?.replaceRange(
+            replacement, //replacement
+            from, //from
+            to, //to
+            "setValue" //origin
+          );
+        } catch (err) {}
+        break;
+      // case "file_created":
+      //   if (fileTreeRef.current) {
+      //     fileTreeRef.current.updateTreeData(data.fileTree);
+      //   }
+      //   break;
+      // case "file_uploaded":
+      //   if (fileTreeRef.current) {
+      //     fileTreeRef.current.updateTreeData(data.fileTree);
+      //   }
+      //   break;
+      // case "update_content_with_file":
+      //   if (fileTreeRef.current) {
+      //     fileTreeRef.current.updateTreeData(data.fileTree);
+      //   }
+      //   break;
+      // case "file_deleted":
+      //   if (fileTreeRef.current) {
+      //     fileTreeRef.current.updateTreeData(data.fileTree);
+      //   }
+      //   break;
+      default:
+        if (fileTreeRef.current) {
+          fileTreeRef.current.updateTreeData(data.fileTree);
+        }
+        break;
+      //any
+    }
+  }, []); // Only include dependencies that are used in the callback
+
+  const { currentPeerId, handleSendingMessage, connect } = useWebsocket({
+    sessionId: compileFile.compileFileId
+      ? compileFile.compileFileId
+      : sessionId,
+    onDataReceived: onDataReceived,
+  });
 
   useEffect(() => {
     if (!codeMirrorComponent) {
@@ -122,7 +194,6 @@ const LatexEditorCodeMirror: React.FC = () => {
     const codeMirrorDialog =
       document.getElementsByClassName("CodeMirror-dialog");
     if (codeMirrorDialog && codeMirrorDialog.length) {
-      console.log("debug dialog", codeMirrorDialog);
       (codeMirrorDialog[0] as HTMLElement).style.position = "absolute";
       (codeMirrorDialog[0] as HTMLElement).style.top = "0";
     }
@@ -142,170 +213,70 @@ const LatexEditorCodeMirror: React.FC = () => {
 
     (CodeMirrorComponent[0] as HTMLElement).style.height = "0vh";
 
-    // if (!hasContentFromFile)
-    //   (CodeMirrorComponent[0] as HTMLElement).style.display = "none";
+    const previewComponent = document.getElementById("preview");
+    if (previewComponent) {
+      previewComponent.style.height = "0";
+      // previewComponent.style.height = "89vh";
+    }
 
-    const getTEXFromS3 = async () => {
-      const s3Client = new S3Client({
-        region: import.meta.env.VITE_AWS_REGION,
-        credentials: {
-          accessKeyId: import.meta.env.VITE_AWS_ACCESS_KEY,
-          secretAccessKey: import.meta.env.VITE_AWS_SECRET_ACCESS_KEY,
-        },
-      });
-
-      try {
-        const getTexCommand = new GetObjectCommand({
-          Bucket: "golatex--tex-and-pdf-files",
-          Key: `tex/${sessionId}/sample.tex`,
-        });
-
-        const response = await s3Client.send(getTexCommand);
-
-        if (response.Body) {
-          const stream = response.Body as ReadableStream;
-
-          // Read stream data and convert to string
-          const reader = stream.getReader();
-          const decoder = new TextDecoder("utf-8");
-          let fileContent = "";
-          let done = false;
-
-          while (!done) {
-            const { value, done: streamDone } = await reader.read();
-            if (value) {
-              fileContent += decoder.decode(value, { stream: true });
-            }
-            done = streamDone;
-          }
-
-          editor.setValue(fileContent);
-          // setEditorContent(fileContent);
-        }
-      } catch (err) {
-        console.log("debug catch err", err);
-      }
-    };
-    const accessToken = localStorage.getItem("accessToken");
-    let socket: WebSocket;
     const currPath = window.location.pathname;
     if (currPath.includes("/playground")) {
-      socket = new WebSocket(
-        `ws://localhost:8080/api/v1/latex/playground/${sessionId}`
-        // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+      connect(
+        `wss://${import.meta.env.VITE_API_ENDPOINT}/latex/playground/${sessionId}`,
+        true
       );
     } else {
-      socket = new WebSocket(
-        `ws://localhost:8080/api/v1/latex/${sessionId}`
-        // ["Authorization", `${accessToken ? accessToken : ""}`] // Pass token as a WebSocket protocol
+      connect(
+        `wss://${import.meta.env.VITE_API_ENDPOINT}/latex/${sessionId}`,
+        false
       );
     }
-
-    setWs(socket);
-
-    if (!editorContent) {
-      // getTEXFromS3();
-    }
-
-    // socket.on('connect_error', (err) => {
-    //   console.log(`connect_error due to ${err.message}`)
-    // })
-
-    // socket.on('connect', () => {
-    //   socket.emit('CONNECTED_TO_ROOM', { roomId, username })
-    // })
-
-    // socket.on('disconnect', () => {
-    //   socket.emit('DISSCONNECT_FROM_ROOM', { roomId, username })
-    // })
-
-    // socket.on('ROOM:CONNECTION', (users) => {
-    //   setUsers(users)
-    //   console.log(users)
-    // })
-
-    // editor.on("change", (instance, changes) => {
-    //   // console.log("debug on change", changes);
-    //   const { origin } = changes;
-    //   // if (origin === '+input' || origin === '+delete' || origin === 'cut') {
-    //   if (origin !== "setValue") {
-    //     setEditorContent(instance.getValue());
-    //     console.log("debug on change", compileFile);
-    //     socket.send(
-    //       JSON.stringify({
-    //         fileId: compileFile.compileFileId,
-    //         fileContent: instance.getValue(),
-    //       })
-    //     );
-    //   }
-    // });
-
-    // editor.on("cursorActivity", (instance) => {
-    // console.log(instance.cursorCoorcode-editor())
-    // });
-
-    return () => {
-      socket.close();
-    };
   }, []);
 
   useEffect(() => {
-    if (!ws || !compileFile.compileFileId || !editorInstance) return;
+    if (!compileFile.compileFileId || !editorInstance) return;
 
     setTimeout(() => {
       editorInstance.refresh();
     }, 1);
     // Define the event handlers
     const handleEditorChange = (instance: any, changes: any) => {
-      const { origin } = changes;
+      const { origin, from, to, text } = changes;
       if (origin !== "setValue") {
-        ws.send(
+        handleSendingMessage(
           JSON.stringify({
-            fileId: compileFile.compileFileId,
-            fileContent: instance.getValue(),
+            type: "update_content",
+            peerId: currentPeerId,
+            sessionId: sessionId,
+            updateContentData: {
+              fileId: compileFile.compileFileId,
+              fileContent: instance.getValue(),
+              replaceRange: {
+                replacement:
+                  text[0] === text[1] && text[0] === "" ? "\n" : text[0],
+                from: {
+                  line: from.line,
+                  ch: from.ch,
+                },
+                to: {
+                  line: to.line,
+                  ch: to.ch,
+                },
+              },
+            },
           })
         );
       }
     };
 
-    const handleWsMessage = (event: any) => {
-      const { data } = event;
-      const dataFromInfoBroadcast = JSON.parse(data);
-
-      try {
-        if (dataFromInfoBroadcast.sessionId !== sessionId)
-          throw new Error("sessionId not match");
-        if (
-          dataFromInfoBroadcast.infoType === "file_created" ||
-          dataFromInfoBroadcast.infoType === "file_content_saved"
-        ) {
-          if (fileTreeRef.current) {
-            fileTreeRef.current.updateTreeData(
-              dataFromInfoBroadcast.data.fileTree
-            );
-          }
-        }
-      } catch (err) {
-        if (
-          !compileFile.compileFileId ||
-          compileFile.compileFileId !== dataFromInfoBroadcast.fileId
-        )
-          return;
-
-        editorInstance.setValue(dataFromInfoBroadcast.fileContent);
-      }
-    };
-
     // Attach the event listeners
     editorInstance.on("change", handleEditorChange);
-    ws.addEventListener("message", handleWsMessage);
 
     // Cleanup function to remove event listeners when compileFile changes or component unmounts
     return () => {
       editorInstance.off("change", handleEditorChange);
-      ws.removeEventListener("message", handleWsMessage);
     };
-  }, [compileFile, ws, sessionId, editorInstance]);
+  }, [compileFile, sessionId, editorInstance]);
 
   const triggerSearch = () => {
     const dialog = document.querySelector(".CodeMirror-dialog");
@@ -329,22 +300,23 @@ const LatexEditorCodeMirror: React.FC = () => {
           ...compileFile,
         },
       });
-      if (res.status !== 201) {
-        throw new Error(res.data.error);
-      }
 
-      console.log(res.data.pdfUrl);
       setPdfUrl(res.data.pdfUrl);
     } catch (err: any) {
-      console.log("debug catch err", err);
       setCompileError(err.response.data.error);
     } finally {
       setIsCompileButtonLoading(false);
+      if (isFirstTimeCompile) {
+        const previewComponent = document.getElementById("preview");
+        if (previewComponent) {
+          previewComponent.style.height = "89vh";
+        }
+        setIsFirstTimeCompile(false);
+      }
     }
   };
 
   const setContent = (data: FileData) => {
-    console.log("debug on set content", data);
     setCompileFile({
       compileFileId: data.fileId,
       compileFileName: data.fileName,
@@ -358,6 +330,20 @@ const LatexEditorCodeMirror: React.FC = () => {
     }
 
     editorInstance.setValue(data.content);
+    setMediaFile({ fileId: "", fileType: "", contentType: "", url: "" });
+  };
+
+  const setMedia = (data: any) => {
+    if (codeMirrorComponent) {
+      setHasContentFromFile(false);
+      codeMirrorComponent.style.height = "0vh";
+    }
+    setMediaFile(data);
+  };
+
+  const downloadFile = () => {
+    if (!mediaFile.fileId) return;
+    fileTreeRef.current?.downloadFile(mediaFile.fileId);
   };
 
   return (
@@ -367,8 +353,10 @@ const LatexEditorCodeMirror: React.FC = () => {
           <FileTreeComponent
             ref={fileTreeRef}
             theme={theme}
+            currentPeerId={currentPeerId}
             sessionId={sessionId}
             setContent={setContent}
+            setMedia={setMedia}
             setIsThereABibFile={(value: boolean) => setIsThereABibFile(value)}
             // sendFileOrFolderCreatedInfo={sendFileOrFolderCreatedInfo}
           />
@@ -404,7 +392,7 @@ const LatexEditorCodeMirror: React.FC = () => {
             className={!hasContentFromFile ? `hidden` : ""}
           /> */}
           <textarea id="code-editor" />
-          {!hasContentFromFile && (
+          {!hasContentFromFile && !mediaFile.fileType ? (
             <Alert className="w-2/3 border-none justify-self-center">
               <Terminal className="h-6 w-6" />
               <AlertTitle className="text-2xl">Info:</AlertTitle>
@@ -412,49 +400,67 @@ const LatexEditorCodeMirror: React.FC = () => {
                 No file is selected. Please select a file from the left panel.
               </AlertDescription>
             </Alert>
-          )}
+          ) : !hasContentFromFile && mediaFile.contentType.includes("image") ? (
+            <div className="justify-self-center flex-col justify-items-center">
+              <Button className="mb-2" onClick={downloadFile}>
+                Download
+              </Button>
+              <img src={mediaFile.url}></img>
+            </div>
+          ) : !hasContentFromFile && mediaFile.fileType === "pdf" ? (
+            <iframe
+              src={mediaFile.url}
+              style={{ height: "89vh", width: "100%" }}
+            ></iframe>
+          ) : null}
         </ResizablePanel>
         <ResizableHandle
           withHandle
           className={theme === "dark" ? "bg-black" : ""}
         />
-        <ResizablePanel defaultSize={40} minSize={20} className="mr-4">
+        <ResizablePanel defaultSize={40} minSize={20} className="">
           <div
             className={
-              "flex items-center h-11 " +
+              "flex justify-between items-center h-11 " +
               (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
             }
           >
-            <TooltipWrapper tooltipContent={"Compile to PDF"}>
-              <Button
-                className="mr-3"
-                onClick={compileTexToPdf}
-                disabled={isCompileButtonLoading}
-              >
-                {isCompileButtonLoading ? (
-                  <>
-                    <Loader2 className="animate-spin mr-1" />
-                    Compiling...
-                  </>
-                ) : (
-                  "Compiles"
-                )}
-              </Button>
-            </TooltipWrapper>
-            <p className="text-sm text-gray-500 italic">
-              to be compiled file:
-              <span className="font-semibold text-gray-600">
-                {" "}
-                {compileFile.compileFileName +
-                  "." +
-                  compileFile.compileFileType}
-              </span>
-            </p>
+            <div className="flex items-center">
+              <TooltipWrapper tooltipContent={"Compile to PDF"}>
+                <Button
+                  className="mr-3 ml-2"
+                  onClick={compileTexToPdf}
+                  disabled={isCompileButtonLoading}
+                >
+                  {isCompileButtonLoading ? (
+                    <>
+                      <Loader2 className="animate-spin mr-1" />
+                      Compiling...
+                    </>
+                  ) : (
+                    "Compiles"
+                  )}
+                </Button>
+              </TooltipWrapper>
+              <p className="text-sm text-gray-500 italic">
+                to be compiled file:
+                <span className="font-semibold text-gray-600">
+                  {" "}
+                  {compileFile.compileFileName +
+                    "." +
+                    compileFile.compileFileType}
+                </span>
+              </p>
+            </div>
+            <ShareProjectDropdownComponent
+              sessionId={sessionId}
+              projectShareType={projectShareType}
+            />
           </div>
           {compileError ? (
             <Alert
               variant="destructive"
-              className="w-11/12 border-none justify-self-center"
+              className="w-full border-none justify-self-center"
             >
               <Terminal className="h-6 w-6" />
               <AlertTitle className="text-2xl">Error:</AlertTitle>
@@ -467,7 +473,8 @@ const LatexEditorCodeMirror: React.FC = () => {
             <iframe
               id="preview"
               src={pdfUrl}
-              style={{ height: "89vh", width: "100%" }}
+              className="w-full"
+              style={{ height: "89vh" }}
             ></iframe>
           )}
         </ResizablePanel>

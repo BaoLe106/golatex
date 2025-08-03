@@ -6,8 +6,7 @@ const PlaygroundView: React.FC = () => {
   return (
     <ContainerLayout className="w-full">
       <div className="w-full flex flex-col">
-        {/* <LatexEditor /> */}
-        <LatexEditorCodeMirror />
+        <LatexEditorCodeMirror projectShareType={0}/>
       </div>
     </ContainerLayout>
   );

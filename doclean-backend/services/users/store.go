@@ -9,9 +9,9 @@ import (
 //     Email string `json:"email"`
 // }
 
-// type UserStore interface {
-//     GetUserByID(id int) (*User, error)
-// }
+//	type UserStore interface {
+//	    GetUserByID(id int) (*User, error)
+//	}
 type Store struct {
 	db *sql.DB
 }

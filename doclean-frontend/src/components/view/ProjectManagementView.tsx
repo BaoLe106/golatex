@@ -1,19 +1,12 @@
 import React, { useEffect, useState } from "react";
 import ContainerLayout from "@/components/ContainerLayout";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 
 // const { Header, Sider, Content } = Layout;
-import { Separator } from "@/components/ui/separator";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-// import { AppSidebar } from "@/components/ui/app-sidebar";
 import AppSidebar from "@/components/common/AppSidebar";
 
 const ProjectManagementView: React.FC = () => {

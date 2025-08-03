@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	wsProvider "github.com/BaoLe106/doclean/doclean-backend/providers/ws"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
 	"github.com/golang-jwt/jwt/v4"
 
@@ -12,9 +13,9 @@ import (
 )
 
 func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
-    return func(c *gin.Context) {
+	return func(c *gin.Context) {
 
-        idToken, err := c.Cookie("IdToken")
+		idToken, err := c.Cookie("IdToken")
 		if err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Authorization header required")
 			return
@@ -27,38 +28,36 @@ func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
 		}
 
 		// Optional: Extract and store user claims
-		claims, ok := validatedIdToken.Claims.(jwt.MapClaims);  
-        if !ok {
+		claims, ok := validatedIdToken.Claims.(jwt.MapClaims)
+		if !ok {
 			apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
 			return
 		}
 
+		userInfo, err := GetUserInfoByUserEmail(claims["email"].(string))
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
 
-        userInfo, err := GetUserInfoByUserEmail(claims["email"].(string))
-        if err != nil {
-            apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-            return
-        }
+		limits := TierConfigs[UserTier(userInfo.UserTier)]
 
+		// Store tier information in context
+		c.Set("userTier", UserTier(userInfo.UserTier))
+		c.Set("tierLimits", limits)
 
-        limits := TierConfigs[UserTier(userInfo.UserTier)]
-        
-        // Store tier information in context
-        c.Set("userTier", UserTier(userInfo.UserTier))
-        c.Set("tierLimits", limits)
+		// Check if authentication is required for this tier
+		if limits.RequiresAuth {
+			// Use the Cognito middleware for authenticated tiers
+			// auth.NewCognitoAuth()
+			cognitoAuth.AuthMiddleware()(c)
+			if c.IsAborted() {
+				return
+			}
+		}
 
-        // Check if authentication is required for this tier
-        if limits.RequiresAuth {
-            // Use the Cognito middleware for authenticated tiers
-            // auth.NewCognitoAuth()
-            cognitoAuth.AuthMiddleware()(c)
-            if c.IsAborted() {
-                return
-            }
-        }
-
-        c.Next()
-    }
+		c.Next()
+	}
 }
 
 // type LatexHandler struct {
@@ -68,7 +67,7 @@ func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
 // func (h *LatexHandler) getCollaboratorCount(sessionID string) int {
 //     h.Hub.Mutex.Lock()
 //     defer h.Hub.Mutex.Unlock()
-    
+
 //     if clients, exists := h.Hub.Sessions[sessionID]; exists {
 //         return len(clients)
 //     }
@@ -76,42 +75,41 @@ func TierMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
 // }
 
 func WebSocketAuthMiddleware(cognitoAuth *CognitoAuth) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		subprotocols := c.Request.Header.Get("Sec-WebSocket-Protocol")
+		tokens := strings.Split(subprotocols, ", ")
+		if len(tokens) > 1 && tokens[0] == "Authorization" {
+			token := tokens[1]
+			_, err := cognitoAuth.ValidateToken(token)
+			if err != nil {
+				apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
+				return
+			}
+		}
+		c.Next()
+	}
+}
+
+func CollaborationLimitMiddleware(concurrentLimit int) gin.HandlerFunc {
     return func(c *gin.Context) {
-        subprotocols := c.Request.Header.Get("Sec-WebSocket-Protocol")
-        tokens := strings.Split(subprotocols, ", ")
-        if len(tokens) > 1 && tokens[0] == "Authorization" {
-            token := tokens[1]
-            _, err := cognitoAuth.ValidateToken(token)
-            if err != nil {
-                apiResponse.SendErrorResponse(c, http.StatusUnauthorized, "Invalid token")
-                return
-            }
+        // tier := c.MustGet("userTier").(UserTier)
+        // limits := c.MustGet("tierLimits").(TierLimits)
+        currentCollaborators := 0
+        // Get current number of collaborators for this session
+        sessionId := c.Param("sessionId")
+
+        if clients, exists := wsProvider.Handler.Hub.Sessions[sessionId]; exists {
+					currentCollaborators = len(clients) + 1
         }
+
+        if currentCollaborators > concurrentLimit {
+						c.AbortWithStatusJSON(403, gin.H{"error": "Forbidden", "message": "Maximum collaborator limit reached for your tier"})
+            return
+        }
+
         c.Next()
     }
 }
-
-// func CollaborationLimitMiddleware(handler *latex.Handler) gin.HandlerFunc {
-//     return func(c *gin.Context) {
-//         // tier := c.MustGet("userTier").(UserTier)
-//         limits := c.MustGet("tierLimits").(TierLimits)
-//         currentCollaborators := 0
-//         // Get current number of collaborators for this session
-//         sessionID := c.Param("sessionId")
-
-//         if clients, exists := handler.Hub.Sessions[sessionID]; exists {
-// 					currentCollaborators = len(clients) + 1
-//         }
-//         fmt.Println("#DEBUG::collab num", currentCollaborators)
-
-//         if currentCollaborators > limits.MaxCollaborators {
-//             apiResponse.SendErrorResponse(c, http.StatusForbidden, "Maximum collaborator limit reached for your tier")
-//             return
-//         }
-
-//         c.Next()
-//     }
-// }
 
 // func ProjectLimitMiddleware() gin.HandlerFunc {
 //     return func(c *gin.Context) {

@@ -1,7 +1,5 @@
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useTypedSelector } from "@/stores/main";
-import { selectCurrentUserEmail } from "@/stores/authSlice";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   InputOTP,
   InputOTPGroup,
@@ -18,18 +16,11 @@ function initCurrentUserEmail() {
 }
 
 const UserConfirmationView: React.FC = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const [confirmationCode, setConfirmationCode] = useState<string>("");
   // const currentUserEmail = location.state?.currentUserEmail || "";
   const [currentUserEmail, _] = useState<string>(initCurrentUserEmail);
-  useEffect(() => {
-    console.log("debug init confirm", currentUserEmail);
-  }, []);
 
-  useEffect(() => {
-    console.log("debug currentUserEmail change at confirm", currentUserEmail);
-  }, [currentUserEmail]);
   const submitConfirmationCode = async () => {
     try {
       // if (!currentUserEmail) return;
@@ -38,15 +29,7 @@ const UserConfirmationView: React.FC = () => {
         confirmationCode: confirmationCode,
       });
       navigate("/project");
-      // console.log("debug res in confirm", res);
-      // navigate("../confirm", {
-      //   state: {
-      //     currentUserEmail: formData.email,
-      //   },
-      // });
-    } catch (err: any) {
-      console.log("debug err", err);
-    }
+    } catch (err: any) {}
   };
 
   return (

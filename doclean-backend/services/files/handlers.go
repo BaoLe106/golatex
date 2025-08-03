@@ -1,38 +1,110 @@
 package files
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
+	"path/filepath"
+	"strings"
+	"time"
 
 	// jobProvider "github.com/BaoLe106/doclean/doclean-backend/providers/job"
+	s3Provider "github.com/BaoLe106/doclean/doclean-backend/providers/s3"
 	wsProvider "github.com/BaoLe106/doclean/doclean-backend/providers/ws"
 	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/gabriel-vasile/mimetype"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
-func GetFilesByProjectIdHandler(c *gin.Context) {
+func GetFilesByProjectIdHandler(c *gin.Context, jobManager *JobManager) {
 	projectId := c.Param("sessionId")
 	result, err := GetFilesByProjectId(projectId)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	// fmt.Println("DEBUG::get_files", result)
+	s3Client := s3Provider.S3Client
+	for i := range result.Files {
+		file := &result.Files[i]
+
+		go func(f *FileSchema) {
+			if err := <-jobManager.EnqueueCreateFileOnLocalJob(CreateFileOnLocalJobPayload{
+				ProjectID: projectId,
+				FileID:    f.FileID,
+				FileName:  f.FileName,
+				FileType:  f.FileType,
+				FileDir:   f.FileDir,
+				Content:   f.Content,
+			}); err != nil {
+				fmt.Println(err)
+			}
+		}(file)
+
+		if file.Origin == 1 {
+			objectKey := fmt.Sprintf("input/%s/%s", projectId, file.FileName+"."+file.FileType)
+			if strings.Contains(*file.ContentType, "image") {
+				presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
+					&s3.GetObjectInput{
+						Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
+						Key:                        aws.String(objectKey),
+						ResponseContentType:        aws.String(*file.ContentType),
+						ResponseContentDisposition: aws.String("inline"),
+					},
+					s3.WithPresignExpires(time.Minute*60),
+				)
+				if err != nil {
+					apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+					return
+				}
+
+				file.Content = presignedUrl.URL
+			} else if file.FileType == "pdf" {
+				presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
+					&s3.GetObjectInput{
+						Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
+						Key:                        aws.String(objectKey),
+						ResponseContentType:        aws.String("application/pdf"),
+						ResponseContentDisposition: aws.String("inline"),
+					},
+					s3.WithPresignExpires(time.Minute*60),
+				)
+				if err != nil {
+					apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+					return
+				}
+
+				file.Content = presignedUrl.URL
+			}
+		}
+	}
 	apiResponse.SendGetRequestResponse(c, http.StatusOK, result)
 }
 
 func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.Hub) {
 	sessionId := c.Param("sessionId")
-	var input CreateFilePayload
 
-	err := json.NewDecoder(c.Request.Body).Decode(&input)
+	files, err := GetFilesByProjectId(sessionId)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
+	if len(files.Files) >= 30 {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "Cannot add more files (reach limit)")
+		return
+	}
+
+	var input CreateFilePayload
+	err = json.NewDecoder(c.Request.Body).Decode(&input)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	fmt.Println("#DEBUG::input in create file", input)
 	// fileDir := "/tmp/" + sessionId
 
 	// Create session directory
@@ -41,48 +113,91 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 		return
 	}
 
-	// Create new file into session directory
-	fileName := input.FileDir + "/" + input.FileName + "." + input.FileType
-	file, err := os.Create(fileName)
-	if err != nil {
-		fmt.Println("Error here 1")
-		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-	defer file.Close()
+	var fileContentType string
 
-	// Write the content to the file
-	_, err = file.WriteString(input.Content)
-	if err != nil {
-		fmt.Println("Error here 2")
-		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	fileFromDb, err := GetFileByFileId(input.FileID)
-	if err != nil {
-		if err != sql.ErrNoRows {
+	if input.FileType != "folder" {
+		// Create new file into session directory
+		fileName := input.FileDir + "/" + input.FileName + "." + input.FileType
+		file, err := os.Create(fileName)
+		if err != nil {
+			fmt.Println("Error here 1")
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-			return	
+			return
 		}
+		defer file.Close()
+
+		// Write the content to the file
+		// _, err = file.WriteString(input.Content)
+		// if err != nil {
+		// 	fmt.Println("Error here 2")
+		// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		// 	return
+		// }
+
+		// f, err := os.Open(fileName)
+		// if err != nil {
+		// 	fmt.Println("Error here 2.5")
+		// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		// 	return
+		// }
+		// defer f.Close()
+
+		// buffer := make([]byte, 512)
+		// _, err = f.Read(buffer)
+		// if err != nil {
+		// 	fmt.Println("Error here 2.8")
+		// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		// 	return
+		// }
+		fileContentType = "application/octet-stream"
+		// http.DetectContentType(buffer)
 	}
+	fmt.Println("#DEBUG::fileContentType", fileContentType)
+	// fileFromDb, err := GetFileByFileId(input.FileID)
+	// if err != nil {
+	// 	if err != sql.ErrNoRows {
+	// 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+	// 		return
+	// 	}
+	// }
 
-	if (fileFromDb != nil) {
-		apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
-		return;
-	} 
+	// // File existed, don't create file, just write file to disk
+	// if fileFromDb != nil {
+	// 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
+	// 	return
+	// }
 
-	err = CreateFile(input)
+	err = CreateFile(CreateFilePayload{
+		FileID:        input.FileID,
+		ProjectID:     input.ProjectID,
+		FileName:      input.FileName,
+		FileType:      input.FileType,
+		FileDir:       input.FileDir,
+		Content:       input.Content,
+		CreatedBy:     input.CreatedBy,
+		LastUpdatedBy: input.LastUpdatedBy,
+		Origin:        input.Origin,
+		ContentType:   fileContentType,
+	})
 	if err != nil {
 		fmt.Println("Error here 3")
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
+	var fileNameBroadcast string
+	if input.FileType != "folder" {
+		fileNameBroadcast = input.FileName + "." + input.FileType
+	} else {
+		fileNameBroadcast = input.FileName
+	}
+
 	payload := BroadcastInfoPayload{
-		Hub: hub,
+		Hub:       hub,
 		SessionId: sessionId,
-		InfoType: "file_created",
+		InfoType:  "file_created",
+		FileName:  fileNameBroadcast,
+		FileType:  input.FileType,
 	}
 
 	done := jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)
@@ -91,4 +206,212 @@ func CreateFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.H
 	}
 
 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
+}
+
+func UploadFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.Hub) {
+	sessionId := c.Param("sessionId")
+	form, err := c.MultipartForm()
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	currentFolder := form.Value["currentFolder"][0]
+	currentPeerId := form.Value["currentPeerId"][0]
+	files := form.File["files"]
+
+	projectFiles, err := GetFilesByProjectId(sessionId)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	if len(projectFiles.Files) >= 30 || len(projectFiles.Files)+len(files) > 30 {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "Cannot add more files (reach limit)")
+		return
+	}
+
+	// input: fileName, fileType,
+	fileDir := "/tmp/" + sessionId + currentFolder
+	// Create session upload directory
+	if err := os.MkdirAll(fileDir, 0755); err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	for _, fileHeader := range files {
+		// Open the file (returns multipart.File)
+		file, err := fileHeader.Open()
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+		defer file.Close()
+
+		// Example: Get metadata for AWS S3
+		fileName := fileHeader.Filename
+
+		// Build full path: fileDir + filename
+		fileDestinationPath := filepath.Join(fileDir+"/", fileHeader.Filename)
+
+		// Create file destination
+		fileDestination, err := os.Create(fileDestinationPath)
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Save to local disk
+		_, err = io.Copy(fileDestination, file)
+		fileDestination.Close()
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		// Write to DB: file_info table
+
+		// Upload to S3 — reopen or reset src before reuse
+		// Example: uploadToS3(fileHeader, filename, contentType)
+		file.Seek(0, io.SeekStart) // Reset reader position
+		contentType := fileHeader.Header.Get("Content-Type")
+		objectKey := fmt.Sprintf("input/%s%s/%s", sessionId, currentFolder, fileName)
+
+		s3Client := s3Provider.S3Client
+		_, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
+			// _, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
+			Bucket:      aws.String(os.Getenv("S3_BUCKET")),
+			Key:         aws.String(objectKey),
+			Body:        file, //*os.File
+			ContentType: aws.String(contentType),
+		})
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		file.Seek(0, io.SeekStart) // Reset reader position
+		mtype, err := mimetype.DetectReader(file)
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+
+		fmt.Println("#DEBUG::mtype", mtype)
+		content := ""
+		file.Seek(0, io.SeekStart) // Reset reader position - IMPORTANT
+		if strings.HasPrefix(mtype.String(), "text/") {
+			contentBytes, err := io.ReadAll(file)
+			if err != nil {
+				apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+				return
+			}
+
+			content = string(contentBytes)
+		}
+
+		// fmt.Println("#DEBUG::content_from_upload_file", content)
+		projectId, _ := uuid.Parse(sessionId)
+		fileType := filepath.Ext(fileName)
+		fileName = fileName[:len(fileName)-len(fileType)]
+		fileType = fileType[1:]
+		currentPeerUUID, _ := uuid.Parse(currentPeerId)
+
+		err = CreateFile(CreateFilePayload{
+			FileID:        uuid.New(),
+			ProjectID:     projectId,
+			FileName:      fileName,
+			FileType:      fileType,
+			FileDir:       fileDir,
+			CreatedBy:     currentPeerUUID,
+			LastUpdatedBy: currentPeerUUID,
+			Content:       content,
+			Origin:        1,
+			ContentType:   contentType,
+		})
+		if err != nil {
+			apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+			return
+		}
+	}
+	payload := BroadcastInfoPayload{
+		Hub:       hub,
+		SessionId: sessionId,
+		InfoType:  "file_uploaded",
+	}
+
+	done := jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)
+	if err := <-done; err != nil {
+		fmt.Println("##LOG##: Error boardcasting create file info to session:", err.Error())
+	}
+
+	apiResponse.SendPostRequestResponse(c, http.StatusCreated, nil)
+}
+
+func DownloadFileHandler(c *gin.Context) {
+	var input CreateFileOnLocalJobPayload
+	err := json.NewDecoder(c.Request.Body).Decode(&input)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	// file, err := os.Open(input.FileDir + "/" + input.FileName + "." + input.FileType)
+	// if err != nil {
+	// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+	// 	return
+	// }
+	// defer file.Close()
+	// fmt.Println("#DEBUG::file_dir", input)
+	objectKey := fmt.Sprintf("input/%s%s/%s", input.ProjectID, input.FileDir, input.FileName+"."+input.FileType)
+	fmt.Println("#DEBUG::objectKey", objectKey)
+	s3Client := s3Provider.S3Client
+	// _, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
+	// 	Bucket:      aws.String(os.Getenv("S3_BUCKET")),
+	// 	Key:         aws.String(objectKey),
+	// 	Body:        file, //*os.File
+	// 	ContentType: aws.String(input.ContentType),
+	// })
+	// if err != nil {
+	// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+	// 	return
+	// }
+
+	presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
+		&s3.GetObjectInput{
+			Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
+			Key:                        aws.String(objectKey),
+			ResponseContentType:        aws.String(input.ContentType),
+			ResponseContentDisposition: aws.String("attachment; filename=\"" + input.FileName + "." + input.FileType + "\""),
+		},
+		s3.WithPresignExpires(time.Minute*1),
+	)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+	apiResponse.SendPostRequestResponse(c, http.StatusOK, presignedUrl)
+}
+
+func DeleteFileHandler(c *gin.Context, jobManager *JobManager, hub *wsProvider.Hub) {
+	sessionId := c.Param("sessionId")
+	fileId := c.Param("fileId")
+
+	err := DeleteFile(fileId)
+	if err != nil {
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	payload := BroadcastInfoPayload{
+		Hub:       hub,
+		SessionId: sessionId,
+		InfoType:  "file_deleted",
+	}
+
+	done := jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)
+	if err := <-done; err != nil {
+		fmt.Println("##LOG##: Error boardcasting delete file info to session:", err.Error())
+	}
+
+	apiResponse.SendPostRequestResponse(c, http.StatusOK, nil)
 }

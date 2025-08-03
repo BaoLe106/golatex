@@ -4,11 +4,13 @@ import (
 	// "os"
 
 	// user_tier_middleware "github.com/BaoLe106/doclean/doclean-backend/middleware/user_tier"
-
 	// jobProvider "github.com/BaoLe106/doclean/doclean-backend/providers/job"
+	"net/http"
+
 	wsProvider "github.com/BaoLe106/doclean/doclean-backend/providers/ws"
 	"github.com/BaoLe106/doclean/doclean-backend/services/auth"
 	"github.com/BaoLe106/doclean/doclean-backend/services/files"
+	"github.com/BaoLe106/doclean/doclean-backend/utils/apiResponse"
 
 	// "github.com/BaoLe106/doclean/doclean-backend/ws"
 	"github.com/gin-gonic/gin"
@@ -23,7 +25,13 @@ func AddLatexRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	wsProvider.NewHandler()
 	jobManager := files.JobMngr
 	// jobManager := NewJobManager()
-	latexRoute.GET("/playground/:sessionId", 
+	latexRoute.GET("/playground/check/:sessionId",
+		auth.CollaborationLimitMiddleware(1),
+		func(ctx *gin.Context) {
+			apiResponse.SendGetRequestResponse(ctx, http.StatusOK, nil)
+		},
+	)
+	latexRoute.GET("/playground/:sessionId",
 		// CollaborationLimitMiddleware(latexHandler),
 		// WebSocketAuthMiddleware(cognitoAuth),
 		func(ctx *gin.Context) {
@@ -35,20 +43,21 @@ func AddLatexRoutes(rg *gin.RouterGroup, cognitoAuth *auth.CognitoAuth) {
 	// 	auth.TierMiddleware(cognitoAuth),
 	// 	// user_tier_middleware.ProjectLimitMiddleware(),
 	// )
-
-	latexRoute.GET("/:sessionId", 
-		// CollaborationLimitMiddleware(latexHandler),
+	latexRoute.GET("/check/:sessionId",
+		auth.CollaborationLimitMiddleware(3),
+		func(ctx *gin.Context) {
+			apiResponse.SendGetRequestResponse(ctx, http.StatusOK, nil)
+		},
+	)
+	latexRoute.GET("/:sessionId",
 		// WebSocketAuthMiddleware(cognitoAuth),
 		func(ctx *gin.Context) {
 			HandleConnection(ctx, jobManager)
 		},
 	)
-	
+
 	// latexRoute.GET("/session", SessionHandler)
 	// latexRoute.GET("/:sessionId", latexHandler.HandleConnection)
-	
-		
-	
+
 	latexRoute.POST("/pdf/:sessionId", CompileToPdf)
 }
-

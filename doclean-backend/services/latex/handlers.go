@@ -30,149 +30,205 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-
-
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins (be careful with this in production)
+		allowedOrigin := "https://lattex.org" // Change to your allowed origin
+		return r.Header.Get("Origin") == allowedOrigin
 	},
-	Subprotocols: []string{"Authorization"},
+	// Subprotocols:    []string{"Authorization"},
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
 
-
 func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 	w, r := c.Writer, c.Request
-	
+
 	sessionId := c.Param("sessionId")
-	
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println("Error during connection upgrade:", err)
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	client := &wsProvider.Client{Conn: conn, SessionID: sessionId}
+	// First, wait for the join message to get peerId
+	_, joinMsgBytes, err := conn.ReadMessage()
+	if err != nil {
+		conn.Close()
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var joinMsg wsProvider.SignalingMessage
+
+	if err := json.Unmarshal(joinMsgBytes, &joinMsg); err != nil {
+		conn.Close()
+		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if joinMsg.Type != "join" {
+		conn.Close()
+		return
+	}
+
+	peerId := joinMsg.PeerID
+
+	// Register the connection with the hub
 	wsProvider.Handler.Hub.Mutex.Lock()
 	if _, exists := wsProvider.Handler.Hub.Sessions[sessionId]; !exists {
-		wsProvider.Handler.Hub.Sessions[sessionId] = make(map[*wsProvider.Client]bool)
+		wsProvider.Handler.Hub.Sessions[sessionId] = make(map[string]*websocket.Conn)
 	}
-	wsProvider.Handler.Hub.Sessions[sessionId][client] = true
-	
+
+	if existingConn, exists := wsProvider.Handler.Hub.Sessions[sessionId][peerId]; exists {
+		// Close existing connection if it's different
+		if existingConn != conn {
+			existingConn.Close()
+		}
+	}
+
+	wsProvider.Handler.Hub.Sessions[sessionId][peerId] = conn
+
+	// Sync the new client with the current state of the session
 	if data, exists := wsProvider.Handler.Hub.SessionData[sessionId]; exists {
-		err := client.Conn.WriteMessage(websocket.TextMessage, []byte(data))
-		
-		if err != nil {
+		if err := conn.WriteMessage(websocket.TextMessage, []byte(data)); err != nil {
 			log.Println("Error sending session data to client:", err)
 		}
 	}
 
-
 	wsProvider.Handler.Hub.Mutex.Unlock()
+
+	// Notify other peers about the new peer
+	wsProvider.Handler.Hub.Mutex.RLock()
+	for otherPeerId, otherConn := range wsProvider.Handler.Hub.Sessions[sessionId] {
+		if otherPeerId != peerId {
+			// Tell existing peer about the new peer
+			otherConn.WriteJSON(map[string]interface{}{
+				"type":      "join",
+				"peerId":    peerId,
+				"sessionId": sessionId,
+			})
+
+			// Tell new peer about existing peer
+			// conn.WriteJSON(map[string]interface{}{
+			// 	"type":      "join",
+			// 	"peerId":    otherPeerId,
+			// 	"sessionId": sessionId,
+			// })
+		}
+	}
+	wsProvider.Handler.Hub.Mutex.RUnlock()
 
 	defer func() {
 		wsProvider.Handler.Hub.Mutex.Lock()
-		delete(wsProvider.Handler.Hub.Sessions[sessionId], client)
+		delete(wsProvider.Handler.Hub.Sessions[sessionId], peerId)
+
+		// Notify other peers about the leaving peer
+		for _, otherConn := range wsProvider.Handler.Hub.Sessions[sessionId] {
+			otherConn.WriteJSON(map[string]interface{}{
+				"type":      "leave",
+				"peerId":    peerId,
+				"sessionId": sessionId,
+			})
+		}
+
 		if len(wsProvider.Handler.Hub.Sessions[sessionId]) == 0 {
 			delete(wsProvider.Handler.Hub.Sessions, sessionId)
+			delete(wsProvider.Handler.Hub.SessionData, sessionId)
 		}
 		wsProvider.Handler.Hub.Mutex.Unlock()
 		conn.Close()
 	}()
-	
+
+	// *******************************************
+	// ***		Handle message from client	   ***
+	// *******************************************
 	var timer *time.Timer
-	for { //run until err then break
+	// Run until err then break
+	for {
+		// Receive msg
 		_, msgBytes, err := conn.ReadMessage()
-		
+
 		if err != nil {
 			log.Println("Error reading message:", err)
 			break
 		}
 
-		var msgData wsProvider.MsgData
-		msg := string(msgBytes)
+		var msgData wsProvider.SignalingMessage
 		err = json.Unmarshal(msgBytes, &msgData)
 		if err != nil {
 			log.Println("Error unmarshalling message:", err)
 		}
-		
-		wsProvider.Handler.Hub.Mutex.Lock()
-		wsProvider.Handler.Hub.SessionData[sessionId] = msg
-		
-		// Only broadcast to clients in the same session
-		for otherClient := range wsProvider.Handler.Hub.Sessions[sessionId] {
-			var tmpMsgData wsProvider.MsgData
-			err = json.Unmarshal(msgBytes, &tmpMsgData)
-			if err != nil {
-				log.Println("Error unmarshalling message:", err)
-			}
-			fmt.Println("##LOG client1##:", client)
-			fmt.Println("##LOG client2##:", otherClient)
-			fmt.Println("##LOG msgData3##:", tmpMsgData)
-			if otherClient != client {
-				err := otherClient.Conn.WriteMessage(websocket.TextMessage, msgBytes)
-				fmt.Println("##LOG##: write msg in main")
-				if err != nil {
-					log.Println("Error broadcasting message:", err)
-					delete(wsProvider.Handler.Hub.Sessions[sessionId], otherClient)
+
+		// Handle different message types
+		switch msgData.Type {
+		case "offer", "answer", "ice-candidate":
+			// // Forward WebRTC signaling messages
+			// wsProvider.Handler.Hub.Mutex.RLock()
+			// if targetConn, exists := wsProvider.Handler.Hub.Sessions[sessionId][msgData.ToPeerID]; exists {
+			// 	if err := targetConn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
+			// 		log.Println("Error forwarding WebRTC message:", err)
+			// 	}
+			// }
+			// wsProvider.Handler.Hub.Mutex.RUnlock()
+
+		default:
+			// Handle regular messages (your existing logic)
+			wsProvider.Handler.Hub.Mutex.Lock()
+			wsProvider.Handler.Hub.SessionData[sessionId] = string(msgBytes)
+
+			// Broadcast to other clients in the same session
+			for otherPeerId, otherConn := range wsProvider.Handler.Hub.Sessions[sessionId] {
+				if otherPeerId != peerId {
+					if err := otherConn.WriteMessage(websocket.TextMessage, msgBytes); err != nil {
+						log.Println("Error broadcasting message:", err)
+						delete(wsProvider.Handler.Hub.Sessions[sessionId], otherPeerId)
+					}
 				}
 			}
-		}
+			wsProvider.Handler.Hub.Mutex.Unlock()
 
-		wsProvider.Handler.Hub.Mutex.Unlock()
+			if timer != nil {
+				timer.Stop()
+			}
 
-		if timer != nil {
-			timer.Stop()
-		}
-		
-		timer = time.AfterFunc(2 * time.Second, func() {
-			if _, exists := wsProvider.Handler.Hub.Sessions[sessionId]; exists {
-				sessionIdInUUID, err := uuid.Parse(sessionId)
-				if err != nil {
-					apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-					return
-				}
-
-				fileIdInUUID, _ := uuid.Parse(msgData.FileID)
-				// if err != nil {
-				// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
-				// 	return
-				// }
-				
-				done := jobManager.EnqueueSaveFileContentJob(files.SaveFileContentPayload{
-					FileID:       		fileIdInUUID,
-					ProjectID:        sessionIdInUUID,
-					Content:          msgData.FileContent,
-					LastUpdatedBy:    uuid.New(),
-				})
-
-				go func() {
-					if err := <-done; err != nil {
-						fmt.Println("Error saving to DB:", err.Error())
+			timer = time.AfterFunc(2*time.Second, func() {
+				if _, exists := wsProvider.Handler.Hub.Sessions[sessionId]; exists {
+					sessionIdInUUID, err := uuid.Parse(sessionId)
+					if err != nil {
+						apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 						return
 					}
 
+					fileIdInUUID, _ := uuid.Parse(msgData.UpdateContentData.FileID)
 
-					payload := files.BroadcastInfoPayload{
-						Hub: wsProvider.Handler.Hub,
-						SessionId: sessionId,
-						InfoType: "file_content_saved",
-						// Status: "Done",
-					}
-				
-					done = jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)
-					
-					if err := <-done; err != nil {
-						fmt.Println("Error creating file to DB:", err.Error())
-					}
-				}()
+					go func() {
+						done := jobManager.EnqueueSaveFileContentJob(files.SaveFileContentPayload{
+							FileID:        fileIdInUUID,
+							ProjectID:     sessionIdInUUID,
+							Content:       msgData.UpdateContentData.FileContent,
+							LastUpdatedBy: uuid.New(),
+						})
+						if err := <-done; err != nil {
+							fmt.Println("Error saving to DB:", err.Error())
+							return
+						}
 
-				
-				
-			}
+						payload := files.BroadcastInfoPayload{
+							Hub:       wsProvider.Handler.Hub,
+							SessionId: sessionId,
+							InfoType:  "update_content_with_file",
+						}
 
-		})
+						done = jobManager.EnqueueBroadcastCreateFileInfoToSessionJob(payload)
+
+						if err := <-done; err != nil {
+							fmt.Println("Error creating file to DB:", err.Error())
+						}
+					}()
+				}
+			})
+		}
 	}
 }
 
@@ -180,11 +236,6 @@ func HandleConnection(c *gin.Context, jobManager *files.JobManager) {
 // 	Message string `json:"message"`
 // 	PDFFile string `json:"pdf_file"`
 // }
-
-
-
-
-
 
 func CompileToPdf(c *gin.Context) {
 	sessionId := c.Param("sessionId")
@@ -197,7 +248,7 @@ func CompileToPdf(c *gin.Context) {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	
+
 	if input.CompileFileType != "tex" {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, "File type not supported")
 		return
@@ -220,7 +271,7 @@ func CompileToPdf(c *gin.Context) {
 
 	pdfOutputPath := "/tmp/" + sessionId
 	// pdfOutputFilePath := pdfOutputPath + "/sample.pdf"
-	
+
 	cmd := exec.Command("pdflatex", fmt.Sprintf("-output-directory=%s", pdfOutputPath), fileName)
 	cmd.Dir = pdfOutputPath
 	var stderr bytes.Buffer
@@ -232,8 +283,7 @@ func CompileToPdf(c *gin.Context) {
 		// errorMessage := fmt.Sprintf("pdflatex error: %s\n\nDetails: %s", err.Error(), )
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, stderr.String())
 		return
-	} 
-	
+	}
 
 	if input.IsThereABibFile {
 		cmd = exec.Command("bibtex", input.CompileFileName)
@@ -245,7 +295,7 @@ func CompileToPdf(c *gin.Context) {
 		if err := cmd.Run(); err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, stderr.String())
 			return
-		} 
+		}
 
 		cmd = exec.Command("pdflatex", fmt.Sprintf("-output-directory=%s", pdfOutputPath), fileName)
 		cmd.Dir = pdfOutputPath
@@ -256,7 +306,7 @@ func CompileToPdf(c *gin.Context) {
 		if err := cmd.Run(); err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, stderr.String())
 			return
-		} 
+		}
 
 		cmd = exec.Command("pdflatex", fmt.Sprintf("-output-directory=%s", pdfOutputPath), fileName)
 		cmd.Dir = pdfOutputPath
@@ -267,12 +317,11 @@ func CompileToPdf(c *gin.Context) {
 		if err := cmd.Run(); err != nil {
 			apiResponse.SendErrorResponse(c, http.StatusBadRequest, stderr.String())
 			return
-		} 
+		}
 	}
-	
-	
+
 	fmt.Println("PDF generated successfully!")
-	
+
 	pdfFile, err := os.Open(pdfOutputPath + "/" + input.CompileFileName + ".pdf")
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
@@ -280,7 +329,6 @@ func CompileToPdf(c *gin.Context) {
 	}
 	defer pdfFile.Close()
 
-	
 	// awsConfig := aws.Config{
 	// 	Region: "us-west-2",
 	// 	Credentials: credentials.NewStaticCredentialsProvider(
@@ -291,13 +339,13 @@ func CompileToPdf(c *gin.Context) {
 	// }
 	// s3Client := s3.NewFromConfig(awsConfig)
 	// uploader := manager.NewUploader(s3Client)
-	objectKey := fmt.Sprintf("output/%s/%s", sessionId , input.CompileFileName + ".pdf" )
-	
+	objectKey := fmt.Sprintf("output/%s/%s", sessionId, input.CompileFileName+".pdf")
+	// s3.PutObjectOutput
 	_, err = s3Client.Client.PutObject(c, &s3.PutObjectInput{
-	// _, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
+		// _, err = uploader.Upload(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(os.Getenv("S3_BUCKET")),
-		Key:		aws.String(objectKey),
-		Body: 	pdfFile,
+		Key:    aws.String(objectKey),
+		Body:   pdfFile,
 	})
 
 	if err != nil {
@@ -340,52 +388,51 @@ func CompileToPdf(c *gin.Context) {
 	// 	FunctionName: aws.String("tex_to_pdf_lambda"),
 	// 	Payload:      payloadBytes,
 	// })
-	
+
 	// if err != nil {
 	// 	apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 	// 	return
 	// }
-	
+
 	// s3Client := s3.NewFromConfig(awsConfig)
 	// presignClient := s3.NewPresignClient(s3Client)
 
 	// bucketName := "golatex--tex-and-pdf-files"
 	// key := fmt.Sprintf("pdf/%s/sample.pdf", sessionId)
 
-	presignedUrl, err := s3Client.PresignClient.PresignGetObject(c, 
+	presignedUrl, err := s3Client.PresignClient.PresignGetObject(c,
 		&s3.GetObjectInput{
-			Bucket: 										aws.String(os.Getenv("S3_BUCKET")),
-			Key: 												aws.String(objectKey),
-			ResponseContentType: 				aws.String("application/pdf"),
+			Bucket:                     aws.String(os.Getenv("S3_BUCKET")),
+			Key:                        aws.String(objectKey),
+			ResponseContentType:        aws.String("application/pdf"),
 			ResponseContentDisposition: aws.String("inline"),
 		},
-		s3.WithPresignExpires(time.Minute * 60),
+		s3.WithPresignExpires(time.Minute*60),
 	)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	
+
 	apiResponse.SendPostRequestResponse(c, http.StatusCreated, gin.H{"pdfUrl": presignedUrl.URL})
 	// apiResponse.SendPostRequestResponse(c, http.StatusCreated, gin.H{"pdfUrl": "PDF generated successfully!"})
-	
+
 }
 
 func DownloadAllProjectFilesFromS3(c *gin.Context) {
 	sessionId := c.Param("sessionId")
 	s3Client := s3Provider.S3Client
 
-	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM  
-	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM  
-	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM  
-	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM  
-	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM  
-	
+	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM
+	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM
+	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM
+	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM
+	// WRITE SELECT ... FROM WRITE SELECT ... FROM WRITE SELECT ... FROM
 
 	s3FolderPrefix := "tex/" + sessionId + "/"
 
 	localDownloadPath := "/tmp/" + sessionId
-	
+
 	if err := os.MkdirAll(localDownloadPath, 0755); err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 	}

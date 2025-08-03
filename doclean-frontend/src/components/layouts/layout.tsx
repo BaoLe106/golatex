@@ -1,9 +1,12 @@
 import { ReactNode } from "react";
 import { ProjectService } from "@/services/projects/projectService";
+import { AppName } from "@/const/layout-const";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Toaster } from "@/components/ui/sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { v4 as uuidv4 } from "uuid";
+import { useTheme } from "@/context/ThemeProvider";
 interface LayoutProps {
   children: ReactNode;
 }
@@ -11,17 +14,13 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const sessionId = uuidv4();
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const createProject = async (sessionId: string) => {
     if (!sessionId) return;
     try {
-      const res = await ProjectService.createProject(sessionId, "GUEST");
-      if (res.status !== 201) {
-        throw new Error(res.data.error);
-      }
+      await ProjectService.createProject(sessionId, "GUEST");
       navigate(`/project/${sessionId}`);
-    } catch (err: any) {
-      console.log("debug catch err", err);
-    }
+    } catch (err: any) {}
   };
 
   return (
@@ -31,7 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
-              <h1 className="text-3xl">GoLatex</h1>
+              <h1 className="text-3xl pb-1">{AppName}</h1>
             </a>
 
             <a href="/about">
@@ -97,13 +96,20 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="flex flex-1">
         <main className="flex-1 justify-items-center w-full">
           <div className="w-full">{children}</div>
+          <Toaster
+            theme={theme}
+            richColors
+            closeButton
+            position="bottom-right"
+            toastOptions={{}}
+          />
         </main>
       </div>
 
       {/* Footer */}
       <footer className="border-t p-3 bg-white dark:bg-black">
         <div className="text-center">
-          <p className="">©2024 GoLatex. All rights reserved.</p>
+          <p className="">©2024 {AppName}. All rights reserved.</p>
         </div>
       </footer>
     </div>

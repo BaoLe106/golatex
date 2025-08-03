@@ -1,18 +1,18 @@
 // remove here
-import {
-  CognitoUserPool,
-  CognitoUser,
-  CognitoUserAttribute,
-  AuthenticationDetails,
-} from "amazon-cognito-identity-js";
+// import {
+//   CognitoUserPool,
+//   CognitoUser,
+//   CognitoUserAttribute,
+//   AuthenticationDetails,
+// } from "amazon-cognito-identity-js";
 import { useApiClient } from "@/services/base";
-import { cognitoConfig } from "@/services/config/cognito-config";
+// import { cognitoConfig } from "@/services/config/cognito-config";
 
-console.log(cognitoConfig.UserPoolId);
-const userPool = new CognitoUserPool({
-  UserPoolId: cognitoConfig.UserPoolId,
-  ClientId: cognitoConfig.ClientId,
-});
+// console.log(cognitoConfig.UserPoolId);
+// const userPool = new CognitoUserPool({
+//   UserPoolId: cognitoConfig.UserPoolId,
+//   ClientId: cognitoConfig.ClientId,
+// });
 // end
 interface UserSchema {
   email: string;
@@ -30,6 +30,23 @@ interface RefreshTokenSchema {
 
 export const AuthService = (() => {
   const apiClient = useApiClient();
+
+  const tempSignIn = async (sessionId: string, email: string) => {
+    const apiUrl = `/auth/eSignin/${sessionId}`;
+    const config = {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    };
+    const data = { email: email };
+    return await apiClient.post(apiUrl, data, config);
+  };
+
+  const tempAuthCheck = async (sessionId: string) => {
+    const apiUrl = `/auth/eAuthCheck/${sessionId}`;
+    const res = await apiClient.get(apiUrl);
+    return res;
+  };
 
   const getNewAccessToken = async (data: RefreshTokenSchema) => {
     const apiUrl = `/auth/refresh`;
@@ -89,6 +106,8 @@ export const AuthService = (() => {
   };
 
   return {
+    tempAuthCheck,
+    tempSignIn,
     getUserInfoByUserEmail,
     getNewAccessToken,
     authCheck,
@@ -118,35 +137,35 @@ export const AuthService = (() => {
 // name: string
 
 //modify this to api
-export const login = (email: string, password: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const user = new CognitoUser({ Username: email, Pool: userPool });
-    const authDetails = new AuthenticationDetails({
-      Username: email,
-      Password: password,
-    });
+// export const login = (email: string, password: string): Promise<string> => {
+//   return new Promise((resolve, reject) => {
+//     const user = new CognitoUser({ Username: email, Pool: userPool });
+//     const authDetails = new AuthenticationDetails({
+//       Username: email,
+//       Password: password,
+//     });
 
-    user.authenticateUser(authDetails, {
-      onSuccess: (session) => {
-        const token = session.getIdToken().getJwtToken();
-        localStorage.setItem("token", token);
-        resolve(token);
-      },
-      onFailure: (err) => reject(err),
-    });
-  });
-};
+//     user.authenticateUser(authDetails, {
+//       onSuccess: (session) => {
+//         const token = session.getIdToken().getJwtToken();
+//         localStorage.setItem("token", token);
+//         resolve(token);
+//       },
+//       onFailure: (err) => reject(err),
+//     });
+//   });
+// };
 
-//modify this to api
-export const logout = () => {
-  const user = userPool.getCurrentUser();
-  if (user) {
-    user.signOut();
-  }
-  localStorage.removeItem("token");
-};
+// //modify this to api
+// export const logout = () => {
+//   const user = userPool.getCurrentUser();
+//   if (user) {
+//     user.signOut();
+//   }
+//   localStorage.removeItem("token");
+// };
 
-// keep this
-export const getToken = (): string | null => {
-  return localStorage.getItem("token");
-};
+// // keep this
+// export const getToken = (): string | null => {
+//   return localStorage.getItem("token");
+// };

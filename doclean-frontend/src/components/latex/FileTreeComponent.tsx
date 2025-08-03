@@ -1,27 +1,38 @@
-import { useEffect, useState, useImperativeHandle, forwardRef } from "react";
+import {
+  useRef,
+  useEffect,
+  useState,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import { v4 as uuidv4 } from "uuid";
 import { TexFileService } from "@/services/latex/texFileService";
 import {
   CreateFilePayload,
   // CompileToPdfPayload,
   FileData,
+  DownloadFilePayload,
 } from "@/services/latex/models";
-import {
-  getCurrentEditorData,
-  setCurrFileIdForCurrUserIdInSessionId,
-} from "@/stores/editorSlice";
+
+import UploadFileComponent from "@/components/latex/UploadFileComponent";
 
 import {
   Folder,
   File,
   FilePlus,
   FolderPlus,
-  Check,
-  X,
+  Save,
   ChevronRight,
   ChevronDown,
+  Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -33,27 +44,33 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { TooltipWrapper } from "@/components/ui/tooltip-wrapper";
 import { Tree } from "antd";
-import type { GetProps, TreeDataNode } from "antd";
-type DirectoryTreeProps = GetProps<typeof Tree.DirectoryTree>;
+import type { TreeDataNode } from "antd";
 const { DirectoryTree } = Tree;
 
 export interface FileTreeRefHandle {
   updateTreeData: (treeData: TreeDataNode[]) => void;
+  downloadFile: (fileId: string) => void;
 }
 
 interface FileTreeComponentProps {
   theme: string;
   sessionId: string | undefined;
+  currentPeerId: string;
   setContent: (content: FileData) => void;
+  setMedia: (data: any) => void;
   setIsThereABibFile: (isThereABibFile: boolean) => void;
 }
 
 const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
-  ({ theme, sessionId, setContent, setIsThereABibFile }, ref) => {
+  ({ theme, sessionId, currentPeerId, setContent, setMedia }, ref) => {
+    const avoidTriggerSelectTreeNodeOnDownloadFile = useRef<boolean>(false);
+
     const [isAddingFile, setIsAddingFile] = useState<boolean>(false);
     const [isAddingFolder, setIsAddingFolder] = useState<boolean>(false);
+    const [isUploadingFile, setIsUploadingFile] = useState<boolean>(false);
     const [fileName, setFileName] = useState<string>("");
     const [folderName, setFolderName] = useState<string>("");
     const [currSelectedFolder, setCurrSelectedFolder] = useState<string>("");
@@ -61,11 +78,14 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
     const [filesData, setFilesData] = useState<FileData[]>([]);
     const [isFinishedCreatingFileOrFolder, setIsFinishedCreatingFileOrFolder] =
       useState<boolean>(false);
+    const [downloadUrl, setDownloadUrl] = useState<string>("");
 
     useImperativeHandle(ref, () => ({
       updateTreeData: (newTreeData: TreeDataNode[]) => {
-        console.log("debug updateTreeData", newTreeData);
         setTreeData(newTreeData);
+      },
+      downloadFile: (fileId: string) => {
+        downloadFile(fileId);
       },
     }));
 
@@ -116,46 +136,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
 
     const fetchFiles = async (sessionId: string) => {
       try {
-        const { files, fileTree } = await TexFileService.getFilesByProjectId(
-          sessionId
-        );
-
-        //       fileId: string;
-        // projectId: string;
-        // fileName: string;
-        // fileType: string;
-        // fileDir: string;
-        // content: string;
-        // createdBy: string;
-        // lastUpdatedBy: string;
-        console.log("debug files", files);
-        console.log("debug fileTree", fileTree);
-
-        const promises: Promise<any>[] = [];
-        files.forEach((file: any) => {
-          if (file.fileType !== "folder") {
-            if (file.fileType === "bib") 
-              setIsThereABibFile(true);
-            
-            promises.push(
-              TexFileService.createFile({
-                fileId: file.fileId,
-                projectId: sessionId,
-                fileName: file.fileName,
-                fileType: file.fileType,
-                fileDir: file.fileDir,
-                content: file.content,
-                createdBy: file.createdBy,
-                lastUpdatedBy: file.lastUpdatedBy,
-              } as CreateFilePayload)
-            );
-          }
-            
-        });
-
-        Promise.all(promises).then((values) => {
-          console.log(values);
-        });
+        const { files, fileTree } =
+          await TexFileService.getFilesByProjectId(sessionId);
         setFilesData(files);
         setTreeData(fileTree);
       } catch (err) {
@@ -163,9 +145,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       }
     };
 
-    const onSelect = (keys: any, info: any) => {
-      console.log("Trigger Select", keys, info);
-      // console.log("debug info key", info.node.key);
+    const onSelect = (_keys: any, info: any) => {
+      if (avoidTriggerSelectTreeNodeOnDownloadFile.current) return;
       if (info.node.key.length !== 3 || !info.node.isLeaf) {
         let res = getParentFolders(info.node.key);
 
@@ -175,7 +156,6 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
           res += "/" + info.node.title;
         }
 
-        console.log("debug res", res);
         setCurrSelectedFolder(res);
       } else {
         setCurrSelectedFolder("");
@@ -183,19 +163,30 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
 
       if (info.node.isLeaf) {
         if (!sessionId) return;
-        console.log("debug info node", info);
-        const currFileDir = filesData.find(
+        const currFile = filesData.find(
           (file: any) => file.fileId === info.node.fileId
-        )?.fileDir;
-        console.log("debug currFileData", currFileDir);
+        );
         const nodeTitleSplit = info.node.title.split(".");
-        setContent({
-          fileId: info.node.fileId,
-          fileName: nodeTitleSplit[0],
-          fileType: nodeTitleSplit[1],
-          fileDir: currFileDir,
-          content: info.node.content,
-        } as FileData);
+        if (
+          currFile?.contentType.includes("image") ||
+          currFile?.fileType === "pdf"
+        ) {
+          setMedia({
+            fileId: info.node.fileId,
+            fileType: currFile?.fileType,
+            contentType: currFile?.contentType,
+            url: currFile?.content,
+          });
+        } else {
+          setContent({
+            fileId: info.node.fileId,
+            fileName: nodeTitleSplit[0],
+            fileType: nodeTitleSplit[1],
+            fileDir: currFile?.fileDir,
+            content: info.node.content,
+          } as FileData);
+        }
+
         // setCurrFileIdForCurrUserIdInSessionId({
         //   [sessionId]: {
         //     userId: "asdjkadshjk",
@@ -207,7 +198,6 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
     };
 
     const onExpand = (keys: any, info: any) => {
-      // console.log("Trigger Expand", keys, info);
       let expandingFolders = {};
       keys.forEach((key: any) => {
         expandingFolders = { ...expandingFolders, [key]: info.node.title };
@@ -227,21 +217,17 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       if (!sessionId) return;
       try {
         const fileNameSplit = fileName.split(".");
-        const newUserId = uuidv4();
-        const res = await TexFileService.createFile({
+        await TexFileService.createFile({
           fileId: uuidv4(),
           projectId: sessionId,
           fileName: fileNameSplit[0],
           fileType: fileNameSplit[1],
           fileDir: `/tmp/${sessionId}${currSelectedFolder}`,
           content: "",
-          createdBy: newUserId,
-          lastUpdatedBy: newUserId,
-        });
-        if (res.status !== 201) {
-          throw new Error(res.data.error);
-        }
-        console.log("debug r u here");
+          createdBy: currentPeerId,
+          lastUpdatedBy: currentPeerId,
+        } as CreateFilePayload);
+
         setIsFinishedCreatingFileOrFolder(true);
         // await fetchFiles(sessionId);
       } catch (err) {
@@ -267,21 +253,17 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       if (!sessionId) return;
 
       try {
-        // const folderNameSplit = folderName.split(".");
-        const newUserId = uuidv4();
-        const res = await TexFileService.createFile({
+        await TexFileService.createFile({
           fileId: uuidv4(),
           projectId: sessionId,
           fileName: folderName,
           fileType: "folder",
           fileDir: `/tmp/${sessionId}${currSelectedFolder}/${folderName}`,
           content: "",
-          createdBy: newUserId,
-          lastUpdatedBy: newUserId,
+          createdBy: currentPeerId,
+          lastUpdatedBy: currentPeerId,
         });
-        if (res.status !== 201) {
-          throw new Error(res.data.error);
-        }
+
         setIsFinishedCreatingFileOrFolder(true);
         // await fetchFiles(sessionId);
       } catch (err) {
@@ -293,8 +275,70 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
       }
     };
 
+    const downloadFile = async (fileId: string) => {
+      avoidTriggerSelectTreeNodeOnDownloadFile.current = true;
+      if (!sessionId) return;
+      const currFile = filesData.find((file: any) => file.fileId === fileId);
+      if (!currFile) return;
+      try {
+        const fileDirSplit = currFile.fileDir.split(currFile?.fileDir);
+        const fileDir = fileDirSplit.length > 1 ? `${fileDirSplit[1]}` : "";
+        const res = await TexFileService.downloadFile({
+          fileId: currFile.fileId,
+          projectId: sessionId,
+          fileName: currFile.fileName,
+          fileType: currFile.fileType,
+          fileDir: fileDir,
+          content: currFile.content,
+          contentType: currFile.contentType,
+        } as DownloadFilePayload);
+        setDownloadUrl(res.data.URL);
+        setTimeout(() => {
+          const downloadLink = document.getElementById("download-component");
+          if (downloadLink) {
+            downloadLink.click();
+          }
+        }, 200);
+      } catch (err: any) {
+      } finally {
+        avoidTriggerSelectTreeNodeOnDownloadFile.current = false;
+      }
+    };
+
+    const deleteFile = async (fileId: string) => {
+      if (!sessionId) return;
+      // const currFile = filesData.find((file: any) => file.fileId === fileId);
+      // if (!currFile) return;
+
+      avoidTriggerSelectTreeNodeOnDownloadFile.current = true;
+      try {
+        await TexFileService.deleteFile(sessionId, fileId);
+        // setIsFinishedCreatingFileOrFolder(true);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        avoidTriggerSelectTreeNodeOnDownloadFile.current = false;
+      }
+    };
+
     return (
       <>
+        {/* For Download File */}
+        <a
+          id="download-component"
+          className="hidden"
+          href={downloadUrl}
+          download
+        ></a>
+        {/* For Download File */}
+        <UploadFileComponent
+          isOpen={isUploadingFile}
+          currSelectedFolder={currSelectedFolder}
+          currentPeerId={currentPeerId}
+          currentFileNumber={filesData.length}
+          sessionId={sessionId}
+          closeDialog={() => setIsUploadingFile(false)}
+        />
         <Dialog
           open={isAddingFile || isAddingFolder}
           onOpenChange={() =>
@@ -307,8 +351,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                 {isAddingFile
                   ? "Add File"
                   : isAddingFolder
-                  ? "Add New Folder"
-                  : null}
+                    ? "Add New Folder"
+                    : null}
               </DialogTitle>
               <DialogDescription>
                 In the directory:{" "}
@@ -321,8 +365,8 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                   {isAddingFile
                     ? "File Name"
                     : isAddingFolder
-                    ? "Folder Name"
-                    : null}
+                      ? "Folder Name"
+                      : null}
                 </Label>
                 <Input
                   autoFocus
@@ -330,15 +374,15 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                     isAddingFile
                       ? "file"
                       : isAddingFolder
-                      ? "folder"
-                      : "default"
+                        ? "folder"
+                        : "default"
                   }
                   placeholder={
                     isAddingFile
                       ? "Enter file name"
                       : isAddingFolder
-                      ? "Enter folder name"
-                      : ""
+                        ? "Enter folder name"
+                        : ""
                   }
                   value={
                     isAddingFile ? fileName : isAddingFolder ? folderName : ""
@@ -359,24 +403,45 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
                       ? isAddingFile
                         ? handleAddFile()
                         : isAddingFolder
-                        ? handleAddFolder()
-                        : undefined
+                          ? handleAddFolder()
+                          : undefined
                       : e.key === "Escape" &&
                         (isAddingFile
                           ? setIsAddingFile(false)
                           : isAddingFolder
-                          ? setIsAddingFolder(false)
-                          : undefined)
+                            ? setIsAddingFolder(false)
+                            : undefined)
                   }
                 />
               </div>
             </div>
-            <DialogFooter className="sm:justify-start">
+            <DialogFooter className="justify-between">
               <DialogClose asChild>
                 <Button type="button" variant="secondary">
                   Close
                 </Button>
               </DialogClose>
+              <Button
+                type="submit"
+                disabled={
+                  isAddingFile
+                    ? !Boolean(fileName.length)
+                    : isAddingFolder
+                      ? !Boolean(folderName.length)
+                      : true
+                }
+                className="px-3"
+                onClick={() => {
+                  if (isAddingFile) {
+                    handleAddFile();
+                  } else if (isAddingFolder) {
+                    handleAddFolder();
+                  }
+                }}
+              >
+                <Save />
+                Save
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -386,68 +451,130 @@ const FileTreeComponent = forwardRef<FileTreeRefHandle, FileTreeComponentProps>(
             (theme === "light" ? "bg-[#F0F0F0]" : "bg-black")
           }
         >
-          <TooltipWrapper tooltipContent={"New file"}>
-            <Button
-              className={
-                "bg-inherit " +
-                (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
-              }
-              variant="ghost"
-              size="icon"
-              onClick={createNewFile}
-            >
-              <FilePlus className="absolute w-[1.2rem] h-[1.2rem]" />
-            </Button>
+          <TooltipWrapper
+            tooltipContent={
+              filesData.length < 30
+                ? "New file"
+                : "Cannot add more files (reach limit)"
+            }
+          >
+            <span className="inline-block">
+              <Button
+                className={
+                  "bg-inherit " +
+                  (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+                }
+                variant="ghost"
+                size="icon"
+                disabled={filesData.length >= 30}
+                onClick={createNewFile}
+              >
+                <FilePlus className="absolute w-[1.2rem] h-[1.2rem]" />
+              </Button>
+            </span>
           </TooltipWrapper>
-          <TooltipWrapper tooltipContent={"New folder"}>
-            <Button
-              className={
-                "bg-inherit " +
-                (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
-              }
-              variant="ghost"
-              size="icon"
-              onClick={createNewFolder}
-            >
-              <FolderPlus className="absolute w-[1.2rem] h-[1.2rem]" />
-            </Button>
+          <TooltipWrapper
+            tooltipContent={
+              filesData.length < 30
+                ? "New folder"
+                : "Cannot add more folders (reach limit)"
+            }
+          >
+            <span className="inline-block">
+              <Button
+                className={
+                  "bg-inherit " +
+                  (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+                }
+                variant="ghost"
+                size="icon"
+                disabled={filesData.length >= 30}
+                onClick={createNewFolder}
+              >
+                <FolderPlus className="absolute w-[1.2rem] h-[1.2rem]" />
+              </Button>
+            </span>
+          </TooltipWrapper>
+          <TooltipWrapper
+            tooltipContent={
+              filesData.length < 30
+                ? "Upload file"
+                : "Cannot upload more files (reach limit)"
+            }
+          >
+            <span className="inline-block">
+              <Button
+                className={
+                  "bg-inherit " +
+                  (theme === "dark" ? "hover:bg-accent" : "hover:bg-white")
+                }
+                variant="ghost"
+                size="icon"
+                disabled={filesData.length >= 30}
+                onClick={() => setIsUploadingFile(!isUploadingFile)}
+              >
+                <Upload className="absolute w-[1.2rem] h-[1.2rem]" />
+              </Button>
+            </span>
           </TooltipWrapper>
         </div>
-        <DirectoryTree
-          className="bg-inherit "
-          // multiple
-          // draggable
-          defaultExpandAll
-          // rootClassName="text-black dark:text-white"
-          // showIcon
-          switcherIcon={(node: any) => {
-            // console.log(node.expanded);
-            return node.expanded ? (
-              <ChevronDown className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
-            ) : (
-              <ChevronRight className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
-            );
-          }}
-          icon={(node: any) => {
-            // console.log("debug node", node);
-            // if (node.isLeaf)
-            return node.data.isLeaf ? (
-              <File className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
-            ) : (
-              <Folder className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
-            );
-          }}
-          titleRender={(node: any) => {
-            return (
-              <span className="text-black dark:text-white dark:hover:text-white">
-                {node.title}
-              </span>
-            );
-          }}
-          onSelect={onSelect}
-          onExpand={onExpand}
-          treeData={treeData}
-        />
+        <ScrollArea className="h-[89vh]">
+          <DirectoryTree
+            className="bg-inherit "
+            defaultExpandAll
+            onRightClick={() => {
+              return false;
+            }}
+            switcherIcon={(node: any) => {
+              return node.expanded ? (
+                <ChevronDown className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+              ) : (
+                <ChevronRight className="ml-4 mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+              );
+            }}
+            icon={(node: any) => {
+              return node.data.isLeaf ? (
+                <File className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+              ) : (
+                <Folder className="mt-1 !h-4 !w-4 text-black dark:text-white dark:hover:text-white" />
+              );
+            }}
+            titleRender={(node: any) => {
+              return (
+                <ContextMenu>
+                  <ContextMenuTrigger className="flex h-[24px] items-center w-full">
+                    <span className="flex w-full text-black dark:text-white dark:hover:text-white">
+                      {node.title}
+                    </span>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-52">
+                    <ContextMenuItem
+                      inset
+                      onClick={() => downloadFile(node.fileId)}
+                    >
+                      Download...
+                      {/* <ContextMenuShortcut>⌘[</ContextMenuShortcut> */}
+                    </ContextMenuItem>
+                    {/* <ContextMenuItem inset>
+                    Rename
+                    <ContextMenuShortcut>⌘[</ContextMenuShortcut>
+                  </ContextMenuItem> */}
+                    <ContextMenuItem
+                      inset
+                      className="text-red-600 focus:text-red-600 focus:bg-red-100 dark:focus:bg-red-900"
+                      onClick={() => deleteFile(node.fileId)}
+                    >
+                      Delete
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            }}
+            onSelect={onSelect}
+            onExpand={onExpand}
+            treeData={treeData}
+          />
+        </ScrollArea>
       </>
     );
   }

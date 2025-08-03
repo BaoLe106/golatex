@@ -6,16 +6,9 @@ import share_link from "@/assets/undraw_share_link.svg";
 function App() {
   return (
     <ContainerLayout className="w-full">
-      <br />
-      <br />
-      <h1 className="font-medium text-center">
+      <h1 className="font-medium text-center pt-16 pb-32">
         Your lightweight Latex editor.
       </h1>
-      <br />
-      <br />
-      <br />
-      <br />
-      <br />
       <div className="flex items-center">
         <ContainerLayout>
           <img

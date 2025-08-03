@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { AppName } from "@/const/layout-const";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { v4 as uuidv4 } from "uuid";
@@ -15,7 +16,7 @@ const LayoutAuth: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex justify-between items-center">
           <div className="flex space-x-2 ml-3 items-center">
             <a href="/">
-              <h1 className="text-3xl">GoLatex</h1>
+              <h1 className="text-3xl pb-1">{AppName}</h1>
             </a>
             <a href="/about">
               <Button className="bg-inherit" variant="ghost">
@@ -77,7 +78,7 @@ const LayoutAuth: React.FC<LayoutProps> = ({ children }) => {
       {/* Footer */}
       <footer className="border-t p-3 bg-white dark:bg-black">
         <div className="text-center">
-          <p className="">©2024 GoLatex. All rights reserved.</p>
+          <p className="">©2024 {AppName}. All rights reserved.</p>
         </div>
       </footer>
     </div>

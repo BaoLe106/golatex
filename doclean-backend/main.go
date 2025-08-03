@@ -18,6 +18,7 @@ import (
 	"github.com/BaoLe106/doclean/doclean-backend/configs"
 	"github.com/BaoLe106/doclean/doclean-backend/services/auth"
 	"github.com/BaoLe106/doclean/doclean-backend/services/files"
+	"github.com/BaoLe106/doclean/doclean-backend/services/mail"
 
 	"github.com/BaoLe106/doclean/doclean-backend/services/latex"
 	"github.com/BaoLe106/doclean/doclean-backend/services/projects"
@@ -28,14 +29,13 @@ import (
 
 // var DB *sql.DB
 
-
 func main() {
 	connStr := fmt.Sprintf(
 		"user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",
-		configs.Envs.DBUser, 
-		configs.Envs.DBPassword, 
-		configs.Envs.DBName, 
-		configs.Envs.Host, 
+		configs.Envs.DBUser,
+		configs.Envs.DBPassword,
+		configs.Envs.DBName,
+		configs.Envs.Host,
 		configs.Envs.Port,
 	)
 
@@ -56,25 +56,24 @@ func main() {
 
 	if err != nil {
 		logger.BasicLogHandler(logger.BasicLogInput{
-			Status: false,
+			Status:  false,
 			Message: err.Error(),
 		})
 		return
 	}
-	
+
 	// jobProvider.InitJobManager()
 	// initStorage(db)
 
 	router := gin.Default()
 
-  // Global middleware
-  // Logger middleware will write the logs to gin.DefaultWriter even if you set with GIN_MODE=release.
-  // By default gin.DefaultWriter = os.Stdout
-  // router.Use(gin.Logger())
+	// Global middleware
+	// Logger middleware will write the logs to gin.DefaultWriter even if you set with GIN_MODE=release.
+	// By default gin.DefaultWriter = os.Stdout
+	// router.Use(gin.Logger())
 
-  // Recovery middleware recovers from any panics and writes a 500 if there was one.
-  router.Use(gin.Recovery())
-
+	// Recovery middleware recovers from any panics and writes a 500 if there was one.
+	router.Use(gin.Recovery())
 
 	router.Use(gin.LoggerWithFormatter(func(param gin.LogFormatterParams) string {
 		bgColor := helper.ColorForStatus(param.StatusCode)
@@ -87,20 +86,18 @@ func main() {
 			param.Path,
 		)
 	}))
-	
+
 	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins: 	[]string{"http://localhost:3006"},
+		AllowedOrigins:   []string{"https://lattex.org"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true,
 	})
-	
+
 	router.Use(func(c *gin.Context) {
 		corsMiddleware.HandlerFunc(c.Writer, c.Request)
 		c.Next()
 	})
-
-	
 
 	// router.GET("/api/v1/file/:sessionId", func(c *gin.Context) {
 	// 	c.JSON(200, gin.H{
@@ -108,17 +105,18 @@ func main() {
 	// 	})
 	// })
 
-	apiV1 := router.Group("/api/v1");
+	apiV1 := router.Group("/api/v1")
 	auth.AddAuthRoutes(apiV1, cognitoAuth)
 	files.AddFileRoutes(apiV1, cognitoAuth)
 	latex.AddLatexRoutes(apiV1, cognitoAuth)
 	projects.AddProjectRoutes(apiV1, cognitoAuth)
-	
+	mail.AddMailRoutes(apiV1, cognitoAuth)
+
 	// logger.BasicLogHandler(logger.BasicLogInput{
 	// 	Status: true,
 	// 	Message: fmt.Sprintf("Listening on %s!", ":8080"),
 	// })
-	
+
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "App is ready!",
