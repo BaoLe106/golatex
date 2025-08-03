@@ -51,6 +51,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAuthenticated(false);
       }
     };
+    if (!sessionId) {
+      setIsAuthenticated(false);
+      return;
+    }
     if (!bypassAuthCheckRoutes[currentPath] && sessionId) authCheck(sessionId);
     getProjectByProjectId(sessionId);
   }, []);
