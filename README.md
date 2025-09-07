@@ -16,7 +16,7 @@ A real-time, collaborative **LaTeX editor** built to make academic writing, rese
 
 - **Frontend**: React.js &nbsp;&nbsp;<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" width="30"/>
 - **Backend**: Golang &nbsp;&nbsp;<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg" width="30"/>
-- **Database**: Supabase &nbsp;&nbsp;<img src="https://seeklogo.com/images/S/supabase-logo-DCC676FFE2-seeklogo.com.png" width="30"/>
+- **Database**: Supabase &nbsp;&nbsp;<img src="https://img.icons8.com/?size=100&id=sH0rW2TvYdr9&format=png&color=000000" width="30"/>
 - **Real-Time Communication**: WebSockets
 - **Deployment**: Docker + AWS &nbsp;&nbsp;<img style="padding-right:8px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" width="30"/> <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" width="30"/>
 
