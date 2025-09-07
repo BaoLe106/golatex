@@ -9,7 +9,6 @@ A real-time, collaborative **LaTeX editor** built to make academic writing, rese
 - ✍️ **Real-time Collaboration** — Multiple users can edit together with conflict-free synchronization.
 - 📂 **Project Management** — Organize multiple `.tex` files and resources.
 - 🔒 **Authentication & Roles** — Secure login with support for multiple user roles.
-- 🌐 **Cross-Platform** — Works on web browsers with responsive design.
 
 ---
 
