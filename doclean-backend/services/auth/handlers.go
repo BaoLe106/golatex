@@ -309,9 +309,9 @@ func (cognitoAuth *CognitoAuth) SignIn(c *gin.Context) {
 	var RefreshToken = initiateAuthRes.AuthenticationResult.RefreshToken
 
 	// authResult = output.AuthenticationResult
-	c.SetCookie("AccessToken", *AccessToken, 3600, "/", "localhost", false, true)
-	c.SetCookie("IdToken", *IdToken, 3600, "/", "localhost", false, true)
-	c.SetCookie("RefreshToken", *RefreshToken, 86400, "/", "localhost", false, true)
+	c.SetCookie("AccessToken", *AccessToken, 3600, "/", "lattex.org", false, true)
+	c.SetCookie("IdToken", *IdToken, 3600, "/", "lattex.org", false, true)
+	c.SetCookie("RefreshToken", *RefreshToken, 86400, "/", "lattex.org", false, true)
 	// setCacheErr := redis.SetCache(c, "AccessToken", *AccessToken, 5*time.Minute)
 	// if setCacheErr != nil {
 	// 	fmt.Println("#debug set cache error", setCacheErr);

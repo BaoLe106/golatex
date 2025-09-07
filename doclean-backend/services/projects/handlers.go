@@ -33,7 +33,7 @@ func CreateProjectInfoHandler(c *gin.Context) {
 		return
 	}
 
-	err = CreateProjectInfo(projectId, input.ProjectTier)
+	err = CreateProjectInfo(projectId, input.ProjectTier, input.ProjectShareType)
 	if err != nil {
 		apiResponse.SendErrorResponse(c, http.StatusBadRequest, err.Error())
 		return

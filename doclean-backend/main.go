@@ -12,7 +12,7 @@ import (
 	"github.com/BaoLe106/doclean/doclean-backend/db"
 
 	// jobProvider "github.com/BaoLe106/doclean/doclean-backend/providers/job"
-	redisProvider "github.com/BaoLe106/doclean/doclean-backend/providers/redis"
+	// redisProvider "github.com/BaoLe106/doclean/doclean-backend/providers/redis"
 	s3Provider "github.com/BaoLe106/doclean/doclean-backend/providers/s3"
 
 	"github.com/BaoLe106/doclean/doclean-backend/configs"
