@@ -1,38 +1,32 @@
-# Development Guide
+# 📄 lattex.org - Collaborative LaTeX Editor
 
-Go to the root of the project:
+A real-time, collaborative **LaTeX editor** built to make academic writing, research collaboration, and technical documentation seamless. Multiple users (up to 3) can edit the same document simultaneously with instant updates and live preview.
 
-```
-doclean/
-├── doclean-backend/
-│   ├── cmd/
-│   ├── go.mod
-│   ├── go.sum
-│   ├── main.go
-│   └── Dockerfile
-│   └── ...
-├── frontend/
-│   ├── public/
-│   ├── src/
-│   ├── package.json
-│   ├── Dockerfile
-│   └── ...
-└── docker-compose.yml
-```
+---
 
-```
-docker network create golatex-network
-```
+## 🚀 Features
 
+- ✍️ **Real-time Collaboration** — Multiple users can edit together with conflict-free synchronization.
+- 📂 **Project Management** — Organize multiple `.tex` files and resources.
+- 🔒 **Authentication & Roles** — Secure login with support for multiple user roles.
+- 🌐 **Cross-Platform** — Works on web browsers with responsive design.
 
+---
 
+## 🛠️ Tech Stack
 
-# Ignore everything below this line:
-which mean at `doclean/`
+- **Frontend**: React.js &nbsp;&nbsp;<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" width="30"/>
+- **Backend**: Golang &nbsp;&nbsp;<img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg" width="30"/>
+- **Database**: Supabase &nbsp;&nbsp;<img src="https://seeklogo.com/images/S/supabase-logo-DCC676FFE2-seeklogo.com.png" width="30"/>
+- **Real-Time Communication**: WebSockets
+- **Deployment**: Docker + AWS &nbsp;&nbsp;<img style="padding-right:8px" src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/docker/docker-original.svg" width="30"/> <img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_Web_Services_Logo.svg" width="30"/>
 
+---
 
-and run the command below:
-```
-docker-compose up --build
-```
-then you are ready to go!
+## 📸 Screenshots
+
+![alt text](public/image.png)
+![alt text](public/image-1.png)
+![alt text](public/image-2.png)
+
+---
