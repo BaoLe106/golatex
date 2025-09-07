@@ -18,7 +18,7 @@ FROM golang:1.24.2-alpine AS go-builder
 WORKDIR /app
 
 # Copy and download dependencies first for better caching
-COPY .env.prod go.mod go.sum ./
+COPY .env go.mod go.sum ./
 
 RUN go mod download
 
