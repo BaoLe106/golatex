@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/BaoLe106/doclean/doclean-backend/configs"
+	project_enum "github.com/BaoLe106/doclean/doclean-backend/enum"
 	"github.com/golang-jwt/jwt/v4"
 
 	// "github.com/BaoLe106/doclean/doclean-backend/services/auth"
@@ -87,13 +88,15 @@ func refreshTokenForESignin(refreshToken string) (*string, error) {
 func VerifyTokenMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		projectId := c.Param("projectId")
-		projectShareType, exists := c.Get(projectId)
-		fmt.Println("#DEBUG::projectShareType", projectShareType, projectId)
-		if exists && projectShareType != 2 {
-			removeTokens(c)
-			c.Next()
-			return
-		}
+		fmt.Println("#DEBUG::projectId", projectId)
+		// projectShareType, exists := c.Get(projectId)
+		// fmt.Println("#DEBUG::projectShareType", projectShareType)
+		
+		// if exists && projectShareType != 2 {
+		// 	removeTokens(c)
+		// 	c.Next()
+		// 	return
+		// }
 
 		project, err := GetProjectInfoByProjectId(projectId)
 		if err != nil {
@@ -102,7 +105,7 @@ func VerifyTokenMiddleware() gin.HandlerFunc {
 			return
 		}
 		fmt.Println("#DEBUG::projectShareType", project.ProjectShareType)
-		if project.ProjectShareType != 2 {
+		if project.ProjectShareType == project_enum.PROJECT_SHARE_TYPE_EVERYONE {
 			removeTokens(c)
 			c.Next()
 			return

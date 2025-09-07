@@ -53,7 +53,7 @@ func CreateProjectOwner(projectId uuid.UUID, userId uuid.UUID, email string) err
 	return err
 }
 
-func CreateProjectInfo(projectId string, projectTier string) error {
+func CreateProjectInfo(projectId string, projectTier string, projectShareType int) error {
 	// sessionId = project_id
 
 	_, err := db.DB.Exec(`
@@ -61,17 +61,18 @@ func CreateProjectInfo(projectId string, projectTier string) error {
 			project_id,
 			project_name,
 			project_tier,
+			project_share_type,
 			created_by,
 			created_at,
 			last_updated_by,
 			last_updated_at
 		) VALUES (
-			$1,	$2,	$3,	$4, NOW(), $5, NOW()
+			$1,	$2,	$3,	$4, $5, NOW(), $6, NOW()
 		) ON CONFLICT (project_id) DO UPDATE SET
 			project_name = EXCLUDED.project_name,
 			last_updated_by = EXCLUDED.last_updated_by,
 			last_updated_at = NOW();
-	`, projectId, projectId, projectTier, projectId, projectId)
+	`, projectId, projectId, projectTier, projectShareType, projectId, projectId)
 
 	return err
 }

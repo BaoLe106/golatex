@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import App from "@/App.tsx";
+import { AuthProvider } from "@/context/AuthProvider";
 import ProtectedRoutes from "@/routers/ProtectedRoutes";
 import AppLayout from "@/components/layouts/AppLayout";
 import AppLayoutForAuthenticationPages from "@/components/layouts/AppLayoutForAuthenticationPages";
@@ -18,7 +19,11 @@ import ForbiddenView from "@/components/view/ForbiddenView";
 
 const router = createBrowserRouter([
   {
-    element: <AppLayout />,
+    element: (
+      <AuthProvider>
+        <AppLayout />
+      </AuthProvider>
+    ),
     // errorElement: <NotFoundView />,
     children: [
       { path: "/", element: <App /> },

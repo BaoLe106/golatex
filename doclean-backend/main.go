@@ -12,7 +12,7 @@ import (
 	"github.com/BaoLe106/doclean/doclean-backend/db"
 
 	// jobProvider "github.com/BaoLe106/doclean/doclean-backend/providers/job"
-	redisProvider "github.com/BaoLe106/doclean/doclean-backend/providers/redis"
+	// redisProvider "github.com/BaoLe106/doclean/doclean-backend/providers/redis"
 	s3Provider "github.com/BaoLe106/doclean/doclean-backend/providers/s3"
 
 	"github.com/BaoLe106/doclean/doclean-backend/configs"
@@ -40,7 +40,7 @@ func main() {
 	)
 
 	db.PostgresqlStorage(connStr)
-	redisProvider.InitRedisClient()
+	// redisProvider.InitRedisClient()
 	s3Provider.InitS3ClientWrapper(
 		configs.Envs.AccessKey,
 		configs.Envs.SecretAccessKey,
@@ -88,7 +88,8 @@ func main() {
 	}))
 
 	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins:   []string{"https://lattex.org"},
+		// AllowedOrigins:   []string{"https://lattex.org"},
+		AllowedOrigins:   []string{"http://localhost:3006"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
 		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		AllowCredentials: true,

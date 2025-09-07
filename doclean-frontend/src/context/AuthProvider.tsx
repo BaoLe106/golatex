@@ -1,7 +1,8 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { AuthService } from "@/services/auth/authService";
 import { ProjectService } from "@/services/projects/projectService";
-
+import { ProjectShareTypeEnum } from "@/const/projectEnum";
 // Define the auth context type
 interface AuthContextType {
   user: any | null;
@@ -31,12 +32,17 @@ const bypassAuthCheckRoutes: Record<string, boolean> = {
   "/register": true,
   "/confirm": true,
 };
-// AuthProvider component to wrap around your app
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  // const location = useLocation();
+  const { sessionId } = useParams<{ sessionId: string }>();
   const [user, setUser] = useState<any | null>(null);
   const [projectShareType, setProjectShareType] = useState<number>(0);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    getProjectByProjectId(sessionId);
+  }, [sessionId]);
 
   useEffect(() => {
     let isMounted: boolean = true;
@@ -51,13 +57,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsAuthenticated(false);
       }
     };
-    if (!sessionId) {
-      setIsAuthenticated(false);
-      return;
-    }
-    if (!bypassAuthCheckRoutes[currentPath] && sessionId) authCheck(sessionId);
-    getProjectByProjectId(sessionId);
-  }, []);
+    if (
+      projectShareType === ProjectShareTypeEnum.EVERYONE ||
+      (!bypassAuthCheckRoutes[currentPath] && sessionId)
+    )
+      authCheck(sessionId);
+  }, [projectShareType]);
 
   const getProjectByProjectId = async (projectId: string) => {
     try {

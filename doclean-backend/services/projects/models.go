@@ -32,7 +32,8 @@ type GetProjectInfoByProjectIdPayload struct {
 }
 
 type CreateProjectPayload struct {
-	ProjectTier string `json:"projectTier"`
+	ProjectTier 			string `json:"projectTier"`
+	ProjectShareType 	int 		`json:"projectShareType"`
 }
 
 // type ChangeProjectShareTypePayload struct {
