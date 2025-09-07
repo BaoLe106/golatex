@@ -1,1 +1,7 @@
+.envrc
+.env.*
+bin
+tmp
+*.tex
+/lambda/*
 .env
