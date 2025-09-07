@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { v4 as uuidv4 } from "uuid";
+import { ProjectShareTypeEnum } from "@/const/projectEnum";
 import { useTheme } from "@/context/ThemeProvider";
 interface LayoutProps {
   children: ReactNode;
@@ -18,7 +19,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const createProject = async (sessionId: string) => {
     if (!sessionId) return;
     try {
-      await ProjectService.createProject(sessionId, "GUEST");
+      await ProjectService.createProject(sessionId, {
+        projectTier: ProjectShareTypeEnum[ProjectShareTypeEnum.EVERYONE],
+        projectShareType: ProjectShareTypeEnum.EVERYONE,
+      });
       navigate(`/project/${sessionId}`);
     } catch (err: any) {}
   };
